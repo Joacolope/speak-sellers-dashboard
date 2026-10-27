@@ -231,15 +231,6 @@ create table if not exists comisiones_plataformas (
   check (fecha_baja is null or fecha_baja >= fecha_alta)
 );
 
--- Costos reales confirmados por Joaco (se cargan una sola vez; después se editan en Costos).
-insert into costos (nombre, categoria, frecuencia, monto, fecha_alta, notas, source)
-select v.nombre, 'CRM y ventas', 'Mensual', v.monto, date '2026-10-01', v.notas, 'manual'
-from (values
-  ('GoHighLevel', 97::numeric, 'Plan base'),
-  ('GoHighLevel · integración WhatsApp', 30::numeric, 'Add-on de WhatsApp')
-) as v(nombre, monto, notas)
-where not exists (select 1 from costos c where c.nombre = v.nombre);
-
 -- Comisiones iniciales (se cargan una sola vez, si la tabla está vacía).
 -- Marcos es el dueño: 0 %. Andrea y Gonzalo: 10 % sobre lo cobrado. Se cambian desde Costos.
 insert into comisiones (closer, porcentaje, fecha_alta, notas, source)
@@ -288,6 +279,15 @@ create table if not exists log_agente (
   cambios jsonb,
   pendientes jsonb
 );
+
+-- Costos reales confirmados por Joaco (se cargan una sola vez; después se editan en Costos).
+insert into costos (nombre, categoria, frecuencia, monto, fecha_alta, notas, source)
+select v.nombre, 'CRM y ventas', 'Mensual', v.monto, date '2026-10-01', v.notas, 'manual'
+from (values
+  ('GoHighLevel', 97::numeric, 'Plan base'),
+  ('GoHighLevel · integración WhatsApp', 30::numeric, 'Add-on de WhatsApp')
+) as v(nombre, monto, notas)
+where not exists (select 1 from costos c where c.nombre = v.nombre);
 
 -- Auditoría: quién hizo cada carga manual (email o "token:claude")
 alter table leads add column if not exists editado_por text;
