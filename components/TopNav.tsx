@@ -47,6 +47,10 @@ export default function TopNav({ email, rol, puedeCargar }: { email: string; rol
 
         <div className="flex items-center gap-2">
           {puedeCargar && <Link href={`/cargar${query}`} className="btn-primary hidden md:inline-block">Cargar</Link>}
+          <form method="POST" action="/demo" className="hidden lg:block" title="Ver la plataforma con datos de ejemplo">
+            <input type="hidden" name="activar" value="1" />
+            <button type="submit" className="flex h-9 items-center rounded-full bg-[var(--nav-pill)] px-3 text-[13px] text-text-muted hover:text-text">Demo</button>
+          </form>
           <ThemeToggle />
           <form method="POST" action="/auth/logout" className="hidden sm:block">
             <button

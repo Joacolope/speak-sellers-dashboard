@@ -91,7 +91,11 @@ export function DemoBanner() {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--yellow-soft)] px-5 py-3 text-[14px] text-text-muted">
       <Tag color="yellow">Datos de ejemplo</Tag>
-      Supabase no está configurado. Los números salen de la sección 10 de la spec (octubre 2026) y solo sirven para ver el diseño. Cargá <code className="mono text-[12px]">SUPABASE_URL</code> y <code className="mono text-[12px]">SUPABASE_SERVICE_ROLE</code> en Vercel para ver datos reales.
+      <span>Estás viendo números inventados para revisar el diseño. Nada de esto es real.</span>
+      <form method="POST" action="/demo" className="ml-auto">
+        <input type="hidden" name="activar" value="0" />
+        <button type="submit" className="btn-secondary !py-1.5 !text-[13px]">Volver a datos reales</button>
+      </form>
     </div>
   );
 }
