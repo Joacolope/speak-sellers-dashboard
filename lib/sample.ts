@@ -382,13 +382,13 @@ export function sampleBundle(): RawBundle {
       { id: 'com-2', closer: 'Andrea', porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
       { id: 'com-3', closer: 'Gonzalo', porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
     ],
-    // Tarifas de ejemplo (ilustrativas)
+    // Tarifas reales (mismas que la carga inicial de la base)
     comisionesPlataformas: [
       { id: 'cp-1', plataforma: 'Stripe', porcentaje: 4.4, fijo: 0.3, fecha_alta: '2026-08-01', source: 'manual' },
-      { id: 'cp-2', plataforma: 'Wise', porcentaje: 1, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
-      { id: 'cp-3', plataforma: 'Mercado Pago', porcentaje: 6, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
-      { id: 'cp-4', plataforma: 'Cripto', porcentaje: 1, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
-      { id: 'cp-5', plataforma: 'DólarApp', porcentaje: 1, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'cp-2', plataforma: 'Wise', porcentaje: 0, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'cp-3', plataforma: 'Mercado Pago', porcentaje: 0, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'cp-4', plataforma: 'Cripto', porcentaje: 0, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'cp-5', plataforma: 'DólarApp', porcentaje: 0, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
       { id: 'cp-6', plataforma: 'Efectivo', porcentaje: 0, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
     ],
     costos: construirCostos(),

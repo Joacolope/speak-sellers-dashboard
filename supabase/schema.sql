@@ -289,6 +289,22 @@ from (values
 ) as v(nombre, monto, notas)
 where not exists (select 1 from costos c where c.nombre = v.nombre);
 
+-- Tarifas de plataformas de cobro (se cargan una sola vez, si la tabla está vacía).
+-- Stripe, cuenta de EE. UU. (LLC Wyoming), tarjetas de afuera: 2,9 % + 1,5 % internacional = 4,4 % + 0,30 USD.
+--   (+1 % si se cobra en una moneda que no es USD). Wise: recibir USD por ACH no tiene costo
+--   (un wire entrante cuesta ~6,11 USD fijo). Mercado Pago por transferencia, DólarApp, efectivo y cripto: 0.
+insert into comisiones_plataformas (plataforma, porcentaje, fijo, fecha_alta, notas, source)
+select v.plataforma, v.pct, v.fijo, date '2026-08-01', v.notas, 'manual'
+from (values
+  ('Stripe', 4.4::numeric, 0.30::numeric, 'Cuenta US: 2,9 % + 1,5 % por tarjeta internacional + 0,30 USD'),
+  ('Wise', 0, 0, 'Recibir USD por ACH: sin costo. Wire entrante: ~6,11 USD'),
+  ('Mercado Pago', 0, 0, 'Transferencia: sin comisión'),
+  ('DólarApp', 0, 0, 'Sin comisión'),
+  ('Efectivo', 0, 0, null),
+  ('Cripto', 0, 0, 'Sin comisión (salvo costo de red, si aplica)')
+) as v(plataforma, pct, fijo, notas)
+where not exists (select 1 from comisiones_plataformas);
+
 -- Auditoría: quién hizo cada carga manual (email o "token:claude")
 alter table leads add column if not exists editado_por text;
 -- Por dónde entró cada cobro
