@@ -5,21 +5,21 @@ Joaco dicta, Claude escribe en Supabase. Patrón de uso en cualquier chat del pr
 ## Cómo escribir
 
 Opción A (preferida): MCP de Supabase, tablas `agendas`, `cobranzas`, `leads`, `ajustes_mensuales`.
-Opción B: `POST https://speak-sellers-dashboard.vercel.app/api/cargar` con JSON y el `pin` (`PIN_CARGA`):
+Opción B: `POST https://speak-sellers-dashboard.vercel.app/api/cargar` con JSON y el header `Authorization: Bearer $CARGA_API_TOKEN`:
 
 ```json
-{ "pin": "1234", "tipo": "venta", "nombre": "Elías Sánchez", "compro": "Si", "metodo_pago": "PIF", "cash_collected": 1200, "revenue": 1200 }
-{ "pin": "1234", "tipo": "cobranza", "nombre": "Betina", "fecha_cobro": "2026-10-27", "monto_cobrado": 670, "pendiente": 1000, "cuotas_restantes": 1, "proximo_vencimiento": "2026-11-15" }
-{ "pin": "1234", "tipo": "cobranza", "nombre": "Martinetti", "fecha_cobro": "2026-10-18", "monto_cobrado": -1500 }
-{ "pin": "1234", "tipo": "asistencia", "nombre": "Axel", "asistio": "No show" }
+{ "tipo": "venta", "nombre": "Elías Sánchez", "compro": "Si", "metodo_pago": "PIF", "cash_collected": 1200, "revenue": 1200 }
+{ "tipo": "cobranza", "nombre": "Betina", "fecha_cobro": "2026-10-27", "monto_cobrado": 670, "pendiente": 1000, "cuotas_restantes": 1, "proximo_vencimiento": "2026-11-15" }
+{ "tipo": "cobranza", "nombre": "Martinetti", "fecha_cobro": "2026-10-18", "monto_cobrado": -1500 }
+{ "tipo": "asistencia", "nombre": "Axel", "asistio": "No show" }
 ```
 
 Costos (software): `POST /api/costos`
 
 ```json
-{ "pin": "1234", "accion": "alta", "nombre": "ManyChat Pro", "categoria": "Mensajería", "frecuencia": "Mensual", "monto": 15 }
-{ "pin": "1234", "accion": "precio", "id": "<uuid>", "monto": 297, "fecha": "2026-11-01" }
-{ "pin": "1234", "accion": "baja", "id": "<uuid>", "fecha": "2026-10-31" }
+{ "accion": "alta", "nombre": "ManyChat Pro", "categoria": "Mensajería", "frecuencia": "Mensual", "monto": 15 }
+{ "accion": "precio", "id": "<uuid>", "monto": 297, "fecha": "2026-11-01" }
+{ "accion": "baja", "id": "<uuid>", "fecha": "2026-10-31" }
 ```
 
 ## Traducción de frases

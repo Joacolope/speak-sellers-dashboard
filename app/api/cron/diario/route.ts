@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabase, supabaseConfigurado } from '@/lib/supabase';
+import { bearerValido, env } from '@/lib/env';
 import { syncGhl } from '@/lib/sync/ghl';
 import { syncMetaAds } from '@/lib/sync/meta';
 import { syncIgOrganico } from '@/lib/sync/ig';
@@ -13,8 +14,8 @@ export const dynamic = 'force-dynamic';
  * Si una fuente falla, las otras siguen; el error queda en log_agente.
  */
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get('authorization');
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  // CRON_SECRET es obligatorio (mín. 32 caracteres); Vercel lo manda solo en el header.
+  if (!bearerValido(req.headers.get('authorization'), env.cronSecret())) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
   if (!supabaseConfigurado()) return NextResponse.json({ error: 'Supabase no configurado' }, { status: 503 });

@@ -9,6 +9,7 @@ import { mesesDisponibles, metricasConAnterior, serieMeses } from '@/lib/metrics
 import { costosDelMes, equivalenteMensual } from '@/lib/costos';
 import { fechaCorta, nombreMes, num, pct, usd, variacion } from '@/lib/format';
 import { CATEGORIAS_COSTO } from '@/lib/types';
+import { getSesion, puede } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,8 @@ const Campo = ({ label, children }: { label: string; children: React.ReactNode }
 
 export default async function Costos({ searchParams }: { searchParams: SearchParams & { ok?: string; error?: string } }) {
   const bundle = await getBundle();
+  const sesion = await getSesion();
+  const editor = puede(sesion, 'editor');
   const f = { ...leerFiltros(searchParams), closer: 'todos' as const, fuente: 'todas' as const };
   const meses = mesesDisponibles(bundle, f.mes);
   const { actual, anterior } = metricasConAnterior(bundle, f);
@@ -118,7 +121,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
         </ChartCard>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      {editor && (<section className="grid gap-4 lg:grid-cols-2">
         <form method="POST" action="/api/costos" className="card flex flex-col gap-4">
           <div>
             <h3 className="card-title">Agregar herramienta</h3>
@@ -142,10 +145,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
             <Campo label="Desde"><input className="input" name="fecha_alta" type="date" defaultValue={hoy} /></Campo>
             <Campo label="Notas"><input className="input" name="notas" placeholder="Para qué se usa" /></Campo>
           </div>
-          <div className="flex items-end gap-3">
-            <Campo label="PIN"><input className="input !w-28" name="pin" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} required /></Campo>
-            <button className="btn-primary" type="submit">Agregar</button>
-          </div>
+          <div><button className="btn-primary" type="submit">Agregar</button></div>
         </form>
 
         <form method="POST" action="/api/costos" className="card flex flex-col gap-4">
@@ -170,12 +170,9 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
             <Campo label="Nuevo monto (solo para cambio de precio)"><input className="input" name="monto" type="number" step="0.01" min="0" /></Campo>
             <Campo label="Fecha"><input className="input" name="fecha" type="date" defaultValue={hoy} /></Campo>
           </div>
-          <div className="flex items-end gap-3">
-            <Campo label="PIN"><input className="input !w-28" name="pin" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} required /></Campo>
-            <button className="btn-secondary" type="submit">Guardar</button>
-          </div>
+          <div><button className="btn-secondary" type="submit">Guardar</button></div>
         </form>
-      </section>
+      </section>)}
 
       {historicas.length > 0 && (
         <ChartCard titulo="Historial" sub="Herramientas que no cuentan en este mes (dadas de baja, futuras o pagos únicos de otro mes)">

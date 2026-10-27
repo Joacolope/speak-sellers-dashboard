@@ -1,14 +1,17 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { supabase, supabaseConfigurado } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { exigir } from '@/lib/auth';
 
 /**
- * Carga manual (formulario /cargar o Claude vía fetch).
- * Acepta form-data o JSON. Protegido con PIN_CARGA.
+ * Carga manual (formulario /cargar o Claude).
+ * Acepta form-data (usuario editor con sesión de Google) o JSON con
+ * "Authorization: Bearer $CARGA_API_TOKEN" (Claude / scripts).
  * Busca la agenda más reciente del lead por nombre (ilike). Si hay más de un lead, devuelve error.
  */
 export async function POST(req: NextRequest) {
   const esForm = req.headers.get('content-type')?.includes('form');
   const data: Record<string, string> = {};
+  // Errores de base de datos: no se devuelven al cliente (no filtrar estructura interna)
   if (esForm) {
     const fd = await req.formData();
     fd.forEach((v, k) => (data[k] = String(v)));
@@ -22,29 +25,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(url, 303);
   };
 
-  if (!process.env.PIN_CARGA || data.pin !== process.env.PIN_CARGA) return volver({ error: 'PIN incorrecto' });
-  if (!supabaseConfigurado()) return volver({ error: 'Modo demo: Supabase no está configurado' });
+  const auth = await exigir('editor', { permitirToken: true });
+  if (!auth.ok) return esForm ? volver({ error: auth.error }) : NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const sb = supabase();
-  const nombre = (data.nombre ?? '').trim();
+  const nombre = (data.nombre ?? '').trim().slice(0, 120);
   if (!nombre) return volver({ error: 'Falta el nombre' });
+  // ilike con comodines escapados: el nombre no puede inyectar patrones
+  const patron = nombre.replace(/[\\%_]/g, (c) => `\\${c}`);
 
-  const { data: leads, error: eLeads } = await sb.from('leads').select('id, nombre').ilike('nombre', `%${nombre}%`);
-  if (eLeads) return volver({ error: eLeads.message });
+  const { data: leads, error: eLeads } = await sb.from('leads').select('id, nombre').ilike('nombre', `%${patron}%`);
+  if (eLeads) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
   if (!leads?.length) return volver({ error: `No encontré ningún lead que se llame "${nombre}"` });
   if (leads.length > 1) return volver({ error: `Hay ${leads.length} leads que matchean "${nombre}": ${leads.map((l) => l.nombre).join(', ')}. Pasá el nombre completo.` });
   const lead = leads[0];
 
   const { data: agendas, error: eAg } = await sb.from('agendas').select('*').eq('lead_id', lead.id).order('fecha_llamada', { ascending: false }).limit(1);
-  if (eAg) return volver({ error: eAg.message });
+  if (eAg) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
   const agenda = agendas?.[0];
   if (!agenda) return volver({ error: `${lead.nombre} no tiene agendas` });
 
-  const n = (v: string | undefined) => (v === undefined || v === '' ? null : Number(v));
+  const n = (v: string | number | undefined) => {
+    if (v === undefined || v === '' || v === null) return null;
+    const x = Number(v);
+    return Number.isFinite(x) && Math.abs(x) < 1e7 ? x : null;
+  };
   const ahora = new Date().toISOString();
 
   if (data.tipo === 'venta') {
     const compro = data.compro ?? 'Si';
+    if (!['Si', 'No', 'Reserva'].includes(compro)) return volver({ error: 'Valor de compra inválido' });
+    if (data.metodo_pago && !['PIF', 'Cuotas', 'Reserva'].includes(data.metodo_pago)) return volver({ error: 'Método inválido' });
     const patch = {
       asistio: 'Asistió',
       oferta_hecha: true,
@@ -54,10 +65,11 @@ export async function POST(req: NextRequest) {
       revenue: n(data.revenue) ?? n(data.cash_collected),
       producto: data.producto || null,
       source: 'manual',
+      editado_por: auth.quien,
       updated_at: ahora,
     };
     const { error } = await sb.from('agendas').update(patch).eq('id', agenda.id);
-    if (error) return volver({ error: error.message });
+    if (error) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
     if (patch.cash_collected && compro !== 'No') {
       await sb.from('cobranzas').insert({
         agenda_id: agenda.id,
@@ -68,6 +80,7 @@ export async function POST(req: NextRequest) {
         closer: agenda.closer,
         es_reembolso: false,
         source: 'manual',
+        editado_por: auth.quien,
       });
     }
     return volver({ ok: `${lead.nombre} · ${compro} · ${patch.cash_collected ?? 0} USD` });
@@ -86,24 +99,26 @@ export async function POST(req: NextRequest) {
       closer: agenda.closer,
       es_reembolso: monto < 0,
       source: 'manual',
-      notas: data.notas || null,
+      editado_por: auth.quien,
+      notas: data.notas ? String(data.notas).slice(0, 2000) : null,
     });
-    if (error) return volver({ error: error.message });
+    if (error) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
     // Cash collected acumulado en la agenda
     const { data: cobs } = await sb.from('cobranzas').select('monto_cobrado').eq('agenda_id', agenda.id);
     const total = (cobs ?? []).reduce((s, c) => s + Number(c.monto_cobrado), 0);
-    const patch: Record<string, unknown> = { cash_collected: total, source: 'manual', updated_at: ahora };
+    const patch: Record<string, unknown> = { cash_collected: total, source: 'manual', editado_por: auth.quien, updated_at: ahora };
     if (monto < 0 && total <= 0) patch.compro = 'No';
     await sb.from('agendas').update(patch).eq('id', agenda.id);
     return volver({ ok: `${lead.nombre} · ${monto} USD · acumulado ${total} USD` });
   }
 
   if (data.tipo === 'asistencia') {
-    const patch: Record<string, unknown> = { asistio: data.asistio, source: 'manual', updated_at: ahora };
+    if (!['Asistió', 'No show', 'Canceló', 'Pendiente'].includes(data.asistio)) return volver({ error: 'Valor de asistencia inválido' });
+    const patch: Record<string, unknown> = { asistio: data.asistio, source: 'manual', editado_por: auth.quien, updated_at: ahora };
     if (data.oferta_hecha) patch.oferta_hecha = data.oferta_hecha === 'true';
-    if (data.closer) patch.closer = data.closer;
+    if (data.closer && ['Marcos', 'Andrea', 'Gonzalo'].includes(data.closer)) patch.closer = data.closer;
     const { error } = await sb.from('agendas').update(patch).eq('id', agenda.id);
-    if (error) return volver({ error: error.message });
+    if (error) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
     if (data.cualificacion_economica) {
       await sb.from('leads').update({ cualificacion_economica: n(data.cualificacion_economica), updated_at: ahora }).eq('id', lead.id);
     }

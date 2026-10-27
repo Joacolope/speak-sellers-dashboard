@@ -1,4 +1,6 @@
+import { redirect } from 'next/navigation';
 import { CLOSERS } from '@/lib/types';
+import { getSesion, puede } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,10 +10,6 @@ function Bloque({ titulo, tipo, children }: { titulo: string; tipo: string; chil
       <div className="eyebrow">{titulo}</div>
       <input type="hidden" name="tipo" value={tipo} />
       {children}
-      <label className="flex flex-col gap-2 text-[14px] text-text-muted">
-        PIN
-        <input className="input" name="pin" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} required />
-      </label>
       <button className="btn-primary" type="submit">Guardar</button>
     </form>
   );
@@ -21,14 +19,16 @@ const Campo = ({ label, children }: { label: string; children: React.ReactNode }
   <label className="flex flex-col gap-2 text-[14px] text-text-muted">{label}{children}</label>
 );
 
-export default function Cargar({ searchParams }: { searchParams: { ok?: string; error?: string } }) {
+export default async function Cargar({ searchParams }: { searchParams: { ok?: string; error?: string } }) {
+  const sesion = await getSesion();
+  if (!puede(sesion, 'editor')) redirect('/');
   return (
     <>
       <div>
         <div className="eyebrow">Carga manual</div>
         <h1 className="h1 mt-2">Cargar a mano</h1>
         <p className="mt-2 max-w-2xl text-[14px] text-text-muted">
-          Respaldo del dictado a Claude. Todo lo que se guarda acá queda con <span className="mono text-[12px]">source = manual</span> y el cron nunca lo pisa.
+          Respaldo del dictado a Claude. Todo lo que se guarda acá queda como carga manual, con tu email, y el cron nunca lo pisa.
           Se busca el lead por nombre; si hay más de uno, hay que pasar el nombre completo.
         </p>
         {searchParams.ok && <div className="ok mt-3 text-[14px]">Guardado: {searchParams.ok}</div>}

@@ -1,5 +1,12 @@
 -- Speak Sellers Dashboard · schema de Supabase
--- Correr una sola vez en el SQL Editor del proyecto. Idempotente (if not exists / or replace).
+-- Se aplica solo en cada deploy (scripts/db-setup.mjs). También se puede pegar
+-- en el SQL Editor. Idempotente: correrlo de nuevo no rompe ni borra nada.
+--
+-- Seguridad:
+--  · Nadie anónimo lee ni escribe (se revocan permisos a anon).
+--  · Usuarios logueados con Google leen SOLO si su email está en `usuarios` y activo.
+--  · Escribir solo lo hace el servidor (service role) después de verificar el rol.
+--  · Las vistas respetan RLS (security_invoker).
 
 create extension if not exists "pgcrypto";
 
@@ -192,6 +199,18 @@ create table if not exists ajustes_mensuales (
   objetivo_cierre_oferta numeric(5,4) default 0.30
 );
 
+-- Quién puede entrar. El login es con Google; si el email no está acá (o está
+-- inactivo) no ve nada. admin y editor cargan datos; lector solo mira.
+create table if not exists usuarios (
+  email text primary key check (email = lower(email) and position('@' in email) > 1),
+  nombre text,
+  rol text not null default 'lector' check (rol in ('admin','editor','lector')),
+  activo boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  ultimo_ingreso timestamptz
+);
+
 -- Software y costos fijos. Cuenta desde fecha_alta hasta fecha_baja (incluida).
 -- Anual = monto/12 por mes. Único = entero en el mes de fecha_alta.
 -- Un cambio de precio cierra la fila vieja y abre una nueva (historial intacto).
@@ -222,6 +241,13 @@ create table if not exists log_agente (
   pendientes jsonb
 );
 
+-- Auditoría: quién hizo cada carga manual (email o "token:claude")
+alter table leads add column if not exists editado_por text;
+alter table agendas add column if not exists editado_por text;
+alter table cobranzas add column if not exists editado_por text;
+alter table costos add column if not exists editado_por text;
+alter table ajustes_mensuales add column if not exists editado_por text;
+
 -- ───────────────────────── updated_at automático ─────────────────────────
 create or replace function set_updated_at() returns trigger language plpgsql as $$
 begin new.updated_at = now(); return new; end $$;
@@ -229,7 +255,7 @@ begin new.updated_at = now(); return new; end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','log_agente'] loop
+  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','usuarios','log_agente'] loop
     execute format('drop trigger if exists %I_updated_at on %I', t, t);
     execute format('create trigger %I_updated_at before update on %I for each row execute function set_updated_at()', t, t);
   end loop;
@@ -250,14 +276,14 @@ create or replace function costo_software_mes(p_mes date) returns numeric langua
   from costos
 $$;
 
-create or replace view v_costos_mes as
+create or replace view v_costos_mes with (security_invoker = true) as
 select m.mes::date as mes, costo_software_mes(m.mes::date) as software
 from generate_series(date_trunc('month', now()) - interval '24 months', date_trunc('month', now()) + interval '1 month', interval '1 month') as m(mes);
 
 -- ───────────────────────── Vistas ─────────────────────────
 -- Todo se calcula, nada se tipea.
 
-create or replace view v_funnel_mes as
+create or replace view v_funnel_mes with (security_invoker = true) as
 with ag as (
   select date_trunc('month', fecha_llamada at time zone 'America/Argentina/Buenos_Aires')::date as mes,
          count(*) as agendas,
@@ -282,7 +308,7 @@ select ag.mes, conv.conversaciones, ag.agendas, ag.asistencias, ag.ofertas, ag.c
        ag.revenue_bruto - coalesce(rf.reembolsos,0) as ventas_usd
 from ag left join conv using (mes) left join rf using (mes);
 
-create or replace view v_metricas_mes as
+create or replace view v_metricas_mes with (security_invoker = true) as
 with f as (select * from v_funnel_mes),
 ag as (
   select date_trunc('month', fecha_llamada at time zone 'America/Argentina/Buenos_Aires')::date as mes,
@@ -326,7 +352,7 @@ select f.mes,
        coalesce(ads.inversion_ads,0) as inversion_ads, aj.costo_software
 from f left join ag using (mes) left join st using (mes) left join ads using (mes) left join aj using (mes) left join cash using (mes);
 
-create or replace view v_closer_mes as
+create or replace view v_closer_mes with (security_invoker = true) as
 select date_trunc('month', fecha_llamada at time zone 'America/Argentina/Buenos_Aires')::date as mes, closer,
        count(*) as agendas,
        count(*) filter (where asistio = 'Asistió') as asistencias,
@@ -338,7 +364,7 @@ select date_trunc('month', fecha_llamada at time zone 'America/Argentina/Buenos_
        coalesce(sum(revenue) filter (where compro in ('Si','Reserva')),0) as revenue
 from agendas group by 1, 2;
 
-create or replace view v_top_organico_mes as
+create or replace view v_top_organico_mes with (security_invoker = true) as
 select * from (
   select date_trunc('month', fecha)::date as mes, 'historia_respuestas' as ranking, ig_media_id, titulo, fecha, respuestas as valor,
          row_number() over (partition by date_trunc('month', fecha) order by respuestas desc nulls last) as pos
@@ -353,7 +379,7 @@ select * from (
   from organico_piezas where tipo = 'reel' and not promocionado
 ) t where pos <= 5;
 
-create or replace view v_cobranzas_pendientes as
+create or replace view v_cobranzas_pendientes with (security_invoker = true) as
 select distinct on (c.agenda_id)
        c.agenda_id, l.nombre, c.closer, c.pendiente, c.cuotas_restantes, c.proximo_vencimiento, c.fecha_cobro as ultimo_cobro
 from cobranzas c
@@ -362,14 +388,42 @@ join leads l on l.id = a.lead_id
 where c.pendiente > 0
 order by c.agenda_id, c.fecha_cobro desc;
 
--- ───────────────────────── RLS ─────────────────────────
--- Hasta que haya login: solo el service role escribe, anon lee.
+-- ───────────────────────── RLS y permisos ─────────────────────────
+-- ¿El usuario logueado (JWT de Supabase Auth) está en la lista y activo?
+create or replace function es_usuario_permitido() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from usuarios
+    where email = lower(coalesce(auth.jwt() ->> 'email', '')) and activo
+  )
+$$;
+
 do $$
 declare t text;
 begin
   foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','log_agente'] loop
     execute format('alter table %I enable row level security', t);
-    execute format('drop policy if exists %I_anon_lee on %I', t, t);
-    execute format('create policy %I_anon_lee on %I for select to anon using (true)', t, t);
+    execute format('alter table %I force row level security', t);
+    execute format('drop policy if exists %I_anon_lee on %I', t, t);           -- política vieja, insegura
+    execute format('drop policy if exists %I_lectura_permitidos on %I', t, t);
+    execute format('create policy %I_lectura_permitidos on %I for select to authenticated using (es_usuario_permitido())', t, t);
   end loop;
 end $$;
+
+alter table usuarios enable row level security;
+alter table usuarios force row level security;
+drop policy if exists usuarios_ve_su_fila on usuarios;
+create policy usuarios_ve_su_fila on usuarios for select to authenticated
+  using (email = lower(coalesce(auth.jwt() ->> 'email', '')));
+
+-- Sin acceso anónimo; los logueados solo leen (RLS filtra); escribir es solo del servidor.
+revoke all on all tables in schema public from anon;
+revoke all on all sequences in schema public from anon;
+revoke insert, update, delete, truncate, references, trigger on all tables in schema public from authenticated;
+grant select on all tables in schema public to authenticated;
+revoke all on function es_usuario_permitido() from public, anon;
+grant execute on function es_usuario_permitido() to authenticated;
+revoke all on function costo_software_mes(date) from public, anon;
+grant execute on function costo_software_mes(date) to authenticated;
+alter default privileges in schema public revoke all on tables from anon;
+alter default privileges in schema public revoke all on functions from anon;

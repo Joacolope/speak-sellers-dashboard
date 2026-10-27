@@ -16,7 +16,7 @@ const SECCIONES = [
   { href: '/puntos-de-contacto', label: 'Contacto' },
 ];
 
-export default function TopNav() {
+export default function TopNav({ email, rol, puedeCargar }: { email: string; rol: string; puedeCargar: boolean }) {
   const pathname = usePathname();
   const sp = useSearchParams();
   const query = sp.toString() ? `?${sp.toString()}` : '';
@@ -46,8 +46,20 @@ export default function TopNav() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link href={`/cargar${query}`} className="btn-primary hidden md:inline-block">Cargar</Link>
+          {puedeCargar && <Link href={`/cargar${query}`} className="btn-primary hidden md:inline-block">Cargar</Link>}
           <ThemeToggle />
+          <form method="POST" action="/auth/logout" className="hidden sm:block">
+            <button
+              type="submit"
+              title={`${email} · ${rol} · cerrar sesión`}
+              className="flex h-9 items-center gap-2 rounded-full bg-[var(--nav-pill)] px-3 text-[13px] text-text-muted hover:text-text"
+            >
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--blue-soft)] text-[12px] font-medium text-[var(--blue-ink)]">
+                {email.slice(0, 1).toUpperCase()}
+              </span>
+              Salir
+            </button>
+          </form>
         </div>
       </div>
       <nav className="mx-auto flex max-w-[1200px] gap-1 overflow-x-auto px-4 pb-3 xl:hidden">

@@ -14,10 +14,12 @@ interface Props {
   opciones?: Opcion[];
   mostrar?: React.ReactNode;
   demo?: boolean;
+  /** Si es false, se muestra el valor sin edición (rol lector). */
+  editable?: boolean;
 }
 
 /** Celda editable: click → dropdown o número; escribe a Supabase con source = manual. */
-export default function EditableCell({ agendaId, campo, valor, tipo, opciones, mostrar, demo }: Props) {
+export default function EditableCell({ agendaId, campo, valor, tipo, opciones, mostrar, demo, editable = true }: Props) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -38,6 +40,10 @@ export default function EditableCell({ agendaId, campo, valor, tipo, opciones, m
     }
     router.refresh();
   };
+
+  if (!editable) {
+    return <span>{mostrar ?? (valor === null || valor === undefined || valor === '' ? <span className="text-text-disabled">—</span> : String(valor))}</span>;
+  }
 
   if (!editando) {
     return (

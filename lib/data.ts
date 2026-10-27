@@ -2,12 +2,16 @@ import { cache } from 'react';
 import type { Agenda, Lead, RawBundle, UltimaActualizacion } from './types';
 import { sampleBundle } from './sample';
 import { supabase, supabaseConfigurado } from './supabase';
+import { getSesion } from './auth';
 
 /**
  * Trae todo lo que el dashboard necesita. Si Supabase no está configurado,
  * devuelve los datos de ejemplo de la spec (modo demo).
  */
 export const getBundle = cache(async (): Promise<RawBundle> => {
+  // Segunda barrera: aunque el middleware falle, sin sesión válida no se lee nada.
+  const sesion = await getSesion();
+  if (!sesion) throw new Error('No autorizado');
   if (!supabaseConfigurado()) return sampleBundle();
 
   const sb = supabase();
