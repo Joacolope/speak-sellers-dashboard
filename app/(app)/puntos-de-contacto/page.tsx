@@ -1,0 +1,82 @@
+import { Suspense } from 'react';
+import Filtros from '@/components/Filtros';
+import { DemoBanner, Seccion, Vacio } from '@/components/ui';
+import TortaFuente from '@/components/TortaFuente';
+import { getBundle } from '@/lib/data';
+import { leerFiltros, type SearchParams } from '@/lib/filtros';
+import { esVenta, mesesDisponibles } from '@/lib/metrics';
+import { fechaCorta, mesCorto, mesDe, num, usd } from '@/lib/format';
+
+export const dynamic = 'force-dynamic';
+
+export default async function PuntosDeContacto({ searchParams }: { searchParams: SearchParams }) {
+  const bundle = await getBundle();
+  const f = leerFiltros(searchParams);
+  const meses = mesesDisponibles(bundle, f.mes);
+  const compradores = bundle.agendas
+    .filter((a) => esVenta(a) && mesDe(a.fecha_llamada) === f.mes && (f.closer === 'todos' || a.closer === f.closer) && (f.fuente === 'todas' || a.lead?.fuente === f.fuente))
+    .sort((a, b) => b.fecha_llamada.localeCompare(a.fecha_llamada));
+  const porFuente = new Map<string, number>();
+  for (const c of compradores) {
+    const k = c.lead?.fuente ?? 'Otro';
+    porFuente.set(k, (porFuente.get(k) ?? 0) + 1);
+  }
+  const torta = Array.from(porFuente.entries()).map(([name, value]) => ({ name, value }));
+
+  return (
+    <>
+      {bundle.demo && <DemoBanner />}
+      <div className="flex flex-col gap-6">
+        <div>
+          <div className="eyebrow">Puntos de contacto</div>
+          <h1 className="h1 mt-2">De dónde vienen los compradores</h1>
+        </div>
+        <Suspense>
+          <Filtros filtros={f} meses={meses} />
+        </Suspense>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <Seccion eyebrow="Compradores" titulo={`${num(compradores.length)} ventas`}>
+          {compradores.length ? (
+            <div className="card overflow-x-auto !p-0">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Mes</th>
+                    <th>Fecha de cierre</th>
+                    <th>Nombre · Instagram</th>
+                    <th className="num">Cash Collected</th>
+                    <th>Fuente</th>
+                    <th>Primer punto de contacto</th>
+                    <th>Último punto de contacto</th>
+                    <th>Funnel / IG</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {compradores.map((a) => (
+                    <tr key={a.id}>
+                      <td className="text-text-muted">{mesCorto(mesDe(a.fecha_llamada))}</td>
+                      <td>{fechaCorta(a.fecha_llamada)}</td>
+                      <td className="font-medium">{a.lead?.nombre}{a.lead?.instagram && <span className="ml-2 text-text-muted">{a.lead.instagram}</span>}</td>
+                      <td className="num">{usd(a.cash_collected)}</td>
+                      <td>{a.lead?.fuente ?? '—'}</td>
+                      <td>{a.lead?.primer_punto_contacto ?? <span className="text-text-disabled">— (onboarding)</span>}</td>
+                      <td>{a.lead?.ultimo_punto_contacto ?? <span className="text-text-disabled">— (onboarding)</span>}</td>
+                      <td>{a.lead?.fuente === 'Webinar' ? 'Funnel' : 'Instagram'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <Vacio texto="Sin compradores para este filtro." />}
+        </Seccion>
+        <Seccion eyebrow="Por fuente">
+          <div className="card">
+            {torta.length ? <TortaFuente data={torta} /> : <Vacio texto="—" />}
+          </div>
+        </Seccion>
+      </div>
+    </>
+  );
+}
