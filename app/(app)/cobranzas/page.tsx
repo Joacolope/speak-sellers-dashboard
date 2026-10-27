@@ -5,6 +5,7 @@ import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { cobranzasDelMes, mesesDisponibles } from '@/lib/metrics';
 import { fechaCorta, num, usd } from '@/lib/format';
+import { NOMBRE_CLOSER } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,7 +65,7 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
                     <td>{fechaCorta(c.fecha_cobro)}</td>
                     <td className={`num ${c.es_reembolso ? 'bad' : 'ok'}`}>{usd(c.monto_cobrado)}</td>
                     <td className="num">{c.pendiente ? <span className="warn">{usd(c.pendiente)}</span> : '—'}</td>
-                    <td>{c.closer}</td>
+                    <td>{NOMBRE_CLOSER[c.closer]}</td>
                     <td className="num">{c.cuotas_restantes ? num(c.cuotas_restantes) : '—'}</td>
                     <td>{c.proximo_vencimiento ? <span className="tag tag-yellow">{fechaCorta(c.proximo_vencimiento)}</span> : '—'}</td>
                     <td className="text-text-muted">{c.notas ?? ''}</td>

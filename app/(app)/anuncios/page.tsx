@@ -54,7 +54,7 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
             <div className="card flex flex-col gap-2"><div className="metric">{usd(webInv, 2)}</div><div className="text-[14px] text-text-muted">Inversión</div></div>
             <div className="card flex flex-col gap-2"><div className="metric">{num(webConv)}</div><div className="text-[14px] text-text-muted">Conversaciones</div></div>
             <div className="card flex flex-col gap-2"><div className="metric">{webConv ? usd(webInv / webConv, 2) : '—'}</div><div className="text-[14px] text-text-muted">Costo por conversación</div></div>
-            <div className="card flex flex-col gap-2"><div className="metric">{usd(newCashWebinar)}</div><div className="text-[14px] text-text-muted">New Cash generado</div></div>
+            <div className="card flex flex-col gap-2"><div className="metric">{usd(newCashWebinar)}</div><div className="text-[14px] text-text-muted">Ventas nuevas generadas</div></div>
           </div>
         </Seccion>
       </div>

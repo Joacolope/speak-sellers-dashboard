@@ -1,21 +1,23 @@
 import { Suspense } from 'react';
 import Filtros from '@/components/Filtros';
 import StatCard, { Iconos } from '@/components/StatCard';
-import Funnel from '@/components/Funnel';
+import { EmbudoPorFuente } from '@/components/Funnel';
 import Avisos from '@/components/Avisos';
 import {
-  AdsVsCash, AgendasPorDia, AgendasVentasMes, AnilloRentabilidad, BarrasMes, CashRevenueMes, InversionMes,
+  AdsVsCash, AgendasPorDia, AgendasVentasMes, AnilloRentabilidad, BarrasMes, InversionMes,
   TendenciaMes, VentasPorPais,
 } from '@/components/Charts';
 import { ChartCard, DemoBanner, Semaforo, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
-import { leerFiltros, type SearchParams } from '@/lib/filtros';
+import { leerFiltros, queryDe, type SearchParams } from '@/lib/filtros';
 import {
-  acumuladoAnual, adsVsCashSemanal, agendasPorDia, avisos, funnelMes, mesesDisponibles,
-  metricasConAnterior, resumenCloser, serieMeses, ventasPorPais,
+  acumuladoAnual, adsVsCashSemanal, agendasPorDia, avisos, mesesDisponibles,
+  agendasDelMes, cobranzasDelMes, embudosPorFuente, esVenta, metricasConAnterior, resumenCloser, serieMeses, ventasPorPais,
 } from '@/lib/metrics';
-import { mesActual, mesAnterior, nombreMes, num, pct, usd, variacion } from '@/lib/format';
-import { CLOSERS } from '@/lib/types';
+import ClosersDesplegable, { type DetalleCloser } from '@/components/ClosersDesplegable';
+import { comisionesDelMes } from '@/lib/comisiones';
+import { fechaLarga, mesActual, mesAnterior, nombreMes, num, pct, usd, variacion } from '@/lib/format';
+import { CLOSERS, NOMBRE_CLOSER } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,13 +30,36 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
   const f = leerFiltros(searchParams);
   const meses = mesesDisponibles(bundle, f.mes);
   const { actual, anterior } = metricasConAnterior(bundle, f);
-  const funnel = funnelMes(bundle, f);
+  const embudos = embudosPorFuente(bundle, f);
   const serie = serieMeses(bundle, f, 6);
   const anual = acumuladoAnual(bundle, f);
   const paises = ventasPorPais(bundle, f);
   const semanas = adsVsCashSemanal(bundle, f);
   const dias = agendasPorDia(bundle, f);
   const closers = CLOSERS.map((c) => resumenCloser(bundle, f, c));
+  const comision = new Map(comisionesDelMes(bundle.comisiones, cobranzasDelMes(bundle, { ...f, closer: 'todos' }), f.mes).porCloser.map((c) => [c.closer, c]));
+  const periodo = f.dia ? fechaLarga(f.dia) : nombreMes(f.mes);
+  const detalleClosers: DetalleCloser[] = closers.map((r) => {
+    const ag = agendasDelMes(bundle, { ...f, closer: r.closer });
+    const com = comision.get(r.closer);
+    return {
+      closer: r.closer,
+      nombre: NOMBRE_CLOSER[r.closer],
+      agendas: r.agendas,
+      llamadas: r.asistencias,
+      pctShow: r.pct_show,
+      cierres: r.cierres,
+      pctCierre: r.pct_cierre,
+      cash: r.cash,
+      comision: com?.monto ?? null,
+      porcentaje: com?.porcentaje ?? null,
+      noShow: ag.filter((a) => a.asistio === 'No show').length,
+      pendientes: ag.filter((a) => a.asistio === 'Pendiente').length,
+      ventas: ag.filter(esVenta).sort((a, b) => b.fecha_llamada.localeCompare(a.fecha_llamada)).map((a) => ({ nombre: a.lead?.nombre ?? '—', fecha: a.fecha_llamada, monto: a.cash_collected ?? null, estado: a.compro ?? '' })),
+      proximas: ag.filter((a) => a.asistio === 'Pendiente').sort((a, b) => a.fecha_llamada.localeCompare(b.fecha_llamada)).map((a) => ({ nombre: a.lead?.nombre ?? '—', fecha: a.fecha_llamada })),
+      href: `/closers${queryDe({ ...f, closer: r.closer })}`,
+    };
+  });
   const hoy = new Date().toISOString().slice(0, 10);
   const pendientes = avisos(bundle, f, hoy);
   const enCurso = f.mes === mesActual();
@@ -49,7 +74,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       <div className="flex flex-col gap-5">
         <div>
           <div className="eyebrow">Inicio</div>
-          <h1 className="h1 mt-2">{nombreMes(f.mes)}</h1>
+          <h1 className="h1 mt-2">{f.dia ? fechaLarga(f.dia) : nombreMes(f.mes)}</h1>
         </div>
         <Suspense>
           <Filtros filtros={f} meses={meses} />
@@ -70,21 +95,14 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <StatCard label="Ventas" valor={num(actual.ventas)} variacion={variacion(actual.ventas, anterior.ventas)} icono={Iconos.ventas} color="green" />
         <StatCard label="Agendas" valor={num(actual.agendas)} variacion={variacion(actual.agendas, anterior.agendas)} icono={Iconos.agendas} color="blue" />
         <StatCard label="% Asistencia" valor={pct(actual.pct_asistencia)} variacion={variacion(actual.pct_asistencia, anterior.pct_asistencia)} icono={Iconos.asistencia} color={semaforo(actual.pct_asistencia, 0.6)} />
-        <StatCard label="% Cierre / ofertas" valor={pct(actual.pct_cierre_oferta)} variacion={variacion(actual.pct_cierre_oferta, anterior.pct_cierre_oferta)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_oferta, 0.3)} />
+        <StatCard label="% Cierre / llamadas" valor={pct(actual.pct_cierre_asistencia)} variacion={variacion(actual.pct_cierre_asistencia, anterior.pct_cierre_asistencia)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_asistencia, 0.3)} />
       </section>
 
-      {/* Fila 2 · finanzas y rentabilidad (estilo de la referencia) */}
+      {/* Fila 2 · rentabilidad, revenue y cash */}
       <section className="grid gap-4 lg:grid-cols-3">
-        <ChartCard titulo="Finanzas" sub="Revenue (azul) y Cash Collected (verde) · últimos meses" icono={Iconos.tendencia} color="blue" className="lg:col-span-2">
-          <CashRevenueMes data={serie} />
-        </ChartCard>
         <ChartCard titulo="Rentabilidad" sub="Cuánto queda de cada dólar vendido" icono={Iconos.margen} color="green">
-          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} cash={actual.cash_collected} />
+          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} cash={actual.cash_collected} />
         </ChartCard>
-      </section>
-
-      {/* Fila 3 · revenue, cash y anuncios */}
-      <section className="grid gap-4 lg:grid-cols-3">
         <ChartCard
           titulo="Revenue"
           color="blue"
@@ -98,12 +116,22 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <ChartCard
           titulo="Cash Collected"
           color="green"
-          sub="Revenue − ads − software"
+          sub="Revenue − ads − software − comisiones"
           icono={Iconos.cash}
           valor={usd(actual.cash_collected)}
           comparacion={vsAnterior(anterior.cash_collected)}
         >
           <TendenciaMes data={serie} campo="cash" enCurso={enCurso} nombre="Cash" />
+        </ChartCard>
+      </section>
+
+      {/* Fila 3 · embudo, agendas y anuncios */}
+      <section className="grid gap-4 lg:grid-cols-3">
+        <ChartCard titulo="Embudo" sub={`${periodo} · elegí la fuente · pasá el mouse para ver por closer`} icono={Iconos.embudo} color="blue">
+          <EmbudoPorFuente embudos={embudos} />
+        </ChartCard>
+        <ChartCard titulo="Agendas vs. Ventas" sub="Agendas (azul) y ventas (verde)" icono={Iconos.agendas} color="blue">
+          <AgendasVentasMes data={serie} />
         </ChartCard>
         <ChartCard
           titulo="Inversión en anuncios"
@@ -117,23 +145,13 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         </ChartCard>
       </section>
 
-      {/* Fila 4 · agendas, embudo, ROAS */}
+      {/* Fila 4 · ROAS, ventas nuevas vs cuotas, país */}
       <section className="grid gap-4 lg:grid-cols-3">
-        <ChartCard titulo="Agendas vs. Ventas" sub="Agendas (azul) y ventas (verde)" icono={Iconos.agendas} color="blue">
-          <AgendasVentasMes data={serie} />
-        </ChartCard>
-        <ChartCard titulo="Embudo del mes" sub="De la conversación a la venta · pasá el mouse para ver por closer" icono={Iconos.embudo} color="blue">
-          <Funnel niveles={funnel} />
-        </ChartCard>
         <ChartCard titulo="ROAS" sub="Veces que vuelve lo invertido en ads" icono={Iconos.tendencia} color="green">
           <BarrasMes data={serie} a={{ key: 'roas_cash', nombre: 'ROAS Cash', color: 'green' }} b={{ key: 'roas_revenue', nombre: 'ROAS Revenue', color: 'blue' }} formato="x" />
         </ChartCard>
-      </section>
-
-      {/* Fila 5 · cash nuevo/viejo, país */}
-      <section className="grid gap-4 lg:grid-cols-2">
-        <ChartCard titulo="New Cash vs. Old Cash" sub="Ventas del mes vs. cuotas de ventas anteriores" icono={Iconos.cash} color="green">
-          <BarrasMes data={serie} a={{ key: 'new_cash', nombre: 'New Cash', color: 'green' }} b={{ key: 'old_cash', nombre: 'Old Cash', color: 'yellow' }} formato="usd" />
+        <ChartCard titulo="Ventas nuevas vs. Cuotas cobradas" sub="Plata de ventas cerradas en el mes vs. cuotas de ventas de meses anteriores" icono={Iconos.cash} color="green">
+          <BarrasMes data={serie} a={{ key: 'new_cash', nombre: 'Ventas nuevas', color: 'green' }} b={{ key: 'old_cash', nombre: 'Cuotas cobradas', color: 'yellow' }} formato="usd" />
         </ChartCard>
         <ChartCard titulo="Ventas por país" sub={nombreMes(f.mes)} icono={Iconos.globo} color="green">
           {paises.length ? <VentasPorPais data={paises} /> : <Vacio texto="Sin ventas este mes." />}
@@ -152,31 +170,8 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
             <div className="metric-xl">{usd(anual.cash)}</div>
           </div>
         </div>
-        <ChartCard titulo="Closers" sub={nombreMes(f.mes)} icono={Iconos.asistencia} color="blue" className="lg:col-span-2">
-          <div className="-mx-3 overflow-x-auto">
-          <table className="table [&_td]:!px-3 [&_th]:!px-3">
-            <thead>
-              <tr>
-                <th>Closer</th>
-                <th className="num">Agendas</th>
-                <th className="num">% Show</th>
-                <th className="num">Cierres</th>
-                <th className="num">Cash</th>
-              </tr>
-            </thead>
-            <tbody>
-              {closers.map((c) => (
-                <tr key={c.closer}>
-                  <td>{c.closer}</td>
-                  <td className="num">{num(c.agendas)}</td>
-                  <td className="num"><Semaforo valor={c.pct_show} objetivo={0.6} /></td>
-                  <td className="num">{num(c.cierres)}</td>
-                  <td className="num ok">{usd(c.cash)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
+        <ChartCard titulo="Closers" sub={`${periodo} · tocá un closer para ver su detalle`} icono={Iconos.asistencia} color="blue" className="lg:col-span-2">
+          <ClosersDesplegable filas={detalleClosers} />
         </ChartCard>
       </section>
 

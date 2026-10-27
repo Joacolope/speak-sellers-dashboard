@@ -199,6 +199,22 @@ create table if not exists ajustes_mensuales (
   objetivo_cierre_oferta numeric(5,4) default 0.30
 );
 
+-- % de comisión de cada closer sobre lo cobrado (neto de reembolsos).
+-- Un cambio de % cierra la fila vieja (fecha_baja) y abre una nueva.
+create table if not exists comisiones (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  source source_t not null default 'manual',
+  notas text,
+  closer closer_t not null,
+  porcentaje numeric(5,2) not null check (porcentaje >= 0 and porcentaje <= 100),
+  fecha_alta date not null default current_date,
+  fecha_baja date,
+  editado_por text,
+  check (fecha_baja is null or fecha_baja >= fecha_alta)
+);
+
 -- Quién puede entrar. El login es con Google; si el email no está acá (o está
 -- inactivo) no ve nada. admin y editor cargan datos; lector solo mira.
 create table if not exists usuarios (
@@ -243,6 +259,8 @@ create table if not exists log_agente (
 
 -- Auditoría: quién hizo cada carga manual (email o "token:claude")
 alter table leads add column if not exists editado_por text;
+-- Funnel por el que entró el lead (para los embudos por fuente)
+alter table leads add column if not exists funnel text check (funnel in ('Orgánico','Follow Me Ads','Webinar','Lead magnet'));
 alter table agendas add column if not exists editado_por text;
 alter table cobranzas add column if not exists editado_por text;
 alter table costos add column if not exists editado_por text;
@@ -255,7 +273,7 @@ begin new.updated_at = now(); return new; end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','usuarios','log_agente'] loop
+  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','usuarios','log_agente'] loop
     execute format('drop trigger if exists %I_updated_at on %I', t, t);
     execute format('create trigger %I_updated_at before update on %I for each row execute function set_updated_at()', t, t);
   end loop;
@@ -276,8 +294,25 @@ create or replace function costo_software_mes(p_mes date) returns numeric langua
   from costos
 $$;
 
+-- Comisiones del mes: % vigente de cada closer × lo cobrado ese mes por él (neto).
+-- null si todavía no se cargó ningún %.
+create or replace function comisiones_mes(p_mes date) returns numeric language sql stable as $$
+  with cobrado as (
+    select closer, sum(monto_cobrado) as base from cobranzas
+    where date_trunc('month', fecha_cobro) = date_trunc('month', p_mes)
+    group by closer
+  ), pct as (
+    select distinct on (closer) closer, porcentaje from comisiones
+    where fecha_alta <= (date_trunc('month', p_mes) + interval '1 month - 1 day')::date
+      and (fecha_baja is null or fecha_baja >= date_trunc('month', p_mes)::date)
+    order by closer, fecha_alta desc
+  )
+  select case when not exists (select 1 from comisiones) then null
+    else round(coalesce((select sum(c.base * p.porcentaje / 100) from cobrado c join pct p using (closer)), 0), 2) end
+$$;
+
 create or replace view v_costos_mes with (security_invoker = true) as
-select m.mes::date as mes, costo_software_mes(m.mes::date) as software
+select m.mes::date as mes, costo_software_mes(m.mes::date) as software, comisiones_mes(m.mes::date) as comisiones
 from generate_series(date_trunc('month', now()) - interval '24 months', date_trunc('month', now()) + interval '1 month', interval '1 month') as m(mes);
 
 -- ───────────────────────── Vistas ─────────────────────────
@@ -325,7 +360,7 @@ st as (
 ),
 ads as (select date_trunc('month', fecha)::date as mes, sum(inversion) as inversion_ads from ads_diario group by 1),
 aj as (
-  select f.mes, coalesce(costo_software_mes(f.mes), a.costo_software) as costo_software
+  select f.mes, coalesce(costo_software_mes(f.mes), a.costo_software) as costo_software, comisiones_mes(f.mes) as comisiones
   from v_funnel_mes f left join ajustes_mensuales a on a.mes = f.mes
 ),
 cash as (
@@ -344,12 +379,12 @@ select f.mes,
        case when f.agendas > 0 then f.cierres::numeric / f.agendas end as pct_cierre_total,
        case when f.asistencias > 0 then f.cierres::numeric / f.asistencias end as pct_cierre_asistencia,
        case when f.ofertas > 0 then f.cierres::numeric / f.ofertas end as pct_cierre_oferta,
-       f.ventas_usd - coalesce(ads.inversion_ads,0) - coalesce(aj.costo_software,0) as cash_collected,
+       f.ventas_usd - coalesce(ads.inversion_ads,0) - coalesce(aj.costo_software,0) - coalesce(aj.comisiones,0) as cash_collected,
        f.ventas_usd as revenue,
        coalesce(cash.new_cash,0) as new_cash, coalesce(cash.old_cash,0) as old_cash,
        case when f.conversaciones > 0 then f.agendas::numeric / f.conversaciones end as pct_agenda_conversacion,
        case when st.links_enviados > 0 then f.agendas::numeric / st.links_enviados end as pct_agenda_link,
-       coalesce(ads.inversion_ads,0) as inversion_ads, aj.costo_software
+       coalesce(ads.inversion_ads,0) as inversion_ads, aj.costo_software, aj.comisiones
 from f left join ag using (mes) left join st using (mes) left join ads using (mes) left join aj using (mes) left join cash using (mes);
 
 create or replace view v_closer_mes with (security_invoker = true) as
@@ -401,7 +436,7 @@ $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','log_agente'] loop
+  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','log_agente'] loop
     execute format('alter table %I enable row level security', t);
     execute format('alter table %I force row level security', t);
     execute format('drop policy if exists %I_anon_lee on %I', t, t);           -- política vieja, insegura
@@ -425,5 +460,7 @@ revoke all on function es_usuario_permitido() from public, anon;
 grant execute on function es_usuario_permitido() to authenticated;
 revoke all on function costo_software_mes(date) from public, anon;
 grant execute on function costo_software_mes(date) to authenticated;
+revoke all on function comisiones_mes(date) from public, anon;
+grant execute on function comisiones_mes(date) to authenticated;
 alter default privileges in schema public revoke all on tables from anon;
 alter default privileges in schema public revoke all on functions from anon;

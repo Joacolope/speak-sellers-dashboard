@@ -1,6 +1,7 @@
-import type { Agenda, Closer, Cobranza, Filtros, RawBundle } from './types';
-import { CLOSERS } from './types';
+import type { Agenda, Closer, Cobranza, Filtros, Funnel, RawBundle } from './types';
+import { CLOSERS, FUNNELS } from './types';
 import { costosDelMes } from './costos';
+import { comisionesDelMes } from './comisiones';
 import { diasDelMes, mesAnterior, mesCorto, mesDe, ratio } from './format';
 
 export interface MetricasMes {
@@ -30,6 +31,8 @@ export interface MetricasMes {
   reembolsos: number;
   inversion_ads: number;
   costo_software: number | null;
+  /** Comisiones de closers del mes; null si todavía no se cargó ningún % */
+  comisiones: number | null;
   cash_collected: number;
   new_cash: number;
   old_cash: number;
@@ -38,9 +41,15 @@ export interface MetricasMes {
   pct_agenda_link: number | null;
 }
 
+/** ¿La fecha cae en el período del filtro? (día puntual o mes) */
+export function enPeriodo(f: Filtros, fecha: string | null | undefined): boolean {
+  if (!fecha) return false;
+  return f.dia ? fecha.slice(0, 10) === f.dia : mesDe(fecha) === f.mes;
+}
+
 export function agendasDelMes(b: RawBundle, f: Filtros): Agenda[] {
   return b.agendas.filter((a) => {
-    if (mesDe(a.fecha_llamada) !== f.mes) return false;
+    if (!enPeriodo(f, a.fecha_llamada)) return false;
     if (f.closer !== 'todos' && a.closer !== f.closer) return false;
     if (f.fuente !== 'todas' && (a.lead?.fuente ?? 'Otro') !== f.fuente) return false;
     return true;
@@ -49,7 +58,7 @@ export function agendasDelMes(b: RawBundle, f: Filtros): Agenda[] {
 
 export function cobranzasDelMes(b: RawBundle, f: Filtros): Cobranza[] {
   return b.cobranzas.filter((c) => {
-    if (mesDe(c.fecha_cobro) !== f.mes) return false;
+    if (!enPeriodo(f, c.fecha_cobro)) return false;
     if (f.closer !== 'todos' && c.closer !== f.closer) return false;
     if (f.fuente !== 'todas') {
       const ag = b.agendas.find((a) => a.id === c.agenda_id);
@@ -75,8 +84,8 @@ export function esVenta(a: Agenda): boolean {
 export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const ag = agendasDelMes(b, f);
   const cob = cobranzasDelMes(b, f);
-  const setter = b.setter.filter((s) => mesDe(s.fecha) === f.mes);
-  const ads = b.ads.filter((a) => mesDe(a.fecha) === f.mes);
+  const setter = b.setter.filter((s) => enPeriodo(f, s.fecha));
+  const ads = b.ads.filter((a) => enPeriodo(f, a.fecha));
   const ajuste = b.ajustes.find((a) => mesDe(a.mes) === f.mes);
 
   const asistencias = ag.filter((a) => a.asistio === 'Asistió').length;
@@ -94,8 +103,13 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const revenue = revenueBruto - reembolsosDeVentas;
   const inversion = sum(ads, (a) => a.inversion);
   // Software: sale de la tabla de costos; si todavía no se cargó ninguno, del ajuste mensual.
-  const software = b.costos.length ? costosDelMes(b.costos, f.mes).total : ajuste?.costo_software ?? null;
-  const cash = revenue - inversion - (software ?? 0);
+  const softwareMes = b.costos.length ? costosDelMes(b.costos, f.mes).total : ajuste?.costo_software ?? null;
+  // Con filtro de día, el software (costo mensual) se prorratea por los días del mes
+  const software = softwareMes === null ? null : f.dia ? Math.round((softwareMes / diasDelMes(f.mes).length) * 100) / 100 : softwareMes;
+  const com = comisionesDelMes(b.comisiones, cob, f.mes, f.closer === 'todos' ? undefined : f.closer);
+  const comisiones = com.sinConfigurar ? null : com.total;
+  // Cash Collected (lo que queda) = Revenue − ads − software − comisiones de closers
+  const cash = revenue - inversion - (software ?? 0) - (comisiones ?? 0);
 
   const idsVentasMes = idsVentas;
   const newCash = sum(cob.filter((c) => !c.es_reembolso && idsVentasMes.has(c.agenda_id)), (c) => c.monto_cobrado);
@@ -130,6 +144,7 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
     reembolsos,
     inversion_ads: inversion,
     costo_software: software,
+    comisiones,
     cash_collected: cash,
     new_cash: newCash,
     old_cash: oldCash,
@@ -145,9 +160,9 @@ export interface NivelFunnel {
   porCloser?: Partial<Record<Closer, number>>;
 }
 
-export function funnelMes(b: RawBundle, f: Filtros): NivelFunnel[] {
+export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunnel[] {
   const m = metricasMes(b, f);
-  const ag = agendasDelMes(b, f);
+  const ag = agendasDelMes(b, f).filter((a) => !funnel || a.lead?.funnel === funnel);
   const porCloser = (fn: (a: Agenda) => boolean | number): Partial<Record<Closer, number>> => {
     const out: Partial<Record<Closer, number>> = {};
     for (const c of CLOSERS) {
@@ -159,13 +174,30 @@ export function funnelMes(b: RawBundle, f: Filtros): NivelFunnel[] {
     }
     return out;
   };
+  // Conversaciones del funnel: orgánicas, pagadas (Follow Me Ads) o registros del webinar
+  const setter = b.setter.filter((x) => enPeriodo(f, x.fecha));
+  const sumN = (vals: (number | null | undefined)[]) => (vals.some((v) => v !== null && v !== undefined) ? vals.reduce<number>((acc, v) => acc + (v ?? 0), 0) : null);
+  const conversaciones =
+    !funnel ? m.conversaciones
+    : funnel === 'Orgánico' ? sumN(setter.map((x) => x.conv_organicas))
+    : funnel === 'Follow Me Ads' ? sumN(setter.map((x) => x.conv_pagadas))
+    : funnel === 'Webinar' ? sumN(b.ads.filter((a) => a.campana === 'webinar' && enPeriodo(f, a.fecha)).map((a) => a.conversaciones))
+    : null; // Lead magnet: todavía sin fuente de conversaciones
+  const ventas = ag.filter(esVenta);
   return [
-    { nombre: 'Conversaciones', valor: m.conversaciones },
-    { nombre: 'Agendas', valor: m.agendas, porCloser: porCloser(() => true) },
-    { nombre: 'Asistencias', valor: m.asistencias, porCloser: porCloser((a) => a.asistio === 'Asistió') },
-    { nombre: 'Ofertas hechas', valor: m.ofertas, porCloser: porCloser((a) => !!a.oferta_hecha) },
-    { nombre: 'Cierres', valor: m.ventas, porCloser: porCloser(esVenta) },
-    { nombre: 'Ventas USD', valor: m.revenue, esUsd: true, porCloser: porCloser((a) => (esVenta(a) ? a.revenue ?? 0 : 0)) },
+    { nombre: 'Conversaciones', valor: conversaciones },
+    { nombre: 'Agendas', valor: ag.length, porCloser: porCloser(() => true) },
+    { nombre: 'Llamadas hechas', valor: ag.filter((a) => a.asistio === 'Asistió').length, porCloser: porCloser((a) => a.asistio === 'Asistió') },
+    { nombre: 'Cierres', valor: ventas.length, porCloser: porCloser(esVenta) },
+    { nombre: 'Ventas USD', valor: funnel ? ventas.reduce((acc, a) => acc + (a.revenue ?? 0), 0) : m.revenue, esUsd: true, porCloser: porCloser((a) => (esVenta(a) ? a.revenue ?? 0 : 0)) },
+  ];
+}
+
+/** Un embudo por cada funnel de origen, más el general. */
+export function embudosPorFuente(b: RawBundle, f: Filtros): { clave: string; nombre: string; niveles: NivelFunnel[] }[] {
+  return [
+    { clave: 'general', nombre: 'General', niveles: funnelMes(b, f) },
+    ...FUNNELS.map((fu) => ({ clave: fu, nombre: fu, niveles: funnelMes(b, f, fu) })),
   ];
 }
 
@@ -235,7 +267,7 @@ export function resumenCloser(b: RawBundle, f: Filtros, closer: Closer | 'todos'
     pct_show: ratio(asistencias, ag.length),
     ofertas,
     cierres,
-    pct_cierre: ratio(cierres, ofertas),
+    pct_cierre: ratio(cierres, asistencias), // cierres sobre llamadas hechas
     cash: sum(ag.filter(esVenta), (a) => a.cash_collected),
     revenue: sum(ag.filter(esVenta), (a) => a.revenue),
   };
@@ -250,7 +282,13 @@ export function mesesDisponibles(b: RawBundle, mesActual: string): string[] {
 }
 
 export function metricasConAnterior(b: RawBundle, f: Filtros) {
-  return { actual: metricasMes(b, f), anterior: metricasMes(b, { ...f, mes: mesAnterior(f.mes) }) };
+  if (f.dia) {
+    const d = new Date(`${f.dia}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - 1);
+    const ayer = d.toISOString().slice(0, 10);
+    return { actual: metricasMes(b, f), anterior: metricasMes(b, { ...f, dia: ayer, mes: ayer.slice(0, 7) }) };
+  }
+  return { actual: metricasMes(b, f), anterior: metricasMes(b, { ...f, dia: null, mes: mesAnterior(f.mes) }) };
 }
 
 export interface Pendiente {
@@ -269,6 +307,8 @@ export function avisos(b: RawBundle, f: Filtros, hoy: string): Pendiente[] {
       out.push({ tipo: 'cobranza', texto: `${ag?.lead?.nombre ?? 'Lead'} · $${c.pendiente} vence ${c.proximo_vencimiento.slice(8)}/${c.proximo_vencimiento.slice(5, 7)}` });
     }
   }
+  const faltan = comisionesDelMes(b.comisiones, cobranzasDelMes(b, f), f.mes).faltan;
+  if (b.comisiones.length || faltan.length) for (const c of faltan) out.push({ tipo: 'agente', texto: `Falta el % de comisión de ${c} (sección Costos)` });
   const ultimoLog = b.log.filter((l) => l.source === 'agente').sort((a, b2) => b2.fecha.localeCompare(a.fecha))[0];
   for (const p of ultimoLog?.pendientes ?? []) out.push({ tipo: 'agente', texto: p });
   for (const u of b.actualizaciones) {
@@ -290,6 +330,7 @@ export interface PuntoMensual {
   roas_cash: number | null;
   roas_revenue: number | null;
   software: number;
+  comisiones: number;
   costos: number;
 }
 
@@ -308,7 +349,8 @@ function punto(b: RawBundle, f: Filtros, mes: string): PuntoMensual {
     roas_cash: m.inversion_ads ? Math.round((m.cash_collected / m.inversion_ads) * 100) / 100 : null,
     roas_revenue: m.inversion_ads ? Math.round((m.revenue / m.inversion_ads) * 100) / 100 : null,
     software: m.costo_software ?? 0,
-    costos: Math.round((m.inversion_ads + (m.costo_software ?? 0)) * 100) / 100,
+    comisiones: m.comisiones ?? 0,
+    costos: Math.round((m.inversion_ads + (m.costo_software ?? 0) + (m.comisiones ?? 0)) * 100) / 100,
   };
 }
 

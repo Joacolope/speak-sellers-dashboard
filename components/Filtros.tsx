@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Filtros as F } from '@/lib/types';
-import { CLOSERS } from '@/lib/types';
+import { CLOSERS, NOMBRE_CLOSER } from '@/lib/types';
 import { nombreMes } from '@/lib/format';
 
 const FUENTES_FILTRO = ['Instagram', 'Webinar', 'WhatsApp', 'YouTube'] as const;
@@ -23,6 +23,8 @@ export default function Filtros({ filtros, meses, mostrarCloser = true, mostrarF
     const p = new URLSearchParams(sp.toString());
     if (v === null) p.delete(k);
     else p.set(k, v);
+    if (k === 'mes') p.delete('dia'); // al cambiar de mes se vuelve a ver el mes entero
+    if (k === 'dia' && v) p.set('mes', v.slice(0, 7));
     router.replace(`${pathname}?${p.toString()}`, { scroll: false });
   };
 
@@ -36,17 +38,32 @@ export default function Filtros({ filtros, meses, mostrarCloser = true, mostrarF
           ))}
         </select>
       </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="eyebrow mr-1 shrink-0">Día</span>
+        <input
+          type="date"
+          className="input !w-auto"
+          value={filtros.dia ?? ''}
+          min={`${filtros.mes}-01`}
+          max={`${filtros.mes}-31`}
+          onChange={(e) => set('dia', e.target.value || null)}
+          aria-label="Filtrar por un día"
+        />
+        {filtros.dia && (
+          <button type="button" className="chip" onClick={() => set('dia', null)}>Todo el mes</button>
+        )}
+      </div>
       {mostrarCloser && (
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <span className="eyebrow mr-1 shrink-0">Closer</span>
           <button type="button" className="chip" data-active={filtros.closer === 'todos'} onClick={() => set('closer', null)}>Todos</button>
           {CLOSERS.map((c) => (
-            <button key={c} type="button" className="chip" data-active={filtros.closer === c} onClick={() => set('closer', c)}>{c}</button>
+            <button key={c} type="button" className="chip" data-active={filtros.closer === c} onClick={() => set('closer', c)}>{NOMBRE_CLOSER[c]}</button>
           ))}
         </div>
       )}
       {mostrarFuente && (
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <span className="eyebrow mr-1 shrink-0">Fuente</span>
           <button type="button" className="chip" data-active={filtros.fuente === 'todas'} onClick={() => set('fuente', null)}>Todas</button>
           {FUENTES_FILTRO.map((f) => (

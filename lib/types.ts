@@ -6,6 +6,16 @@ export type Compro = 'Si' | 'No' | 'Reserva';
 export type MetodoPago = 'PIF' | 'Cuotas' | 'Reserva';
 
 export const CLOSERS: Closer[] = ['Marcos', 'Andrea', 'Gonzalo'];
+/** Nombre completo para mostrar */
+export const NOMBRE_CLOSER: Record<Closer, string> = {
+  Marcos: 'Marcos Lanzi',
+  Andrea: 'Andrea Flores',
+  Gonzalo: 'Gonzalo Guimil',
+};
+
+/** Funnel de origen del lead (distinto de la red/fuente). */
+export type Funnel = 'Orgánico' | 'Follow Me Ads' | 'Webinar' | 'Lead magnet';
+export const FUNNELS: Funnel[] = ['Orgánico', 'Follow Me Ads', 'Webinar', 'Lead magnet'];
 export const FUENTES: Fuente[] = ['Instagram', 'WhatsApp', 'Webinar', 'YouTube', 'Referido', 'Otro'];
 
 export interface Lead {
@@ -17,6 +27,8 @@ export interface Lead {
   pais?: string | null;
   instagram?: string | null;
   fuente?: Fuente | null;
+  /** Funnel por el que entró. null = sin clasificar */
+  funnel?: Funnel | null;
   tags?: string[] | null;
   cualificacion_economica?: number | null;
   primer_punto_contacto?: string | null;
@@ -150,6 +162,18 @@ export interface Costo {
   source: Source;
 }
 
+/** % de comisión de un closer sobre lo cobrado. Vigente desde fecha_alta hasta fecha_baja.
+    Un cambio de % cierra la fila vieja y abre una nueva (los meses pasados no cambian). */
+export interface Comision {
+  id: string;
+  closer: Closer;
+  porcentaje: number; // 0–100
+  fecha_alta: string; // YYYY-MM-DD
+  fecha_baja?: string | null;
+  notas?: string | null;
+  source: Source;
+}
+
 export interface LogAgente {
   id: string;
   fecha: string;
@@ -178,12 +202,15 @@ export interface RawBundle {
   piezas: OrganicoPieza[];
   ajustes: AjusteMensual[];
   costos: Costo[];
+  comisiones: Comision[];
   log: LogAgente[];
   actualizaciones: UltimaActualizacion[];
 }
 
 export interface Filtros {
   mes: string; // YYYY-MM
+  /** Día puntual (YYYY-MM-DD). Si está, todo se filtra a ese día. */
+  dia?: string | null;
   closer: Closer | 'todos';
   fuente: Fuente | 'todas';
 }

@@ -79,25 +79,6 @@ function marcador(x: string | undefined, y: number | undefined, color = B) {
   ];
 }
 
-/** "Finance": Revenue como área durazno y Cash como línea gris, mes a mes. */
-export function CashRevenueMes({ data }: { data: PuntoMensual[] }) {
-  const ult = data[data.length - 1];
-  return (
-    <ResponsiveContainer width="100%" height={H}>
-      <ComposedChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-        {grid}
-        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={48} />
-        <Tooltip content={<Pill fmt={(v) => usd(v)} />} cursor={{ stroke: 'var(--chart-grid)' }} />
-        <Legend {...leyenda} />
-        <Area type="monotone" dataKey="revenue" name="Revenue" stroke={B} strokeWidth={1.5} fill={BS} fillOpacity={1} />
-        <Line type="monotone" dataKey="cash" name="Cash Collected" stroke={G} strokeWidth={2} dot={false} />
-        {marcador(ult?.label, ult?.revenue, B)}
-      </ComposedChart>
-    </ResponsiveContainer>
-  );
-}
-
 /** "Revenues": área con la tendencia; si el mes está en curso, el último tramo va punteado. */
 export function TendenciaMes({ data, campo, enCurso, nombre }: { data: PuntoMensual[]; campo: 'revenue' | 'cash'; enCurso: boolean; nombre: string }) {
   const n = data.length;
@@ -125,7 +106,7 @@ export function TendenciaMes({ data, campo, enCurso, nombre }: { data: PuntoMens
 }
 
 /** Rentabilidad: anillo con el margen (Cash Collected / Revenue) y la leyenda al costado. */
-export function AnilloRentabilidad({ revenue, ads, software, cash }: { revenue: number; ads: number; software: number | null; cash: number }) {
+export function AnilloRentabilidad({ revenue, ads, software, comisiones, cash }: { revenue: number; ads: number; software: number | null; comisiones: number | null; cash: number }) {
   const margen = revenue > 0 ? Math.max(0, Math.min(1, cash / revenue)) : null;
   const datos = margen === null ? [{ v: 1 }] : [{ v: margen }, { v: 1 - margen }];
   // Semáforo del margen: ≥ 50 % verde, 20–50 % amarillo, < 20 % rojo
@@ -134,6 +115,7 @@ export function AnilloRentabilidad({ revenue, ads, software, cash }: { revenue: 
     { nombre: 'Revenue', valor: usd(revenue), color: B, clase: '' },
     { nombre: 'Ads', valor: `-${usd(ads)}`, color: R, clase: 'bad' },
     { nombre: 'Software', valor: software === null ? '—' : `-${usd(software)}`, color: 'color-mix(in srgb, var(--red) 50%, var(--surface))', clase: 'bad' },
+    { nombre: 'Comisiones', valor: comisiones === null ? '—' : `-${usd(comisiones)}`, color: Y, clase: 'bad' },
     { nombre: 'Cash', valor: usd(cash), color: G, clase: 'ok' },
   ];
   return (
@@ -162,7 +144,11 @@ export function AnilloRentabilidad({ revenue, ads, software, cash }: { revenue: 
             <span className={`tabular-nums ${it.clase || 'text-text'}`}>{it.valor}</span>
           </li>
         ))}
-        {software === null && <li className="whitespace-normal text-[12px] text-text-disabled">Software sin cargar: el margen real es un poco menor.</li>}
+        {(software === null || comisiones === null) && (
+          <li className="whitespace-normal text-[12px] text-text-disabled">
+            Falta cargar {[software === null && 'software', comisiones === null && 'el % de comisión'].filter(Boolean).join(' y ')} en Costos: el margen real es menor.
+          </li>
+        )}
       </ul>
     </div>
   );
@@ -322,7 +308,8 @@ export function CostosMes({ data }: { data: PuntoMensual[] }) {
         <Tooltip content={<Pill fmt={(v) => usd(v, 2)} />} cursor={{ fill: 'var(--surface-2)' }} />
         <Legend {...leyenda} />
         <Bar dataKey="inversion" name="Ads" stackId="c" fill={R} maxBarSize={36} />
-        <Bar dataKey="software" name="Software" stackId="c" fill={Y} radius={[6, 6, 0, 0]} maxBarSize={36} />
+        <Bar dataKey="software" name="Software" stackId="c" fill="color-mix(in srgb, var(--red) 50%, var(--surface))" maxBarSize={36} />
+        <Bar dataKey="comisiones" name="Comisiones" stackId="c" fill={Y} radius={[6, 6, 0, 0]} maxBarSize={36} />
         <Line type="monotone" dataKey="cash" name="Cash Collected" stroke={G} strokeWidth={2} dot={{ r: 3, fill: G, strokeWidth: 0 }} />
       </ComposedChart>
     </ResponsiveContainer>

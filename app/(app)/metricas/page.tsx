@@ -35,7 +35,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th></th>
                 <th colSpan={7}>Setter</th>
                 <th colSpan={14}>Closer</th>
-                <th colSpan={2}>Costos</th>
+                <th colSpan={3}>Costos</th>
                 <th colSpan={2}>Conversión</th>
               </tr>
               <tr>
@@ -59,10 +59,11 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num">% cierre / oferta</th>
                 <th className="num">Cash Collected</th>
                 <th className="num">Revenue</th>
-                <th className="num">New Cash</th>
-                <th className="num">Old Cash</th>
+                <th className="num" title="Cobrado de ventas cerradas en el mes">Ventas nuevas</th>
+                <th className="num" title="Cuotas cobradas de ventas de meses anteriores">Cuotas cobradas</th>
                 <th className="num">Inversión ads</th>
                 <th className="num">Software</th>
+                <th className="num">Comisiones</th>
                 <th className="num">% Agenda / Conversación</th>
                 <th className="num">% Agenda / Link</th>
               </tr>
@@ -94,6 +95,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                   <td className="num">{usd(m.old_cash)}</td>
                   <td className="num">{usd(m.inversion_ads)}</td>
                   <td className="num">{m.costo_software === null ? '—' : usd(m.costo_software)}</td>
+                  <td className="num">{m.comisiones === null ? '—' : usd(m.comisiones)}</td>
                   <td className="num">{pct(m.pct_agenda_conversacion)}</td>
                   <td className="num">{pct(m.pct_agenda_link)}</td>
                 </tr>
@@ -102,7 +104,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
           </table>
         </div>
         <div className="text-[14px] text-text-muted">
-          Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Revenue = plata que entró − reembolsos. Cash Collected = Revenue − inversión en ads − software (sale de la sección Costos). <span className="text-text-disabled">*</span> sin software cargado.
+          Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Revenue = plata que entró − reembolsos. Cash Collected = Revenue − inversión en ads − software − comisiones de closers (software y % de comisión se cargan en Costos). <span className="text-text-disabled">*</span> sin software cargado.
           Semáforo: % Asistencia ≥ {pct(0.6)} y % cierre / oferta ≥ {pct(0.3)} (configurable en <code className="mono text-[12px]">ajustes_mensuales</code>).
         </div>
       </Seccion>

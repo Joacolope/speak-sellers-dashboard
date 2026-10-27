@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { NivelFunnel } from '@/lib/metrics';
 import { num, pct, usd } from '@/lib/format';
+import { NOMBRE_CLOSER, type Closer } from '@/lib/types';
 
 const corto = (v: number | null) => (v === null ? '—' : v >= 1000 ? `$${(v / 1000).toFixed(1).replace('.', ',')}k` : usd(v));
 
@@ -56,7 +57,7 @@ export default function Funnel({ niveles }: { niveles: NivelFunnel[] }) {
                 <div className="absolute left-4 top-full z-10 mt-1 whitespace-nowrap rounded-xl border border-border bg-surface px-3 py-2 text-[13px]">
                   {Object.entries(n.porCloser).map(([c, v]) => (
                     <div key={c} className="flex justify-between gap-6">
-                      <span className="text-text-muted">{c}</span>
+                      <span className="text-text-muted">{NOMBRE_CLOSER[c as Closer] ?? c}</span>
                       <span className="tabular-nums text-text">{n.esUsd ? usd(v) : num(v)}</span>
                     </div>
                   ))}
@@ -67,7 +68,40 @@ export default function Funnel({ niveles }: { niveles: NivelFunnel[] }) {
         );
       })}
       {niveles[0].valor === null && (
-        <div className="mt-2 text-[13px] text-text-disabled">Conversaciones sin fuente este mes: falta el weekly del setter o la mensajería de Instagram.</div>
+        <div className="mt-2 text-[13px] text-text-disabled">Conversaciones sin dato para esta fuente: se cargan desde el setter, Instagram o Meta.</div>
+      )}
+    </div>
+  );
+}
+
+/** Embudo con botones para cambiar de fuente: General, Orgánico, Follow Me Ads, Webinar, Lead magnet. */
+export function EmbudoPorFuente({ embudos }: { embudos: { clave: string; nombre: string; niveles: NivelFunnel[] }[] }) {
+  const [activa, setActiva] = useState(embudos[0]?.clave ?? 'general');
+  const actual = embudos.find((e) => e.clave === activa) ?? embudos[0];
+  const sinDatos = actual.niveles.slice(1).every((n) => !n.valor);
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Fuente del embudo">
+        {embudos.map((e) => (
+          <button
+            key={e.clave}
+            type="button"
+            role="tab"
+            aria-selected={e.clave === activa}
+            className="chip !px-3 !py-1 !text-[13px]"
+            data-active={e.clave === activa}
+            onClick={() => setActiva(e.clave)}
+          >
+            {e.nombre}
+          </button>
+        ))}
+      </div>
+      {sinDatos ? (
+        <div className="rounded-xl bg-[var(--surface-2)] p-6 text-center text-[14px] text-text-muted">
+          Sin agendas de {actual.nombre} este período. Los leads se clasifican por funnel al cargarlos o desde el agente diario.
+        </div>
+      ) : (
+        <Funnel niveles={actual.niveles} />
       )}
     </div>
   );

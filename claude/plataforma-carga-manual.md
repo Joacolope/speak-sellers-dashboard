@@ -33,6 +33,8 @@ Costos (software): `POST /api/costos`
 | "Sumamos ManyChat, 15 USD por mes" | `costos`: alta `nombre=ManyChat`, `categoria=Mensajería`, `frecuencia=Mensual`, `monto=15`, `fecha_alta=hoy` |
 | "Canva lo pagamos anual, 120" | `costos`: alta con `frecuencia=Anual`, `monto=120` (cuenta 10 por mes) |
 | "GHL subió a 297 desde noviembre" | `costos`: cerrar la fila actual con `fecha_baja=2026-10-31` y abrir una nueva con `monto=297`, `fecha_alta=2026-11-01` |
+| "La comisión de Andrea es 10%" | `comisiones`: `closer=Andrea`, `porcentaje=10`, `fecha_alta` = desde cuándo (o `POST /api/comisiones`) |
+| "Este lead vino por Follow Me Ads" | `leads.funnel = 'Follow Me Ads'` (Orgánico / Follow Me Ads / Webinar / Lead magnet) |
 | "Dimos de baja Zoom" | `costos`: `fecha_baja` = último día pagado |
 
 ## Reglas

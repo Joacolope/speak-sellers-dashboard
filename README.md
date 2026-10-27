@@ -16,7 +16,9 @@ Los dashboards siguen `DESIGN_dashboards.md` (papel cálido, 95 % acromático, a
 
 En `/costos` se carga cada herramienta (nombre, categoría, monto en USD, mensual / anual / pago único, desde cuándo). El software del mes se calcula solo y se descuenta del Revenue junto con los anuncios:
 
-`Cash Collected = Revenue − inversión en ads − software del mes`
+`Cash Collected = Revenue − inversión en ads − software del mes − comisiones de closers`
+
+Las comisiones se cargan en la misma sección: % por closer sobre lo cobrado en el mes (neto de reembolsos), con historial.
 
 Los cambios de precio cierran la fila vieja y abren una nueva, así los meses pasados no cambian. Si no hay ningún costo cargado, se usa `ajustes_mensuales.costo_software` como respaldo.
 
@@ -63,9 +65,9 @@ Ver **`docs/PUESTA_EN_MARCHA.md`**: 4 pasos (importar en Vercel, crear Supabase 
 
 Login solo con Google. Entra quien esté en la tabla `usuarios` (se carga desde `ADMIN_EMAILS`, `EDITOR_EMAILS`, `LECTOR_EMAILS`). Admin y editor cargan datos; lector solo mira. Detalle de todas las capas en `docs/PUESTA_EN_MARCHA.md`.
 
-## Próximo: funnels por fuente
+## Embudos por fuente
 
-Separar los embudos por fuente de adquisición: **Lead magnet funnel**, **Follow Me Ads**, **Orgánico** y **Webinar**. Hoy el filtro de fuente usa Instagram / Webinar / WhatsApp / YouTube; hay que llevar esa clasificación al lead (`fuente` / funnel de origen) y mostrar un embudo por cada una.
+El embudo de Inicio tiene botones: General, Orgánico, Follow Me Ads, Webinar y Lead magnet. Cada lead lleva su `funnel` de origen (se carga a mano, por Claude o por el agente diario). Conversaciones por funnel: orgánicas, pagadas (Follow Me Ads) o registros del webinar; Lead magnet todavía no tiene fuente de conversaciones.
 
 ## Origen de cada número
 

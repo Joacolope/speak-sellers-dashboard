@@ -7,7 +7,7 @@ import { getBundle } from '@/lib/data';
 import { leerFiltros, queryDe, type SearchParams } from '@/lib/filtros';
 import { agendasDelMes, mesesDisponibles, resumenCloser } from '@/lib/metrics';
 import { fechaCorta, num, pct, usd } from '@/lib/format';
-import { CLOSERS } from '@/lib/types';
+import { CLOSERS, NOMBRE_CLOSER } from '@/lib/types';
 import { getSesion, puede } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -30,28 +30,43 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
       <div className="flex flex-col gap-6">
         <div>
           <div className="eyebrow">Closers</div>
-          <h1 className="h1 mt-2">{f.closer === 'todos' ? 'Todos' : f.closer}</h1>
+          <h1 className="h1 mt-2">{f.closer === 'todos' ? 'Todos los closers' : NOMBRE_CLOSER[f.closer]}</h1>
         </div>
         <Suspense>
           <Filtros filtros={f} meses={meses} />
         </Suspense>
-        <div className="flex gap-6 border-b border-border-strong">
-          {(['todos', ...CLOSERS] as const).map((c) => (
-            <Link
-              key={c}
-              href={`/closers${queryDe({ ...f, closer: c })}`}
-              className={`-mb-px border-b pb-3 text-[14px] font-medium ${f.closer === c ? 'border-accent text-text' : 'border-transparent text-text-muted hover:text-text'}`}
-            >
-              {c === 'todos' ? 'Todos' : c}
-            </Link>
-          ))}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {(['todos', ...CLOSERS] as const).map((c) => {
+            const r = resumenCloser(bundle, f, c);
+            const activo = f.closer === c;
+            return (
+              <Link
+                key={c}
+                href={`/closers${queryDe({ ...f, closer: c })}`}
+                className={`card flex flex-col gap-2 !p-4 ${activo ? '!border-[var(--blue)] outline outline-1 outline-[var(--blue)]' : 'hover:!border-[var(--border-outline)]'}`}
+                aria-current={activo ? 'page' : undefined}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--blue-soft)] text-[12px] font-medium text-[var(--blue-ink)]">
+                    {c === 'todos' ? '∑' : NOMBRE_CLOSER[c].split(' ').map((p) => p[0]).join('')}
+                  </span>
+                  <span className="text-[14px] font-medium">{c === 'todos' ? 'Todos' : NOMBRE_CLOSER[c]}</span>
+                </div>
+                <div className="flex gap-4 text-[12px] text-text-muted">
+                  <span>{num(r.agendas)} agendas</span>
+                  <span className={claseSemaforo(r.pct_show, 0.6)}>{pct(r.pct_show)} show</span>
+                  <span className="ok">{usd(r.cash)}</span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div className="card flex flex-col gap-2"><div className="metric">{num(resumen.agendas)}</div><div className="text-[14px] text-text-muted">Agendas</div></div>
         <div className="card flex flex-col gap-2"><div className={`metric ${claseSemaforo(resumen.pct_show, 0.6)}`}>{pct(resumen.pct_show)}</div><div className="text-[14px] text-text-muted">% Show</div></div>
-        <div className="card flex flex-col gap-2"><div className={`metric ${claseSemaforo(resumen.pct_cierre, 0.3)}`}>{pct(resumen.pct_cierre)}</div><div className="text-[14px] text-text-muted">% Cierre sobre ofertas</div></div>
+        <div className="card flex flex-col gap-2"><div className={`metric ${claseSemaforo(resumen.pct_cierre, 0.3)}`}>{pct(resumen.pct_cierre)}</div><div className="text-[14px] text-text-muted">% Cierre / llamadas</div></div>
         <div className="card flex flex-col gap-2"><div className="metric ok">{usd(resumen.cash)}</div><div className="text-[14px] text-text-muted">Cash</div></div>
       </section>
 
@@ -88,7 +103,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                     <td className="font-medium" title={a.notas ?? undefined}>{a.lead?.nombre ?? '—'}</td>
                     <td className="text-text-muted">{a.lead?.telefono ?? '—'}</td>
                     <td>{a.lead?.pais ?? '—'}</td>
-                    <td>{a.closer}</td>
+                    <td>{NOMBRE_CLOSER[a.closer]}</td>
                     <td className="num">{num(a.lead?.cualificacion_economica)}</td>
                     <td className="editable">
                       <EditableCell agendaId={a.id} campo="asistio" valor={a.asistio} tipo="select" opciones={OPC_ASISTIO} demo={bundle.demo} editable={editor}

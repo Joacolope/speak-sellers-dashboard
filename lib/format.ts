@@ -77,3 +77,11 @@ export function variacion(actual: number | null, anterior: number | null): numbe
   if (actual === null || anterior === null || !anterior) return null;
   return (actual - anterior) / Math.abs(anterior);
 }
+
+const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+/** "Lunes 27 de octubre" */
+export function fechaLarga(dia: string): string {
+  const d = new Date(`${dia}T12:00:00Z`);
+  const t = `${DIAS[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[d.getUTCMonth()].toLowerCase()}`;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}

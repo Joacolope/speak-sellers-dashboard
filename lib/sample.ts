@@ -9,6 +9,14 @@ import type {
   RawBundle, SetterDiario, AjusteMensual, Closer, Fuente, Asistio, Costo,
 } from './types';
 import { diasDelMes } from './format';
+import type { Funnel } from './types';
+
+/** Funnel de ejemplo según la fuente (ilustrativo). */
+function funnelDe(fuente: Fuente, r: number): Funnel {
+  if (fuente === 'Webinar') return 'Webinar';
+  if (fuente === 'Instagram') return r < 0.45 ? 'Orgánico' : r < 0.8 ? 'Follow Me Ads' : 'Lead magnet';
+  return 'Orgánico';
+}
 
 // Generador determinístico (misma data en cada render)
 function rng(seed: number) {
@@ -82,6 +90,7 @@ function construirAgendasOctubre(): { leads: Lead[]; agendas: Agenda[] } {
       pais: paises[Math.floor(rand() * paises.length)],
       telefono: `+54 9 11 ${String(1000 + Math.floor(rand() * 9000))}-${String(1000 + Math.floor(rand() * 9000))}`,
       fuente,
+      funnel: funnelDe(fuente, rand()),
       cualificacion_economica: s.cualif ?? null,
       etapa_pipeline: s.compro === 'Si' ? 'Cliente' : s.compro === 'Reserva' ? 'Reserva $' : s.asistio === 'Asistió' ? 'Seguimiento' : 'Agendado',
       source: 'migracion',
@@ -147,7 +156,7 @@ function construirAgendasSeptiembre(): { leads: Lead[]; agendas: Agenda[] } {
     const vendio = oferta && rand() < 0.35;
     const monto = vendio ? [1200, 1000, 670, 1500][Math.floor(rand() * 4)] : null;
     const fuente = fuentes[Math.floor(rand() * fuentes.length)];
-    leads.push({ id: leadId, nombre: `Lead sep ${i + 1}`, fuente, pais: paises[Math.floor(rand() * paises.length)], source: 'migracion' });
+    leads.push({ id: leadId, nombre: `Lead sep ${i + 1}`, fuente, funnel: funnelDe(fuente, rand()), pais: paises[Math.floor(rand() * paises.length)], source: 'migracion' });
     agendas.push({
       id: `ag-sep-${i}`,
       lead_id: leadId,
@@ -325,15 +334,10 @@ function construirCostos(): Costo[] {
     ({ id, nombre, categoria, frecuencia, monto, fecha_alta, fecha_baja, notas, source: 'manual' });
   return [
     c('cos-1', 'GoHighLevel', 'CRM y ventas', 'Mensual', 97, '2026-08-01', null, 'CRM, calendarios y pipeline'),
-    c('cos-2', 'ManyChat Pro', 'Mensajería', 'Mensual', 15, '2026-08-01', null, 'Automatización de DMs de Instagram'),
-    c('cos-3', 'Claude Max', 'IA', 'Mensual', 100, '2026-09-01', null, 'Agente diario y carga manual'),
-    c('cos-4', 'Google Workspace', 'Equipo', 'Mensual', 14, '2026-08-01', null, '2 usuarios'),
-    c('cos-5', 'Zoom Pro', 'Equipo', 'Mensual', 15.99, '2026-08-01', '2026-09-30', 'Se reemplazó por Google Meet'),
-    c('cos-6', 'Canva Pro', 'Contenido', 'Anual', 120, '2026-09-01'),
-    c('cos-7', 'CapCut Pro', 'Contenido', 'Mensual', 9.99, '2026-10-01'),
-    c('cos-8', 'Vercel', 'Infraestructura', 'Mensual', 0, '2026-10-01', null, 'Plan Hobby'),
-    c('cos-9', 'Supabase', 'Infraestructura', 'Mensual', 0, '2026-10-01', null, 'Plan Free'),
-    c('cos-10', 'Plantilla de webinar', 'Contenido', 'Único', 49, '2026-09-20', null, 'Pago único'),
+    c('cos-2', 'ManyChat', 'Mensajería', 'Mensual', 15, '2026-08-01', null, 'Automatización de DMs de Instagram'),
+    c('cos-3', 'Instagram Plus', 'Contenido', 'Mensual', 14.99, '2026-08-01'),
+    c('cos-4', 'Zoom', 'Equipo', 'Mensual', 15.99, '2026-08-01', null, 'Llamadas de venta'),
+    c('cos-5', 'Skool', 'Contenido', 'Mensual', 99, '2026-09-01', null, 'Comunidad y cursos'),
   ];
 }
 
@@ -369,6 +373,12 @@ export function sampleBundle(): RawBundle {
     organico: org.diario,
     piezas: org.piezas,
     ajustes,
+    // % de ejemplo (ilustrativos): Marcos es el dueño, no cobra comisión
+    comisiones: [
+      { id: 'com-1', closer: 'Marcos', porcentaje: 0, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'com-2', closer: 'Andrea', porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'com-3', closer: 'Gonzalo', porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
+    ],
     costos: construirCostos(),
     log,
     actualizaciones: [
