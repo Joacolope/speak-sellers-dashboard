@@ -261,6 +261,8 @@ create table if not exists log_agente (
 alter table leads add column if not exists editado_por text;
 -- Funnel por el que entró el lead (para los embudos por fuente)
 alter table leads add column if not exists funnel text check (funnel in ('Orgánico','Follow Me Ads','Webinar','Lead magnet'));
+-- Inbound (el lead escribió primero) u Outbound (salió de un mensaje en frío)
+alter table leads add column if not exists canal text not null default 'Inbound' check (canal in ('Inbound','Outbound'));
 alter table agendas add column if not exists editado_por text;
 alter table cobranzas add column if not exists editado_por text;
 alter table costos add column if not exists editado_por text;

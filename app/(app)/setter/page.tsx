@@ -4,7 +4,7 @@ import { BarrasSimples } from '@/components/Charts';
 import { DemoBanner, Seccion, SourceDot, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
-import { mesesDisponibles } from '@/lib/metrics';
+import { mesesDisponibles, metricasMes } from '@/lib/metrics';
 import { fechaCorta, mesDe, num, pct } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -26,6 +26,7 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
   const totPag = sum('conv_pagadas');
   const totOut = sum('respuestas');
   const metaConv = bundle.ads.filter((a) => mesDe(a.fecha) === f.mes).reduce((acc, a) => acc + (a.conversaciones ?? 0), 0);
+  const m = metricasMes(bundle, { ...f, closer: 'todos', fuente: 'todas' });
   const chart = filas.map((s) => ({ x: s.fecha.slice(8), organicas: s.conv_organicas ?? 0, pagadas: s.conv_pagadas ?? 0, outbound: s.respuestas ?? 0 }));
 
   return (
@@ -47,6 +48,12 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
         <div className="card flex flex-col gap-2"><div className="metric">{num(totPag)}</div><div className="text-[14px] text-text-muted">Conv. pagadas</div></div>
         <div className="card flex flex-col gap-2"><div className="metric">{num(sum('links_enviados'))}</div><div className="text-[14px] text-text-muted">Links enviados</div></div>
         <div className="card flex flex-col gap-2"><div className="metric">{num(totOut)}</div><div className="text-[14px] text-text-muted">Conv. outbound (con respuesta)</div></div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="card flex flex-col gap-2"><div className="metric">{pct(m.pct_agenda_conversacion)}</div><div className="text-[14px] text-text-muted">% Agenda total · {num(m.agendas)} agendas / {num(m.conversaciones)} conv.</div></div>
+        <div className="card flex flex-col gap-2"><div className="metric" style={{ color: 'var(--blue-ink)' }}>{pct(m.pct_agenda_inbound)}</div><div className="text-[14px] text-text-muted">% Agenda inbound · {num(m.agendas_inbound)} / {num(m.conv_inbound)} conv. que escribieron</div></div>
+        <div className="card flex flex-col gap-2"><div className="metric" style={{ color: 'var(--green-ink)' }}>{pct(m.pct_agenda_outbound)}</div><div className="text-[14px] text-text-muted">% Agenda outbound · {num(m.agendas_outbound)} / {num(m.conv_outbound)} respuestas en frío</div></div>
       </section>
 
       <Seccion

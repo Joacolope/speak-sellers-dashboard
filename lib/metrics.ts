@@ -38,6 +38,13 @@ export interface MetricasMes {
   old_cash: number;
   // Conversión
   pct_agenda_conversacion: number | null;
+  /** Agendas de leads inbound / conversaciones inbound (orgánicas + pagadas) */
+  agendas_inbound: number;
+  conv_inbound: number | null;
+  pct_agenda_inbound: number | null;
+  /** Agendas de leads outbound / conversaciones outbound (respuestas a mensajes en frío) */
+  agendas_outbound: number;
+  pct_agenda_outbound: number | null;
   pct_agenda_link: number | null;
 }
 
@@ -119,6 +126,10 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const convPag = sumNullable(setter, (s) => s.conv_pagadas);
   const convOut = sumNullable(setter, (s) => s.respuestas);
   const conversaciones = convOrg === null && convPag === null && convOut === null ? null : (convOrg ?? 0) + (convPag ?? 0) + (convOut ?? 0);
+  const convIn = convOrg === null && convPag === null ? null : (convOrg ?? 0) + (convPag ?? 0);
+  // Sin clasificar cuenta como inbound (es lo que casi siempre pasa hoy)
+  const agOutbound = ag.filter((a) => a.lead?.canal === 'Outbound').length;
+  const agInbound = ag.length - agOutbound;
   const links = sumNullable(setter, (s) => s.links_enviados);
 
   return {
@@ -149,6 +160,11 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
     new_cash: newCash,
     old_cash: oldCash,
     pct_agenda_conversacion: conversaciones ? ratio(ag.length, conversaciones) : null,
+    agendas_inbound: agInbound,
+    conv_inbound: convIn,
+    pct_agenda_inbound: convIn ? ratio(agInbound, convIn) : null,
+    agendas_outbound: agOutbound,
+    pct_agenda_outbound: convOut ? ratio(agOutbound, convOut) : null,
     pct_agenda_link: links ? ratio(ag.length, links) : null,
   };
 }

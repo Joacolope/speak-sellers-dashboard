@@ -29,6 +29,8 @@ export interface Lead {
   fuente?: Fuente | null;
   /** Funnel por el que entró. null = sin clasificar */
   funnel?: Funnel | null;
+  /** Inbound: el lead escribió primero. Outbound: salió de un mensaje en frío. */
+  canal?: 'Inbound' | 'Outbound' | null;
   tags?: string[] | null;
   cualificacion_economica?: number | null;
   primer_punto_contacto?: string | null;

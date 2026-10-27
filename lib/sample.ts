@@ -91,6 +91,7 @@ function construirAgendasOctubre(): { leads: Lead[]; agendas: Agenda[] } {
       telefono: `+54 9 11 ${String(1000 + Math.floor(rand() * 9000))}-${String(1000 + Math.floor(rand() * 9000))}`,
       fuente,
       funnel: funnelDe(fuente, rand()),
+      canal: i % 9 === 4 ? 'Outbound' : 'Inbound',
       cualificacion_economica: s.cualif ?? null,
       etapa_pipeline: s.compro === 'Si' ? 'Cliente' : s.compro === 'Reserva' ? 'Reserva $' : s.asistio === 'Asistió' ? 'Seguimiento' : 'Agendado',
       source: 'migracion',
