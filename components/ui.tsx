@@ -38,15 +38,37 @@ export function SourceDot({ source }: { source: Source | null | undefined }) {
   );
 }
 
+/** Semáforo de 3 niveles: verde cumple, amarillo cerca (a menos del 15 % del objetivo), rojo lejos. */
 export function Semaforo({ valor, objetivo, invertir = false }: { valor: number | null; objetivo: number; invertir?: boolean }) {
   if (valor === null) return <span className="text-text-disabled">—</span>;
   const ok = invertir ? valor <= objetivo : valor >= objetivo;
-  return (
-    <span className={ok ? 'ok' : 'bad'}>
-      <span className="dot mr-2" style={{ background: 'currentColor' }} />
-      {pct(valor)}
-    </span>
-  );
+  const cerca = invertir ? valor <= objetivo * 1.15 : valor >= objetivo * 0.85;
+  return <span className={`tag ${ok ? 'tag-green' : cerca ? 'tag-yellow' : 'tag-red'}`}>{pct(valor)}</span>;
+}
+
+/** Clase de texto según semáforo, para números grandes. */
+export function claseSemaforo(valor: number | null, objetivo: number): string {
+  if (valor === null) return '';
+  return valor >= objetivo ? 'ok' : valor >= objetivo * 0.85 ? 'warn' : 'bad';
+}
+
+export type ColorTag = 'green' | 'red' | 'yellow' | 'blue' | 'gray';
+
+export function Tag({ color, children, title }: { color: ColorTag; children: ReactNode; title?: string }) {
+  return <span className={`tag tag-${color}`} title={title}>{children}</span>;
+}
+
+const COLOR_ASISTIO: Record<string, ColorTag> = { 'Asistió': 'green', 'No show': 'red', 'Canceló': 'gray', Pendiente: 'yellow' };
+const COLOR_COMPRO: Record<string, ColorTag> = { Si: 'green', Reserva: 'yellow', No: 'red' };
+
+export function EstadoAsistio({ v }: { v: string | null | undefined }) {
+  if (!v) return <span className="text-text-disabled">—</span>;
+  return <Tag color={COLOR_ASISTIO[v] ?? 'gray'}>{v}</Tag>;
+}
+
+export function EstadoCompro({ v }: { v: string | null | undefined }) {
+  if (!v) return <span className="text-text-disabled">—</span>;
+  return <Tag color={COLOR_COMPRO[v] ?? 'gray'}>{v === 'Si' ? 'Sí' : v}</Tag>;
 }
 
 export function Variacion({ v, invertir = false }: { v: number | null; invertir?: boolean }) {
@@ -62,13 +84,13 @@ export function Variacion({ v, invertir = false }: { v: number | null; invertir?
 
 export function SiNo({ v }: { v: boolean | null | undefined }) {
   if (v === null || v === undefined) return <span className="text-text-disabled">—</span>;
-  return <span className={v ? 'ok' : 'bad'}>{v ? '✓' : '✗'}</span>;
+  return <Tag color={v ? 'green' : 'red'}>{v ? 'Sí' : 'No'}</Tag>;
 }
 
 export function DemoBanner() {
   return (
-    <div className="card-feature !py-4 text-[14px] text-text-muted">
-      <span className="mr-2 text-accent [font-family:var(--font-polysans)]">Datos de ejemplo.</span>
+    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--yellow-soft)] px-5 py-3 text-[14px] text-text-muted">
+      <Tag color="yellow">Datos de ejemplo</Tag>
       Supabase no está configurado. Los números salen de la sección 10 de la spec (octubre 2026) y solo sirven para ver el diseño. Cargá <code className="mono text-[12px]">SUPABASE_URL</code> y <code className="mono text-[12px]">SUPABASE_SERVICE_ROLE</code> en Vercel para ver datos reales.
     </div>
   );
@@ -81,11 +103,12 @@ export function Vacio({ texto }: { texto: string }) {
 /** Tarjeta de datos estilo referencia: título en tinta ember, ícono en círculo,
     número grande opcional con su comparación, y el gráfico abajo. */
 export function ChartCard({
-  titulo, sub, icono, valor, comparacion, children, className = '',
+  titulo, sub, icono, color = 'blue', valor, comparacion, children, className = '',
 }: {
   titulo: string;
   sub?: string;
   icono?: ReactNode;
+  color?: 'blue' | 'green' | 'red' | 'yellow';
   valor?: string;
   comparacion?: ReactNode;
   children: ReactNode;
@@ -98,7 +121,7 @@ export function ChartCard({
           <h3 className="card-title">{titulo}</h3>
           {sub && <div className="card-sub">{sub}</div>}
         </div>
-        {icono && <span className="icon-badge" aria-hidden>{icono}</span>}
+        {icono && <span className={`icon-badge icon-${color}`} aria-hidden>{icono}</span>}
       </div>
       {valor && (
         <div className="-mt-1">

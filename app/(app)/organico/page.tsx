@@ -24,7 +24,7 @@ function Top({ titulo, piezas, campo }: { titulo: string; piezas: OrganicoPieza[
               <span className="flex-1 truncate">
                 {p.url ? <a href={p.url} target="_blank" rel="noreferrer" className="hover:text-accent">{p.titulo}</a> : p.titulo}
                 <span className="ml-2 text-text-muted">{fechaCorta(p.fecha)}</span>
-                {p.a_confirmar && <span className="mono ml-2 text-[12px] text-accent">a confirmar</span>}
+                {p.a_confirmar && <span className="tag tag-yellow ml-2 !text-[11px]">a confirmar</span>}
               </span>
               <span className="tabular-nums">{num(p[campo])}</span>
             </li>
@@ -96,7 +96,7 @@ export default async function Organico({ searchParams }: { searchParams: SearchP
                         <td className="num">{num(o.cantidad_historias)}</td>
                         <td className="num text-text-muted">{pct(drop)}</td>
                         <td className="num" title={o.notas ?? undefined}>
-                          {num(o.respuestas)}{o.notas?.includes('confirmar') && <span className="mono ml-1 text-[12px] text-accent">?</span>}
+                          {num(o.respuestas)}{o.notas?.includes('confirmar') && <span className="warn ml-1 text-[12px]" title="A confirmar">●</span>}
                         </td>
                         <td>{o.formato_reel ?? '—'}</td>
                         <td className="mono text-[12px]">{o.tipo_cta ?? '—'}</td>

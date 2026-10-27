@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type React from 'react';
 import { useRouter } from 'next/navigation';
 
 type Opcion = { value: string; label: string };
@@ -11,7 +12,7 @@ interface Props {
   valor: string | number | null | undefined;
   tipo: 'select' | 'number' | 'text';
   opciones?: Opcion[];
-  mostrar?: string;
+  mostrar?: React.ReactNode;
   demo?: boolean;
 }
 

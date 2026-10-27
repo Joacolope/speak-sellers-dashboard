@@ -9,14 +9,15 @@ interface Props {
   nota?: string;
   /** Para costos: bajar es bueno (verde). */
   invertir?: boolean;
+  color?: 'blue' | 'green' | 'red' | 'yellow';
 }
 
-export default function StatCard({ label, valor, variacion, icono, nota, invertir }: Props) {
+export default function StatCard({ label, valor, variacion, icono, nota, invertir, color = 'blue' }: Props) {
   return (
     <div className="card flex flex-col gap-3 !p-5">
       <div className="flex items-start justify-between gap-2">
         <span className="card-title !text-[14px]">{label}</span>
-        <span className="icon-badge !h-8 !w-8" aria-hidden>{icono}</span>
+        <span className={`icon-badge icon-${color} !h-8 !w-8`} aria-hidden>{icono}</span>
       </div>
       <div className="metric">{valor}</div>
       {nota ? <div className="text-[13px] text-text-disabled">{nota}</div> : <Variacion v={variacion} invertir={invertir} />}

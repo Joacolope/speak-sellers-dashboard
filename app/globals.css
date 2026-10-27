@@ -62,6 +62,11 @@
   --color-accent-2: var(--accent-2);
   --color-ok: var(--ok);
   --color-bad: var(--bad);
+  --color-warn: var(--warn);
+  --color-blue: var(--blue);
+  --color-green: var(--green);
+  --color-red: var(--red);
+  --color-yellow: var(--yellow);
 }
 
 :root {
@@ -99,15 +104,25 @@
   --text: #202020;          /* Graphite */
   --text-muted: #4d4d4d;    /* Steel */
   --text-disabled: #828282; /* Slate */
-  --accent: #ff682c;        /* Ember: serie principal, activos, links */
-  --accent-2: #816729;      /* Brass: serie secundaria, eyebrows */
+  /* Paleta semántica: cada color significa siempre lo mismo */
+  --blue: #2563eb;          /* volumen: revenue, agendas, conversaciones */
+  --green: #16a34a;         /* plata que queda / bueno: cash, ventas, asistió */
+  --red: #dc2626;           /* costos / malo: ads, software, no show */
+  --yellow: #eab308;        /* pendiente / atención: reservas, cuotas, a confirmar */
+  --blue-ink: #1d4ed8;      /* versiones para texto (contraste AA sobre blanco) */
+  --green-ink: #15803d;
+  --red-ink: #b91c1c;
+  --yellow-ink: #a16207;
+  --accent: var(--blue);    /* UI: links, foco */
+  --accent-2: #6b6b6b;      /* eyebrows neutros */
   --chart-grid: #e8e8e8;
   --chart-axis: #828282;
   --btn-primary-bg: #202020;
   --btn-primary-text: #ffffff;
   --funnel-text: #202020;
-  --ok: #15803d;
-  --bad: #b91c1c;
+  --ok: var(--green-ink);
+  --bad: var(--red-ink);
+  --warn: var(--yellow-ink);
 }
 
 :root[data-theme="dark"] {
@@ -123,21 +138,34 @@
   --text: #f2f0ec;
   --text-muted: #b5b1a8;
   --text-disabled: #85827b;
-  --accent: #ff682c;
-  --accent-2: #d4b26a;      /* Brass aclarado para contraste sobre oscuro */
+  --blue: #3b82f6;
+  --green: #22c55e;
+  --red: #ef4444;
+  --yellow: #facc15;
+  --blue-ink: #60a5fa;
+  --green-ink: #4ade80;
+  --red-ink: #f87171;
+  --yellow-ink: #fde047;
+  --accent: var(--blue);
+  --accent-2: #9a968d;
   --chart-grid: #2a2925;
   --chart-axis: #85827b;
   --btn-primary-bg: #f2f0ec;
   --btn-primary-text: #181816;
   --funnel-text: #ffffff;
-  --ok: #22c55e;
-  --bad: #f87171;
+  --ok: var(--green-ink);
+  --bad: var(--red-ink);
+  --warn: var(--yellow-ink);
 }
 
 :root, :root[data-theme="light"], :root[data-theme="dark"] {
-  --accent-ink: color-mix(in srgb, var(--accent) 55%, var(--text));   /* títulos */
-  --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--surface)); /* relleno de áreas */
-  --accent-tint: color-mix(in srgb, var(--accent) 10%, var(--surface)); /* fondo de íconos */
+  --accent-ink: var(--text);
+  --accent-soft: color-mix(in srgb, var(--blue) 14%, var(--surface));
+  --accent-tint: color-mix(in srgb, var(--blue) 10%, var(--surface));
+  --blue-soft: color-mix(in srgb, var(--blue) 14%, var(--surface));
+  --green-soft: color-mix(in srgb, var(--green) 14%, var(--surface));
+  --red-soft: color-mix(in srgb, var(--red) 14%, var(--surface));
+  --yellow-soft: color-mix(in srgb, var(--yellow) 20%, var(--surface));
 }
 :root, :root[data-theme="light"] { --chart-muted: #a8a49c; --bg: #f3f2ef; }
 :root[data-theme="dark"] { --chart-muted: #77736b; }
@@ -155,7 +183,7 @@ body {
 
 * { box-shadow: none !important; }
 
-::selection { background: var(--accent); color: #ffffff; }
+::selection { background: var(--blue); color: #ffffff; }
 
 /* ───────────── Tipografía ───────────── */
 .display, .h1, .h2, .h3, .metric, .metric-xl {
@@ -195,7 +223,7 @@ body {
   font-size: 15px;
   line-height: 1.25;
   letter-spacing: -0.01em;
-  color: var(--accent-ink);
+  color: var(--text);
 }
 .card-sub { font-size: 12px; color: var(--text-disabled); margin-top: 2px; }
 .icon-badge {
@@ -283,4 +311,26 @@ body {
 
 .ok { color: var(--ok); }
 .bad { color: var(--bad); }
+.warn { color: var(--warn); }
+
+/* Etiqueta de estado: punto + texto sobre fondo suave del mismo color */
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: var(--radius-tags);
+  padding: 2px 10px 2px 8px;
+  font-size: 13px; line-height: 20px; font-weight: 500;
+  white-space: nowrap;
+}
+.tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.tag-green { background: var(--green-soft); color: var(--green-ink); }
+.tag-red { background: var(--red-soft); color: var(--red-ink); }
+.tag-yellow { background: var(--yellow-soft); color: var(--yellow-ink); }
+.tag-blue { background: var(--blue-soft); color: var(--blue-ink); }
+.tag-gray { background: var(--surface-2); color: var(--text-disabled); }
+
+/* Íconos en círculo por color */
+.icon-blue { background: var(--blue-soft); color: var(--blue-ink); }
+.icon-green { background: var(--green-soft); color: var(--green-ink); }
+.icon-red { background: var(--red-soft); color: var(--red-ink); }
+.icon-yellow { background: var(--yellow-soft); color: var(--yellow-ink); }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; }

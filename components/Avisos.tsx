@@ -13,7 +13,7 @@ export default function Avisos({ pendientes, actualizaciones }: { pendientes: Pe
         <div className="h3 mb-3">Cobranzas pendientes esta semana</div>
         {cobranzas.length ? (
           <ul className="flex flex-col gap-2 text-[14px]">
-            {cobranzas.map((p) => <li key={p.texto}>{p.texto}</li>)}
+            {cobranzas.map((p) => <li key={p.texto} className="flex gap-2"><span className="warn">●</span><span>{p.texto}</span></li>)}
           </ul>
         ) : <div className="text-[14px] text-text-muted">Nada por cobrar esta semana.</div>}
       </div>
@@ -21,7 +21,7 @@ export default function Avisos({ pendientes, actualizaciones }: { pendientes: Pe
         <div className="h3 mb-3">Pendientes del agente</div>
         {agente.length ? (
           <ul className="flex flex-col gap-2 text-[14px]">
-            {agente.map((p) => <li key={p.texto}><span className="mr-2 text-accent">◐</span>{p.texto}</li>)}
+            {agente.map((p) => <li key={p.texto} className="flex gap-2"><span className="warn">●</span><span>{p.texto}</span></li>)}
           </ul>
         ) : <div className="text-[14px] text-text-muted">Sin pendientes.</div>}
       </div>
@@ -31,7 +31,7 @@ export default function Avisos({ pendientes, actualizaciones }: { pendientes: Pe
           {actualizaciones.map((u) => (
             <li key={u.fuente} className="flex justify-between gap-4">
               <span className="text-text-muted">{u.fuente}</span>
-              <span className={u.ok ? '' : 'bad'}>{u.ok ? fechaHora(u.fecha) : 'no actualizó hoy'}</span>
+              <span className="flex items-center gap-2"><span className={u.ok ? 'ok' : 'bad'}>●</span>{u.ok ? fechaHora(u.fecha) : <span className="bad">no actualizó hoy</span>}</span>
             </li>
           ))}
         </ul>

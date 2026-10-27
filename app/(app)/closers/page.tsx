@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import Filtros from '@/components/Filtros';
 import EditableCell from '@/components/EditableCell';
-import { DemoBanner, Seccion, SiNo, SourceDot, Vacio } from '@/components/ui';
+import { DemoBanner, EstadoAsistio, EstadoCompro, Seccion, SiNo, claseSemaforo, SourceDot, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, queryDe, type SearchParams } from '@/lib/filtros';
 import { agendasDelMes, mesesDisponibles, resumenCloser } from '@/lib/metrics';
@@ -48,9 +48,9 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
 
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div className="card flex flex-col gap-2"><div className="metric">{num(resumen.agendas)}</div><div className="text-[14px] text-text-muted">Agendas</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric">{pct(resumen.pct_show)}</div><div className="text-[14px] text-text-muted">% Show</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric">{pct(resumen.pct_cierre)}</div><div className="text-[14px] text-text-muted">% Cierre sobre ofertas</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric">{usd(resumen.cash)}</div><div className="text-[14px] text-text-muted">Cash</div></div>
+        <div className="card flex flex-col gap-2"><div className={`metric ${claseSemaforo(resumen.pct_show, 0.6)}`}>{pct(resumen.pct_show)}</div><div className="text-[14px] text-text-muted">% Show</div></div>
+        <div className="card flex flex-col gap-2"><div className={`metric ${claseSemaforo(resumen.pct_cierre, 0.3)}`}>{pct(resumen.pct_cierre)}</div><div className="text-[14px] text-text-muted">% Cierre sobre ofertas</div></div>
+        <div className="card flex flex-col gap-2"><div className="metric ok">{usd(resumen.cash)}</div><div className="text-[14px] text-text-muted">Cash</div></div>
       </section>
 
       <Seccion eyebrow="Agendas" titulo={`${num(agendas.length)} llamadas`} aside={<span className="text-[14px] text-text-muted">Las celdas con borde al pasar el mouse se editan con un click.</span>}>
@@ -90,7 +90,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                     <td className="num">{num(a.lead?.cualificacion_economica)}</td>
                     <td className="editable">
                       <EditableCell agendaId={a.id} campo="asistio" valor={a.asistio} tipo="select" opciones={OPC_ASISTIO} demo={bundle.demo}
-                        mostrar={a.asistio} />
+                        mostrar={<EstadoAsistio v={a.asistio} />} />
                     </td>
                     <td className="editable">
                       <EditableCell agendaId={a.id} campo="oferta_hecha" valor={a.oferta_hecha ? 'true' : a.oferta_hecha === false ? 'false' : null} tipo="select" opciones={OPC_BOOL} demo={bundle.demo}
@@ -98,14 +98,14 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                     </td>
                     <td className="editable">
                       <EditableCell agendaId={a.id} campo="compro" valor={a.compro} tipo="select" opciones={OPC_COMPRO} demo={bundle.demo}
-                        mostrar={a.compro ?? undefined} />
+                        mostrar={a.compro ? <EstadoCompro v={a.compro} /> : undefined} />
                     </td>
                     <td className="editable"><EditableCell agendaId={a.id} campo="producto" valor={a.producto} tipo="text" demo={bundle.demo} /></td>
                     <td className="num editable"><EditableCell agendaId={a.id} campo="cash_collected" valor={a.cash_collected} tipo="number" demo={bundle.demo} mostrar={a.cash_collected !== null && a.cash_collected !== undefined ? usd(a.cash_collected) : undefined} /></td>
                     <td className="num editable"><EditableCell agendaId={a.id} campo="revenue" valor={a.revenue} tipo="number" demo={bundle.demo} mostrar={a.revenue !== null && a.revenue !== undefined ? usd(a.revenue) : undefined} /></td>
                     <td>{a.lead?.fuente ?? '—'}</td>
                     <td><SiNo v={a.confirmada_whatsapp} /></td>
-                    <td className="mono text-[12px] text-text-muted">{a.estado_ghl ?? '—'}</td>
+                    <td>{a.estado_ghl ? <span className={`tag ${a.estado_ghl === 'showed' ? 'tag-green' : a.estado_ghl === 'noshow' ? 'tag-red' : a.estado_ghl === 'cancelled' ? 'tag-gray' : 'tag-blue'}`}>{a.estado_ghl}</span> : '—'}</td>
                     <td><SourceDot source={a.source} /></td>
                   </tr>
                 ))}

@@ -35,8 +35,8 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
       </div>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="card flex flex-col gap-2"><div className="metric">{usd(cobrado)}</div><div className="text-[14px] text-text-muted">Cobrado en el mes</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric">{usd(pendienteTotal)}</div><div className="text-[14px] text-text-muted">Pendiente total</div></div>
+        <div className="card flex flex-col gap-2"><div className="metric ok">{usd(cobrado)}</div><div className="text-[14px] text-text-muted">Cobrado en el mes</div></div>
+        <div className="card flex flex-col gap-2"><div className="metric warn">{usd(pendienteTotal)}</div><div className="text-[14px] text-text-muted">Pendiente total</div></div>
         <div className="card"><div className={`metric ${reembolsos ? 'bad' : ''}`}>{usd(reembolsos)}</div><div className="text-[14px] text-text-muted">Reembolsos</div></div>
       </section>
 
@@ -62,11 +62,11 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
                   <tr key={c.id}>
                     <td className="font-medium">{nombre(c.agenda_id)}</td>
                     <td>{fechaCorta(c.fecha_cobro)}</td>
-                    <td className={`num ${c.es_reembolso ? 'bad' : ''}`}>{usd(c.monto_cobrado)}</td>
-                    <td className="num">{c.pendiente ? usd(c.pendiente) : '—'}</td>
+                    <td className={`num ${c.es_reembolso ? 'bad' : 'ok'}`}>{usd(c.monto_cobrado)}</td>
+                    <td className="num">{c.pendiente ? <span className="warn">{usd(c.pendiente)}</span> : '—'}</td>
                     <td>{c.closer}</td>
                     <td className="num">{c.cuotas_restantes ? num(c.cuotas_restantes) : '—'}</td>
-                    <td>{fechaCorta(c.proximo_vencimiento)}</td>
+                    <td>{c.proximo_vencimiento ? <span className="tag tag-yellow">{fechaCorta(c.proximo_vencimiento)}</span> : '—'}</td>
                     <td className="text-text-muted">{c.notas ?? ''}</td>
                     <td><SourceDot source={c.source} /></td>
                   </tr>

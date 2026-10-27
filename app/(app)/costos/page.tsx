@@ -52,24 +52,24 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
       </div>
 
       <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <StatCard label="Software del mes" valor={usd(cm.total, cm.total % 1 ? 2 : 0)} variacion={variacion(cm.total, anterior.costo_software)} icono={Iconos.margen} invertir />
-        <StatCard label="Inversión en ads" valor={usd(actual.inversion_ads)} variacion={variacion(actual.inversion_ads, anterior.inversion_ads)} icono={Iconos.ads} invertir />
-        <StatCard label="Costos totales" valor={usd(costosTotales)} variacion={variacion(costosTotales, anteriorTotales)} icono={Iconos.cash} invertir />
-        <StatCard label="Cash Collected" valor={usd(actual.cash_collected)} variacion={variacion(actual.cash_collected, anterior.cash_collected)} icono={Iconos.revenue}
+        <StatCard label="Software del mes" valor={usd(cm.total, cm.total % 1 ? 2 : 0)} variacion={variacion(cm.total, anterior.costo_software)} icono={Iconos.margen} invertir color="yellow" />
+        <StatCard label="Inversión en ads" valor={usd(actual.inversion_ads)} variacion={variacion(actual.inversion_ads, anterior.inversion_ads)} icono={Iconos.ads} invertir color="red" />
+        <StatCard label="Costos totales" valor={usd(costosTotales)} variacion={variacion(costosTotales, anteriorTotales)} icono={Iconos.cash} invertir color="red" />
+        <StatCard label="Cash Collected" valor={usd(actual.cash_collected)} variacion={variacion(actual.cash_collected, anterior.cash_collected)} icono={Iconos.revenue} color="green"
           nota={margen === null ? undefined : `Margen ${pct(margen)} sobre Revenue`} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <ChartCard titulo="Costos vs. Cash Collected" sub="Ads y software apilados · últimos meses" icono={Iconos.tendencia} className="lg:col-span-2">
+        <ChartCard titulo="Costos vs. Cash Collected" sub="Ads (rojo) y software (amarillo) vs. cash (verde)" icono={Iconos.tendencia} color="red" className="lg:col-span-2">
           <CostosMes data={serie} />
         </ChartCard>
-        <ChartCard titulo="Rentabilidad" sub={nombreMes(f.mes)} icono={Iconos.margen}>
+        <ChartCard titulo="Rentabilidad" sub={nombreMes(f.mes)} icono={Iconos.margen} color="green">
           <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} cash={actual.cash_collected} />
         </ChartCard>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <ChartCard titulo="Herramientas activas" sub={`${num(cm.items.length)} en ${nombreMes(f.mes).toLowerCase()}`} icono={Iconos.margen} className="lg:col-span-2">
+        <ChartCard titulo="Herramientas activas" sub={`${num(cm.items.length)} en ${nombreMes(f.mes).toLowerCase()}`} icono={Iconos.margen} color="yellow" className="lg:col-span-2">
           {cm.items.length ? (
             <div className="-mx-6 overflow-x-auto">
               <table className="table">
@@ -95,7 +95,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
                       <td className="text-text-muted">{c.categoria}</td>
                       <td>{c.frecuencia}</td>
                       <td className="num">{usd(c.monto, c.monto % 1 ? 2 : 0)}</td>
-                      <td className="num font-medium">{monto ? usd(monto, monto % 1 ? 2 : 0) : <span className="text-text-disabled">Gratis</span>}</td>
+                      <td className="num font-medium">{monto ? <span className="bad">{usd(monto, monto % 1 ? 2 : 0)}</span> : <span className="tag tag-green">Gratis</span>}</td>
                       <td>{fechaCorta(c.fecha_alta)}</td>
                       <td className="text-text-muted">{c.fecha_baja ? fechaCorta(c.fecha_baja) : '—'}</td>
                       <td><SourceDot source={c.source} /></td>
@@ -105,7 +105,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
                 <tfoot>
                   <tr>
                     <td className="!pl-6 h-11 font-medium" colSpan={4}>Total del mes</td>
-                    <td className="num font-medium">{usd(cm.total, 2)}</td>
+                    <td className="num font-medium bad">{usd(cm.total, 2)}</td>
                     <td colSpan={3}></td>
                   </tr>
                 </tfoot>
@@ -113,7 +113,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
             </div>
           ) : <Vacio texto="No hay herramientas cargadas para este mes. Agregá la primera abajo." />}
         </ChartCard>
-        <ChartCard titulo="Por categoría" sub="Equivalente mensual" icono={Iconos.globo}>
+        <ChartCard titulo="Por categoría" sub="Equivalente mensual" icono={Iconos.globo} color="red">
           {cm.porCategoria.length ? <BarrasCategoria data={cm.porCategoria.filter((c) => c.monto > 0)} /> : <Vacio texto="—" />}
         </ChartCard>
       </section>

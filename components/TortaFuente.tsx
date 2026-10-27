@@ -2,7 +2,9 @@
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
-/** Torta monocroma: mismo azul con opacidad decreciente, nunca una paleta multicolor. */
+const PALETA = ['var(--blue)', 'var(--green)', 'var(--yellow)', 'var(--red)', 'var(--chart-muted)', 'var(--text-disabled)'];
+
+/** Torta por fuente con la paleta primaria. */
 export default function TortaFuente({ data }: { data: { name: string; value: number }[] }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   const ordenada = [...data].sort((a, b) => b.value - a.value);
@@ -12,7 +14,7 @@ export default function TortaFuente({ data }: { data: { name: string; value: num
         <PieChart>
           <Pie data={ordenada} dataKey="value" nameKey="name" innerRadius={56} outerRadius={96} stroke="var(--surface)" strokeWidth={2} paddingAngle={1}>
             {ordenada.map((d, i) => (
-              <Cell key={d.name} fill="var(--accent)" fillOpacity={1 - i * 0.18} />
+              <Cell key={d.name} fill={PALETA[i % PALETA.length]} />
             ))}
           </Pie>
           <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border-outline)', borderRadius: 8, fontSize: 14, color: 'var(--text)' }} itemStyle={{ color: 'var(--text)' }} />
@@ -22,7 +24,7 @@ export default function TortaFuente({ data }: { data: { name: string; value: num
         {ordenada.map((d, i) => (
           <li key={d.name} className="flex items-center justify-between">
             <span className="flex items-center gap-2">
-              <span className="dot" style={{ background: 'var(--accent)', opacity: 1 - i * 0.18 }} />
+              <span className="dot" style={{ background: PALETA[i % PALETA.length] }} />
               {d.name}
             </span>
             <span className="tabular-nums text-text-muted">{d.value} · {((d.value / total) * 100).toFixed(1).replace('.', ',')}%</span>

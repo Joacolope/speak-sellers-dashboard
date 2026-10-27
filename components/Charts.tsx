@@ -7,12 +7,17 @@ import {
 import type { DiaAgendas, PuntoMensual, SemanaAdsCash } from '@/lib/metrics';
 import { num, usd } from '@/lib/format';
 
-/* Estilo de la referencia: curvas suaves, relleno durazno, serie secundaria gris,
-   línea vertical punteada en el mes elegido, ejes mínimos y tooltip tipo píldora. */
-const ACC = 'var(--accent)';
-const SOFT = 'var(--accent-soft)';
+/* Curvas suaves, línea vertical punteada en el mes elegido, ejes mínimos y tooltip tipo píldora.
+   Color semántico fijo: azul = volumen / revenue, verde = cash / bueno,
+   rojo = costos / malo, amarillo = pendiente / atención. */
+const B = 'var(--blue)';
+const G = 'var(--green)';
+const R = 'var(--red)';
+const Y = 'var(--yellow)';
+const BS = 'var(--blue-soft)';
+const GS = 'var(--green-soft)';
+const RS = 'var(--red-soft)';
 const MUTED = 'var(--chart-muted)';
-const MID = 'color-mix(in srgb, var(--accent) 45%, var(--surface))';
 const H = 220;
 const tick = { fontSize: 11, fill: 'var(--chart-axis)', fontFamily: 'var(--font-inter)' };
 const valor = { fontSize: 11, fill: 'var(--text-muted)', fontFamily: 'var(--font-inter)' };
@@ -33,6 +38,8 @@ export const usdCorto = (v: number) => {
 };
 
 type Fmt = (v: number) => string;
+export type Color = 'blue' | 'green' | 'red' | 'yellow';
+const COLOR: Record<Color, string> = { blue: B, green: G, red: R, yellow: Y };
 interface PillProps {
   active?: boolean;
   label?: string | number;
@@ -64,7 +71,7 @@ function Pill({ active, label, payload, fmt = (v) => num(v), prefijo = '' }: Pil
 const grid = <CartesianGrid stroke="var(--chart-grid)" vertical={false} />;
 
 /** Marcador del mes elegido: línea punteada vertical + punto. */
-function marcador(x: string | undefined, y: number | undefined, color = ACC) {
+function marcador(x: string | undefined, y: number | undefined, color = B) {
   if (!x) return null;
   return [
     <ReferenceLine key="rl" x={x} stroke={color} strokeDasharray="3 3" strokeOpacity={0.7} />,
@@ -83,9 +90,9 @@ export function CashRevenueMes({ data }: { data: PuntoMensual[] }) {
         <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={48} />
         <Tooltip content={<Pill fmt={(v) => usd(v)} />} cursor={{ stroke: 'var(--chart-grid)' }} />
         <Legend {...leyenda} />
-        <Area type="monotone" dataKey="revenue" name="Revenue" stroke={ACC} strokeWidth={1.5} fill={SOFT} fillOpacity={1} />
-        <Line type="monotone" dataKey="cash" name="Cash Collected" stroke={MUTED} strokeWidth={1.5} dot={false} />
-        {marcador(ult?.label, ult?.revenue)}
+        <Area type="monotone" dataKey="revenue" name="Revenue" stroke={B} strokeWidth={1.5} fill={BS} fillOpacity={1} />
+        <Line type="monotone" dataKey="cash" name="Cash Collected" stroke={G} strokeWidth={2} dot={false} />
+        {marcador(ult?.label, ult?.revenue, B)}
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -94,6 +101,8 @@ export function CashRevenueMes({ data }: { data: PuntoMensual[] }) {
 /** "Revenues": área con la tendencia; si el mes está en curso, el último tramo va punteado. */
 export function TendenciaMes({ data, campo, enCurso, nombre }: { data: PuntoMensual[]; campo: 'revenue' | 'cash'; enCurso: boolean; nombre: string }) {
   const n = data.length;
+  const C = campo === 'cash' ? G : B;
+  const CS = campo === 'cash' ? GS : BS;
   const filas = data.map((p, i) => ({
     label: p.label,
     cerrado: enCurso && i === n - 1 ? null : p[campo],
@@ -107,9 +116,9 @@ export function TendenciaMes({ data, campo, enCurso, nombre }: { data: PuntoMens
         <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} dy={6} />
         <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={44} />
         <Tooltip content={<Pill fmt={(v) => usd(v)} />} cursor={{ stroke: 'var(--chart-grid)' }} />
-        <Area type="monotone" dataKey="cerrado" name={nombre} stroke={ACC} strokeWidth={1.5} fill={SOFT} fillOpacity={1} connectNulls={false} />
-        <Area type="monotone" dataKey="parcial" name={`${nombre} (mes en curso)`} stroke={ACC} strokeWidth={1.5} strokeDasharray="4 4" fill={SOFT} fillOpacity={0.5} connectNulls={false} />
-        {marcador(ult?.label, ult?.[campo], ACC)}
+        <Area type="monotone" dataKey="cerrado" name={nombre} stroke={C} strokeWidth={1.5} fill={CS} fillOpacity={1} connectNulls={false} />
+        <Area type="monotone" dataKey="parcial" name={`${nombre} (mes en curso)`} stroke={C} strokeWidth={1.5} strokeDasharray="4 4" fill={CS} fillOpacity={0.5} connectNulls={false} />
+        {marcador(ult?.label, ult?.[campo], C)}
       </AreaChart>
     </ResponsiveContainer>
   );
@@ -119,25 +128,27 @@ export function TendenciaMes({ data, campo, enCurso, nombre }: { data: PuntoMens
 export function AnilloRentabilidad({ revenue, ads, software, cash }: { revenue: number; ads: number; software: number | null; cash: number }) {
   const margen = revenue > 0 ? Math.max(0, Math.min(1, cash / revenue)) : null;
   const datos = margen === null ? [{ v: 1 }] : [{ v: margen }, { v: 1 - margen }];
+  // Semáforo del margen: ≥ 50 % verde, 20–50 % amarillo, < 20 % rojo
+  const colorMargen = margen === null ? MUTED : margen >= 0.5 ? G : margen >= 0.2 ? Y : R;
   const items = [
-    { nombre: 'Revenue', valor: usd(revenue), color: 'var(--text)' },
-    { nombre: 'Ads', valor: `-${usd(ads)}`, color: MUTED },
-    { nombre: 'Software', valor: software === null ? '—' : `-${usd(software)}`, color: MID },
-    { nombre: 'Cash', valor: usd(cash), color: ACC },
+    { nombre: 'Revenue', valor: usd(revenue), color: B, clase: '' },
+    { nombre: 'Ads', valor: `-${usd(ads)}`, color: R, clase: 'bad' },
+    { nombre: 'Software', valor: software === null ? '—' : `-${usd(software)}`, color: 'color-mix(in srgb, var(--red) 50%, var(--surface))', clase: 'bad' },
+    { nombre: 'Cash', valor: usd(cash), color: G, clase: 'ok' },
   ];
   return (
     <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
       <div className="relative h-[156px] w-[156px] shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={[{ v: 1 }]} dataKey="v" innerRadius={60} outerRadius={72} startAngle={90} endAngle={-270} fill="var(--accent-tint)" stroke="none" isAnimationActive={false} />
+            <Pie data={[{ v: 1 }]} dataKey="v" innerRadius={60} outerRadius={72} startAngle={90} endAngle={-270} fill="var(--surface-2)" stroke="none" isAnimationActive={false} />
             <Pie data={datos} dataKey="v" innerRadius={60} outerRadius={72} startAngle={90} endAngle={-270} cornerRadius={8} stroke="none">
-              {datos.map((_, i) => <Cell key={i} fill={i === 0 && margen !== null ? ACC : 'transparent'} />)}
+              {datos.map((_, i) => <Cell key={i} fill={i === 0 && margen !== null ? colorMargen : 'transparent'} />)}
             </Pie>
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="metric !text-[32px]">{margen === null ? '—' : `${Math.round(margen * 100)}%`}</div>
+          <div className="metric !text-[32px]" style={{ color: margen === null ? undefined : colorMargen === Y ? 'var(--yellow-ink)' : colorMargen === G ? 'var(--green-ink)' : 'var(--red-ink)' }}>{margen === null ? '—' : `${Math.round(margen * 100)}%`}</div>
           <div className="text-[12px] text-text-disabled">Margen</div>
         </div>
       </div>
@@ -148,7 +159,7 @@ export function AnilloRentabilidad({ revenue, ads, software, cash }: { revenue: 
               <span className="inline-block h-2 w-3 rounded-[2px]" style={{ background: it.color }} />
               {it.nombre}
             </span>
-            <span className="tabular-nums text-text">{it.valor}</span>
+            <span className={`tabular-nums ${it.clase || 'text-text'}`}>{it.valor}</span>
           </li>
         ))}
         {software === null && <li className="whitespace-normal text-[12px] text-text-disabled">Software sin cargar: el margen real es un poco menor.</li>}
@@ -162,8 +173,8 @@ export function BarrasMes({
   data, a, b, formato,
 }: {
   data: PuntoMensual[];
-  a: { key: keyof PuntoMensual; nombre: string };
-  b: { key: keyof PuntoMensual; nombre: string };
+  a: { key: keyof PuntoMensual; nombre: string; color?: Color };
+  b: { key: keyof PuntoMensual; nombre: string; color?: Color };
   formato: 'usd' | 'x';
 }) {
   const f = (v: number) => (formato === 'usd' ? usd(v) : `${String(v).replace('.', ',')}x`);
@@ -177,10 +188,10 @@ export function BarrasMes({
         <ReferenceLine y={0} stroke="var(--chart-axis)" strokeOpacity={0.3} />
         <Tooltip content={<Pill fmt={f} />} cursor={{ fill: 'var(--surface-2)' }} />
         <Legend {...leyenda} />
-        <Bar dataKey={a.key as string} name={a.nombre} fill={ACC} radius={[4, 4, 0, 0]} maxBarSize={22}>
+        <Bar dataKey={a.key as string} name={a.nombre} fill={COLOR[a.color ?? 'green']} radius={[4, 4, 0, 0]} maxBarSize={22}>
           <LabelList dataKey={a.key as string} position="top" formatter={etiqueta} style={valor} />
         </Bar>
-        <Bar dataKey={b.key as string} name={b.nombre} fill={MUTED} radius={[4, 4, 0, 0]} maxBarSize={22}>
+        <Bar dataKey={b.key as string} name={b.nombre} fill={COLOR[b.color ?? 'blue']} radius={[4, 4, 0, 0]} maxBarSize={22}>
           <LabelList dataKey={b.key as string} position="top" formatter={etiqueta} style={valor} />
         </Bar>
       </BarChart>
@@ -199,7 +210,7 @@ export function InversionMes({ data }: { data: PuntoMensual[] }) {
         <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={48} />
         <Tooltip content={<Pill fmt={(v) => usd(v, 2)} />} cursor={{ fill: 'var(--surface-2)' }} />
         <Bar dataKey="inversion" name="Inversión" radius={[6, 6, 0, 0]} maxBarSize={40}>
-          {data.map((_, i) => <Cell key={i} fill={i === n - 1 ? ACC : SOFT} />)}
+          {data.map((_, i) => <Cell key={i} fill={i === n - 1 ? R : RS} />)}
           <LabelList dataKey="inversion" position="top" formatter={(v: number) => (v ? usdCorto(v) : '')} style={valor} />
         </Bar>
       </BarChart>
@@ -218,9 +229,9 @@ export function AgendasVentasMes({ data }: { data: PuntoMensual[] }) {
         <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} width={30} />
         <Tooltip content={<Pill />} cursor={{ stroke: 'var(--chart-grid)' }} />
         <Legend {...leyenda} />
-        <Area type="monotone" dataKey="agendas" name="Agendas" stroke={ACC} strokeWidth={1.5} fill={SOFT} fillOpacity={1} />
-        <Line type="monotone" dataKey="ventas" name="Ventas" stroke={MUTED} strokeWidth={1.5} dot={false} />
-        {marcador(ult?.label, ult?.agendas)}
+        <Area type="monotone" dataKey="agendas" name="Agendas" stroke={B} strokeWidth={1.5} fill={BS} fillOpacity={1} />
+        <Line type="monotone" dataKey="ventas" name="Ventas" stroke={G} strokeWidth={2} dot={{ r: 3, fill: G, strokeWidth: 0 }} />
+        {marcador(ult?.label, ult?.agendas, B)}
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -235,7 +246,7 @@ export function VentasPorPais({ data }: { data: { pais: string; ventas: number }
         <XAxis type="number" hide allowDecimals={false} />
         <YAxis type="category" dataKey="pais" tick={{ ...tick, fill: 'var(--text)', fontSize: 13 }} axisLine={false} tickLine={false} width={84} />
         <Tooltip content={<Pill />} cursor={false} />
-        <Bar dataKey="ventas" name="Ventas" fill={ACC} radius={6} barSize={12} background={{ fill: 'var(--accent-tint)', radius: 6 }}>
+        <Bar dataKey="ventas" name="Ventas" fill={G} radius={6} barSize={12} background={{ fill: 'var(--surface-2)', radius: 6 }}>
           <LabelList dataKey="ventas" position="right" style={{ ...valor, fill: 'var(--text)' }} />
         </Bar>
       </BarChart>
@@ -254,8 +265,8 @@ export function AdsVsCash({ data }: { data: SemanaAdsCash[] }) {
         <ReferenceLine y={0} stroke="var(--chart-axis)" strokeOpacity={0.3} />
         <Tooltip content={<Pill fmt={(v) => usd(v)} prefijo="Días " />} cursor={{ fill: 'var(--surface-2)' }} />
         <Legend {...leyenda} />
-        <Bar dataKey="inversion" name="Inversión en ads" fill={SOFT} radius={[6, 6, 0, 0]} maxBarSize={40} />
-        <Line type="monotone" dataKey="cash" name="Cash cobrado" stroke={ACC} strokeWidth={1.5} dot={{ r: 3, fill: ACC, strokeWidth: 0 }}>
+        <Bar dataKey="inversion" name="Inversión en ads" fill={R} fillOpacity={0.75} radius={[6, 6, 0, 0]} maxBarSize={40} />
+        <Line type="monotone" dataKey="cash" name="Cash cobrado" stroke={G} strokeWidth={2} dot={{ r: 3, fill: G, strokeWidth: 0 }}>
           <LabelList dataKey="cash" position="top" offset={8} formatter={(v: number) => (v ? usdCorto(v) : '')} style={valor} />
         </Line>
       </ComposedChart>
@@ -273,8 +284,8 @@ export function AgendasPorDia({ data }: { data: DiaAgendas[] }) {
         <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} width={26} />
         <Tooltip content={<Pill prefijo="Día " />} cursor={{ fill: 'var(--surface-2)' }} />
         <Legend {...leyenda} />
-        <Bar dataKey="agendas" name="Agendas" fill={SOFT} radius={[3, 3, 0, 0]} maxBarSize={12} />
-        <Line type="monotone" dataKey="asistencias" name="Asistencias" stroke={ACC} strokeWidth={1.5} dot={false} />
+        <Bar dataKey="agendas" name="Agendas" fill={B} fillOpacity={0.35} radius={[3, 3, 0, 0]} maxBarSize={12} />
+        <Line type="monotone" dataKey="asistencias" name="Asistencias" stroke={G} strokeWidth={2} dot={false} />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -282,7 +293,7 @@ export function AgendasPorDia({ data }: { data: DiaAgendas[] }) {
 
 /** Barras apiladas por día (setter: orgánicas, pagadas, outbound). */
 export function BarrasSimples({ data, series }: { data: Record<string, string | number | null>[]; series: { key: string; nombre: string; color: 'main' | 'accent' | 'soft' }[] }) {
-  const color = { main: MUTED, accent: ACC, soft: SOFT };
+  const color = { main: B, accent: Y, soft: G };
   return (
     <ResponsiveContainer width="100%" height={H}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -310,9 +321,9 @@ export function CostosMes({ data }: { data: PuntoMensual[] }) {
         <ReferenceLine y={0} stroke="var(--chart-axis)" strokeOpacity={0.3} />
         <Tooltip content={<Pill fmt={(v) => usd(v, 2)} />} cursor={{ fill: 'var(--surface-2)' }} />
         <Legend {...leyenda} />
-        <Bar dataKey="inversion" name="Ads" stackId="c" fill={MUTED} maxBarSize={36} />
-        <Bar dataKey="software" name="Software" stackId="c" fill={MID} radius={[6, 6, 0, 0]} maxBarSize={36} />
-        <Line type="monotone" dataKey="cash" name="Cash Collected" stroke={ACC} strokeWidth={1.5} dot={{ r: 3, fill: ACC, strokeWidth: 0 }} />
+        <Bar dataKey="inversion" name="Ads" stackId="c" fill={R} maxBarSize={36} />
+        <Bar dataKey="software" name="Software" stackId="c" fill={Y} radius={[6, 6, 0, 0]} maxBarSize={36} />
+        <Line type="monotone" dataKey="cash" name="Cash Collected" stroke={G} strokeWidth={2} dot={{ r: 3, fill: G, strokeWidth: 0 }} />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -327,7 +338,7 @@ export function BarrasCategoria({ data }: { data: { categoria: string; monto: nu
         <XAxis type="number" hide />
         <YAxis type="category" dataKey="categoria" tick={{ ...tick, fill: 'var(--text)', fontSize: 13 }} axisLine={false} tickLine={false} width={112} />
         <Tooltip content={<Pill fmt={(v) => usd(v, 2)} />} cursor={false} />
-        <Bar dataKey="monto" name="Por mes" fill={ACC} radius={6} barSize={12} background={{ fill: 'var(--accent-tint)', radius: 6 }}>
+        <Bar dataKey="monto" name="Por mes" fill={R} radius={6} barSize={12} background={{ fill: 'var(--surface-2)', radius: 6 }}>
           <LabelList dataKey="monto" position="right" formatter={(v: number) => usd(v, v % 1 ? 2 : 0)} style={{ ...valor, fill: 'var(--text)' }} />
         </Bar>
       </BarChart>

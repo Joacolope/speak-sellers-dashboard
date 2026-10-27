@@ -20,7 +20,9 @@ export default function Funnel({ niveles }: { niveles: NivelFunnel[] }) {
         const w = ANCHOS[i] ?? 30;
         const wNext = ANCHOS[i + 1] ?? w * 0.8;
         const inset = ((w - wNext) / 2 / w) * 100;
-        const mezcla = Math.round(100 - i * 11);
+        const ultimo = i === niveles.length - 1;
+        const mezcla = ultimo ? 100 : Math.round(100 - i * 13);
+        const base = ultimo ? 'var(--green)' : 'var(--blue)';
         const anterior = niveles[i - 1];
         const conv = anterior && anterior.valor && n.valor !== null && !n.esUsd ? n.valor / anterior.valor : null;
         return (
@@ -35,18 +37,18 @@ export default function Funnel({ niveles }: { niveles: NivelFunnel[] }) {
                 className="flex h-[52px] items-center justify-center"
                 style={{
                   width: `${w}%`,
-                  background: `color-mix(in srgb, var(--accent) ${mezcla}%, var(--surface))`,
+                  background: `color-mix(in srgb, ${base} ${mezcla}%, var(--surface))`,
                   clipPath: `polygon(0 0, 100% 0, ${100 - inset}% 100%, ${inset}% 100%)`,
                   borderRadius: 4,
                 }}
               >
-                <span className="metric !text-[24px]" style={{ color: 'var(--funnel-text)' }}>
+                <span className="metric !text-[24px]" style={{ color: mezcla >= 70 ? '#ffffff' : 'var(--text)' }}>
                   {n.esUsd ? corto(n.valor) : num(n.valor)}
                 </span>
               </div>
             </div>
             <div className="relative flex items-center gap-2">
-              <span className="dot shrink-0" style={{ background: `color-mix(in srgb, var(--accent) ${mezcla}%, var(--surface))` }} />
+              <span className="dot shrink-0" style={{ background: `color-mix(in srgb, ${base} ${mezcla}%, var(--surface))` }} />
               <span className="text-[14px] text-text">{n.nombre}</span>
               {conv !== null && <span className="text-[13px] text-text-disabled">{pct(conv)}</span>}
               {n.esUsd && <span className="text-[13px] text-text-disabled">{usd(n.valor)}</span>}
