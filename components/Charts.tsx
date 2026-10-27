@@ -106,7 +106,7 @@ export function TendenciaMes({ data, campo, enCurso, nombre }: { data: PuntoMens
 }
 
 /** Rentabilidad: anillo con el margen (Cash Collected / Revenue) y la leyenda al costado. */
-export function AnilloRentabilidad({ revenue, ads, software, comisiones, cash }: { revenue: number; ads: number; software: number | null; comisiones: number | null; cash: number }) {
+export function AnilloRentabilidad({ revenue, ads, software, comisiones, plataformas = null, cash }: { revenue: number; ads: number; software: number | null; comisiones: number | null; plataformas?: number | null; cash: number }) {
   const margen = revenue > 0 ? Math.max(0, Math.min(1, cash / revenue)) : null;
   const datos = margen === null ? [{ v: 1 }] : [{ v: margen }, { v: 1 - margen }];
   // Semáforo del margen: ≥ 50 % verde, 20–50 % amarillo, < 20 % rojo
@@ -116,6 +116,7 @@ export function AnilloRentabilidad({ revenue, ads, software, comisiones, cash }:
     { nombre: 'Ads', valor: `-${usd(ads)}`, color: R, clase: 'bad' },
     { nombre: 'Software', valor: software === null ? '—' : `-${usd(software)}`, color: 'color-mix(in srgb, var(--red) 50%, var(--surface))', clase: 'bad' },
     { nombre: 'Comisiones', valor: comisiones === null ? '—' : `-${usd(comisiones)}`, color: Y, clase: 'bad' },
+    { nombre: 'Plataformas', valor: plataformas === null ? '—' : `-${usd(plataformas)}`, color: 'color-mix(in srgb, var(--yellow) 50%, var(--surface))', clase: 'bad' },
     { nombre: 'Cash', valor: usd(cash), color: G, clase: 'ok' },
   ];
   return (
@@ -144,9 +145,9 @@ export function AnilloRentabilidad({ revenue, ads, software, comisiones, cash }:
             <span className={`tabular-nums ${it.clase || 'text-text'}`}>{it.valor}</span>
           </li>
         ))}
-        {(software === null || comisiones === null) && (
+        {(software === null || comisiones === null || plataformas === null) && (
           <li className="whitespace-normal text-[12px] text-text-disabled">
-            Falta cargar {[software === null && 'software', comisiones === null && 'el % de comisión'].filter(Boolean).join(' y ')} en Costos: el margen real es menor.
+            Falta cargar {[software === null && 'software', comisiones === null && 'el % de comisión', plataformas === null && 'las comisiones de plataformas'].filter(Boolean).join(', ')} en Costos: el margen real es menor.
           </li>
         )}
       </ul>
@@ -309,7 +310,8 @@ export function CostosMes({ data }: { data: PuntoMensual[] }) {
         <Legend {...leyenda} />
         <Bar dataKey="inversion" name="Ads" stackId="c" fill={R} maxBarSize={36} />
         <Bar dataKey="software" name="Software" stackId="c" fill="color-mix(in srgb, var(--red) 50%, var(--surface))" maxBarSize={36} />
-        <Bar dataKey="comisiones" name="Comisiones" stackId="c" fill={Y} radius={[6, 6, 0, 0]} maxBarSize={36} />
+        <Bar dataKey="comisiones" name="Comisiones" stackId="c" fill={Y} maxBarSize={36} />
+        <Bar dataKey="plataformas" name="Plataformas" stackId="c" fill="color-mix(in srgb, var(--yellow) 50%, var(--surface))" radius={[6, 6, 0, 0]} maxBarSize={36} />
         <Line type="monotone" dataKey="cash" name="Cash Collected" stroke={G} strokeWidth={2} dot={{ r: 3, fill: G, strokeWidth: 0 }} />
       </ComposedChart>
     </ResponsiveContainer>
@@ -317,7 +319,7 @@ export function CostosMes({ data }: { data: PuntoMensual[] }) {
 }
 
 /** Barras horizontales con riel de fondo (categorías de costo, etc.). */
-export function BarrasCategoria({ data }: { data: { categoria: string; monto: number }[] }) {
+export function BarrasCategoria({ data, color = 'red' }: { data: { categoria: string; monto: number }[]; color?: Color }) {
   const alto = Math.max(120, data.length * 34 + 10);
   return (
     <ResponsiveContainer width="100%" height={alto}>
@@ -325,7 +327,7 @@ export function BarrasCategoria({ data }: { data: { categoria: string; monto: nu
         <XAxis type="number" hide />
         <YAxis type="category" dataKey="categoria" tick={{ ...tick, fill: 'var(--text)', fontSize: 13 }} axisLine={false} tickLine={false} width={112} />
         <Tooltip content={<Pill fmt={(v) => usd(v, 2)} />} cursor={false} />
-        <Bar dataKey="monto" name="Por mes" fill={R} radius={6} barSize={12} background={{ fill: 'var(--surface-2)', radius: 6 }}>
+        <Bar dataKey="monto" name="Monto" fill={COLOR[color]} radius={6} barSize={12} background={{ fill: 'var(--surface-2)', radius: 6 }}>
           <LabelList dataKey="monto" position="right" formatter={(v: number) => usd(v, v % 1 ? 2 : 0)} style={{ ...valor, fill: 'var(--text)' }} />
         </Bar>
       </BarChart>

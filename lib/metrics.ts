@@ -2,6 +2,7 @@ import type { Agenda, Closer, Cobranza, Filtros, Funnel, RawBundle } from './typ
 import { CLOSERS, FUNNELS, funnelDeLead } from './types';
 import { costosDelMes } from './costos';
 import { comisionesDelMes } from './comisiones';
+import { comisionesPlataformasDelMes } from './plataformas';
 import { diasDelMes, mesAnterior, mesCorto, mesDe, ratio } from './format';
 
 export interface MetricasMes {
@@ -33,6 +34,8 @@ export interface MetricasMes {
   costo_software: number | null;
   /** Comisiones de closers del mes; null si todavía no se cargó ningún % */
   comisiones: number | null;
+  /** Comisiones de plataformas de pago (Stripe, Wise…); null si no hay tarifas cargadas */
+  comisiones_plataformas: number | null;
   cash_collected: number;
   new_cash: number;
   old_cash: number;
@@ -115,8 +118,10 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const software = softwareMes === null ? null : f.dia ? Math.round((softwareMes / diasDelMes(f.mes).length) * 100) / 100 : softwareMes;
   const com = comisionesDelMes(b.comisiones, cob, f.mes, f.closer === 'todos' ? undefined : f.closer);
   const comisiones = com.sinConfigurar ? null : com.total;
-  // Cash Collected (lo que queda) = Revenue − ads − software − comisiones de closers
-  const cash = revenue - inversion - (software ?? 0) - (comisiones ?? 0);
+  const plat = comisionesPlataformasDelMes(b.comisionesPlataformas, cob, f.mes);
+  const comisionesPlataformas = plat.sinConfigurar ? null : plat.total;
+  // Cash Collected (lo que queda) = Revenue − ads − software − comisiones de closers − comisiones de plataformas
+  const cash = revenue - inversion - (software ?? 0) - (comisiones ?? 0) - (comisionesPlataformas ?? 0);
 
   const idsVentasMes = idsVentas;
   const newCash = sum(cob.filter((c) => !c.es_reembolso && idsVentasMes.has(c.agenda_id)), (c) => c.monto_cobrado);
@@ -156,6 +161,7 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
     inversion_ads: inversion,
     costo_software: software,
     comisiones,
+    comisiones_plataformas: comisionesPlataformas,
     cash_collected: cash,
     new_cash: newCash,
     old_cash: oldCash,
@@ -324,6 +330,8 @@ export function avisos(b: RawBundle, f: Filtros, hoy: string): Pendiente[] {
   }
   const faltan = comisionesDelMes(b.comisiones, cobranzasDelMes(b, f), f.mes).faltan;
   if (b.comisiones.length || faltan.length) for (const c of faltan) out.push({ tipo: 'agente', texto: `Falta el % de comisión de ${c} (sección Costos)` });
+  const platFaltan = comisionesPlataformasDelMes(b.comisionesPlataformas, cobranzasDelMes(b, f), f.mes);
+  if (!platFaltan.sinConfigurar) for (const p of platFaltan.faltan) out.push({ tipo: 'agente', texto: p === 'Sin indicar' ? 'Hay cobros sin plataforma de pago indicada' : `Falta la comisión de ${p} (sección Costos)` });
   const ultimoLog = b.log.filter((l) => l.source === 'agente').sort((a, b2) => b2.fecha.localeCompare(a.fecha))[0];
   for (const p of ultimoLog?.pendientes ?? []) out.push({ tipo: 'agente', texto: p });
   for (const u of b.actualizaciones) {
@@ -346,6 +354,7 @@ export interface PuntoMensual {
   roas_revenue: number | null;
   software: number;
   comisiones: number;
+  plataformas: number;
   costos: number;
 }
 
@@ -365,7 +374,8 @@ function punto(b: RawBundle, f: Filtros, mes: string): PuntoMensual {
     roas_revenue: m.inversion_ads ? Math.round((m.revenue / m.inversion_ads) * 100) / 100 : null,
     software: m.costo_software ?? 0,
     comisiones: m.comisiones ?? 0,
-    costos: Math.round((m.inversion_ads + (m.costo_software ?? 0) + (m.comisiones ?? 0)) * 100) / 100,
+    plataformas: m.comisiones_plataformas ?? 0,
+    costos: Math.round((m.inversion_ads + (m.costo_software ?? 0) + (m.comisiones ?? 0) + (m.comisiones_plataformas ?? 0)) * 100) / 100,
   };
 }
 

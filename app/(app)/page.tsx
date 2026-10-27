@@ -101,7 +101,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       {/* Fila 2 · rentabilidad, revenue y cash */}
       <section className="grid gap-4 lg:grid-cols-3">
         <ChartCard titulo="Rentabilidad" sub="Cuánto queda de cada dólar vendido" icono={Iconos.margen} color="green">
-          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} cash={actual.cash_collected} />
+          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} cash={actual.cash_collected} />
         </ChartCard>
         <ChartCard
           titulo="Revenue"
@@ -116,7 +116,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <ChartCard
           titulo="Cash Collected"
           color="green"
-          sub="Revenue − ads − software − comisiones"
+          sub="Revenue − ads − software − comisiones (closers y plataformas)"
           icono={Iconos.cash}
           valor={usd(actual.cash_collected)}
           comparacion={vsAnterior(anterior.cash_collected)}

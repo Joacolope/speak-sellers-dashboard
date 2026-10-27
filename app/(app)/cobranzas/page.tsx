@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
 import Filtros from '@/components/Filtros';
-import { DemoBanner, Seccion, SourceDot, Vacio } from '@/components/ui';
+import { ChartCard, DemoBanner, Seccion, SourceDot, Vacio } from '@/components/ui';
+import { BarrasCategoria } from '@/components/Charts';
+import { Iconos } from '@/components/StatCard';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { cobranzasDelMes, mesesDisponibles } from '@/lib/metrics';
@@ -20,6 +22,9 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
   const ultimaPorAgenda = new Map<string, (typeof bundle.cobranzas)[number]>();
   for (const c of [...bundle.cobranzas].sort((a, b) => a.fecha_cobro.localeCompare(b.fecha_cobro))) ultimaPorAgenda.set(c.agenda_id, c);
   const pendienteTotal = Array.from(ultimaPorAgenda.values()).reduce((s, c) => s + (c.pendiente ?? 0), 0);
+  const mapa = new Map<string, number>();
+  for (const c of filas.filter((x) => !x.es_reembolso)) mapa.set(c.plataforma ?? 'Sin indicar', (mapa.get(c.plataforma ?? 'Sin indicar') ?? 0) + Number(c.monto_cobrado));
+  const porPlataforma = Array.from(mapa.entries()).map(([categoria, monto]) => ({ categoria, monto: Math.round(monto) })).sort((a, b) => b.monto - a.monto);
   const nombre = (agendaId: string) => bundle.agendas.find((a) => a.id === agendaId)?.lead?.nombre ?? '—';
 
   return (
@@ -41,6 +46,10 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
         <div className="card"><div className={`metric ${reembolsos ? 'bad' : ''}`}>{usd(reembolsos)}</div><div className="text-[14px] text-text-muted">Reembolsos</div></div>
       </section>
 
+      <ChartCard titulo="Cobrado por plataforma" sub="Por dónde entró la plata este período" icono={Iconos.cash} color="green">
+        {porPlataforma.length ? <BarrasCategoria data={porPlataforma} color="green" /> : <Vacio texto="Sin cobros este período." />}
+      </ChartCard>
+
       <Seccion eyebrow="Movimientos" titulo={`${num(filas.length)} cobranzas`}>
         {filas.length ? (
           <div className="card overflow-x-auto !p-0">
@@ -52,6 +61,7 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
                   <th className="num">Monto cobrado</th>
                   <th className="num">Pendiente</th>
                   <th>Closer</th>
+                  <th>Plataforma</th>
                   <th className="num">Cuotas restantes</th>
                   <th>Próximo vencimiento</th>
                   <th>Notas</th>
@@ -66,6 +76,7 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
                     <td className={`num ${c.es_reembolso ? 'bad' : 'ok'}`}>{usd(c.monto_cobrado)}</td>
                     <td className="num">{c.pendiente ? <span className="warn">{usd(c.pendiente)}</span> : '—'}</td>
                     <td>{NOMBRE_CLOSER[c.closer]}</td>
+                    <td>{c.plataforma ? <span className="tag tag-blue">{c.plataforma}</span> : <span className="tag tag-yellow">sin indicar</span>}</td>
                     <td className="num">{c.cuotas_restantes ? num(c.cuotas_restantes) : '—'}</td>
                     <td>{c.proximo_vencimiento ? <span className="tag tag-yellow">{fechaCorta(c.proximo_vencimiento)}</span> : '—'}</td>
                     <td className="text-text-muted">{c.notas ?? ''}</td>

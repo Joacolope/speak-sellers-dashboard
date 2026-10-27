@@ -4,6 +4,9 @@ export type Fuente = 'Instagram' | 'WhatsApp' | 'Webinar' | 'YouTube' | 'Referid
 export type Asistio = 'Asistió' | 'No show' | 'Canceló' | 'Pendiente';
 export type Compro = 'Si' | 'No' | 'Reserva';
 export type MetodoPago = 'PIF' | 'Cuotas' | 'Reserva';
+/** Por dónde entró la plata */
+export type PlataformaPago = 'Stripe' | 'Wise' | 'Cripto' | 'Efectivo' | 'Mercado Pago' | 'DólarApp' | 'Otro';
+export const PLATAFORMAS: PlataformaPago[] = ['Stripe', 'Wise', 'Cripto', 'Efectivo', 'Mercado Pago', 'DólarApp', 'Otro'];
 
 export const CLOSERS: Closer[] = ['Marcos', 'Andrea', 'Gonzalo'];
 /** Nombre completo para mostrar */
@@ -74,6 +77,7 @@ export interface Cobranza {
   proximo_vencimiento?: string | null;
   closer: Closer;
   es_reembolso: boolean;
+  plataforma?: PlataformaPago | null;
   source: Source;
   notas?: string | null;
 }
@@ -148,7 +152,7 @@ export interface AjusteMensual {
 }
 
 export type FrecuenciaCosto = 'Mensual' | 'Anual' | 'Único';
-export const CATEGORIAS_COSTO = ['CRM y ventas', 'Mensajería', 'Contenido', 'IA', 'Infraestructura', 'Pagos', 'Equipo', 'Otro'] as const;
+export const CATEGORIAS_COSTO = ['CRM y ventas', 'Mensajería', 'Contenido', 'Editores', 'IA', 'Infraestructura', 'Pagos', 'Equipo', 'Otro'] as const;
 export type CategoriaCosto = (typeof CATEGORIAS_COSTO)[number];
 
 /** Un costo fijo del negocio (software, herramienta, servicio).
@@ -175,6 +179,17 @@ export interface Comision {
   fecha_alta: string; // YYYY-MM-DD
   fecha_baja?: string | null;
   notas?: string | null;
+  source: Source;
+}
+
+/** Comisión que cobra una plataforma de pago: % sobre cada cobro + fijo por cobro (USD). Con historial. */
+export interface ComisionPlataforma {
+  id: string;
+  plataforma: PlataformaPago;
+  porcentaje: number; // 0–100
+  fijo: number; // USD por cobro
+  fecha_alta: string;
+  fecha_baja?: string | null;
   source: Source;
 }
 
@@ -207,6 +222,7 @@ export interface RawBundle {
   ajustes: AjusteMensual[];
   costos: Costo[];
   comisiones: Comision[];
+  comisionesPlataformas: ComisionPlataforma[];
   log: LogAgente[];
   actualizaciones: UltimaActualizacion[];
 }

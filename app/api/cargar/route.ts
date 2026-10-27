@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
+import { PLATAFORMAS } from '@/lib/types';
 
 /**
  * Carga manual (formulario /cargar o Claude).
@@ -45,6 +46,8 @@ export async function POST(req: NextRequest) {
   const agenda = agendas?.[0];
   if (!agenda) return volver({ error: `${lead.nombre} no tiene agendas` });
 
+  const plataforma = data.plataforma && (PLATAFORMAS as string[]).includes(data.plataforma) ? data.plataforma : null;
+  if (data.plataforma && !plataforma) return volver({ error: 'Plataforma de cobro inválida' });
   const n = (v: string | number | undefined) => {
     if (v === undefined || v === '' || v === null) return null;
     const x = Number(v);
@@ -79,6 +82,7 @@ export async function POST(req: NextRequest) {
         cuotas_restantes: 0,
         closer: agenda.closer,
         es_reembolso: false,
+        plataforma,
         source: 'manual',
         editado_por: auth.quien,
       });
@@ -98,6 +102,7 @@ export async function POST(req: NextRequest) {
       proximo_vencimiento: data.proximo_vencimiento || null,
       closer: agenda.closer,
       es_reembolso: monto < 0,
+      plataforma,
       source: 'manual',
       editado_por: auth.quien,
       notas: data.notas ? String(data.notas).slice(0, 2000) : null,

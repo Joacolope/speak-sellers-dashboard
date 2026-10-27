@@ -35,7 +35,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th></th>
                 <th colSpan={7}>Setter</th>
                 <th colSpan={12}>Closer</th>
-                <th colSpan={3}>Costos</th>
+                <th colSpan={4}>Costos</th>
                 <th colSpan={4}>Conversión</th>
               </tr>
               <tr>
@@ -62,6 +62,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num">Inversión ads</th>
                 <th className="num">Software</th>
                 <th className="num">Comisiones</th>
+                <th className="num" title="Lo que cobran Stripe, Wise, etc.">Plataformas</th>
                 <th className="num" title="Agendas totales / conversaciones totales">% Agenda total</th>
                 <th className="num" title="Agendas de leads que escribieron / conversaciones inbound (orgánicas + pagadas)">% Agenda inbound</th>
                 <th className="num" title="Agendas de mensajes en frío / respuestas outbound">% Agenda outbound</th>
@@ -94,6 +95,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                   <td className="num">{usd(m.inversion_ads)}</td>
                   <td className="num">{m.costo_software === null ? '—' : usd(m.costo_software)}</td>
                   <td className="num">{m.comisiones === null ? '—' : usd(m.comisiones)}</td>
+                  <td className="num">{m.comisiones_plataformas === null ? '—' : usd(m.comisiones_plataformas)}</td>
                   <td className="num">{pct(m.pct_agenda_conversacion)}</td>
                   <td className="num" title={`${num(m.agendas_inbound)} agendas / ${num(m.conv_inbound)} conv.`}>{pct(m.pct_agenda_inbound)}</td>
                   <td className="num" title={`${num(m.agendas_outbound)} agendas / ${num(m.conv_outbound)} conv.`}>{pct(m.pct_agenda_outbound)}</td>
@@ -104,7 +106,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
           </table>
         </div>
         <div className="text-[14px] text-text-muted">
-          Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Revenue = plata que entró − reembolsos. Cash Collected = Revenue − inversión en ads − software − comisiones de closers (software y % de comisión se cargan en Costos). <span className="text-text-disabled">*</span> sin software cargado.
+          Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Revenue = plata que entró − reembolsos. Cash Collected = Revenue − inversión en ads − software − comisiones de closers − comisiones de plataformas de pago (todo se carga en Costos). <span className="text-text-disabled">*</span> sin software cargado.
           Semáforo: % Asistencia ≥ {pct(0.6)} y % cierre / llamadas ≥ {pct(0.3)}. % Agenda inbound = agendas de gente que escribió / conversaciones inbound; outbound = agendas de mensajes en frío / respuestas outbound (configurable en <code className="mono text-[12px]">ajustes_mensuales</code>).
         </div>
       </Seccion>

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { CLOSERS } from '@/lib/types';
+import { CLOSERS, PLATAFORMAS } from '@/lib/types';
 import { getSesion, puede } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -51,6 +51,9 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
           <Campo label="Cash collected (USD)"><input className="input" name="cash_collected" type="number" step="0.01" /></Campo>
           <Campo label="Revenue (USD)"><input className="input" name="revenue" type="number" step="0.01" /></Campo>
           <Campo label="Producto"><input className="input" name="producto" defaultValue="Speak Sellers" /></Campo>
+          <Campo label="Plataforma de cobro">
+            <select className="input" name="plataforma" defaultValue="Stripe">{PLATAFORMAS.map((p) => <option key={p}>{p}</option>)}</select>
+          </Campo>
         </Bloque>
 
         <Bloque titulo="Cobranza" tipo="cobranza">
@@ -60,6 +63,9 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
           <Campo label="Pendiente (USD)"><input className="input" name="pendiente" type="number" step="0.01" /></Campo>
           <Campo label="Cuotas restantes"><input className="input" name="cuotas_restantes" type="number" /></Campo>
           <Campo label="Próximo vencimiento"><input className="input" name="proximo_vencimiento" type="date" /></Campo>
+          <Campo label="Plataforma de cobro">
+            <select className="input" name="plataforma" defaultValue="Stripe">{PLATAFORMAS.map((p) => <option key={p}>{p}</option>)}</select>
+          </Campo>
         </Bloque>
 
         <Bloque titulo="Asistencia" tipo="asistencia">

@@ -173,6 +173,8 @@ function construirAgendasSeptiembre(): { leads: Lead[]; agendas: Agenda[] } {
   return { leads, agendas };
 }
 
+const PLAT_EJEMPLO = ['Stripe', 'Wise', 'Stripe', 'Mercado Pago', 'Cripto', 'DólarApp', 'Efectivo', 'Wise'] as const;
+
 function construirCobranzas(agendas: Agenda[]): Cobranza[] {
   const out: Cobranza[] = [];
   for (const a of agendas) {
@@ -200,7 +202,7 @@ function construirCobranzas(agendas: Agenda[]): Cobranza[] {
   out.push({ id: 'cob-ref-4', agenda_id: 'ag-oct-3', fecha_cobro: '2026-10-19', monto_cobrado: -1200, pendiente: 0, cuotas_restantes: 0, closer: 'Andrea', es_reembolso: true, source: 'manual', notas: 'Reembolso Murakami' });
   // Old cash: cobranza de una venta de septiembre que pagó en octubre
   out.push({ id: 'cob-old-1', agenda_id: 'ag-sep-3', fecha_cobro: '2026-10-05', monto_cobrado: 600, pendiente: 0, cuotas_restantes: 0, closer: 'Marcos', es_reembolso: false, source: 'migracion', notas: 'Segunda cuota (venta de septiembre)' });
-  return out;
+  return out.map((c, i) => ({ ...c, plataforma: PLAT_EJEMPLO[i % PLAT_EJEMPLO.length] }));
 }
 
 function construirSetter(): SetterDiario[] {
@@ -336,6 +338,7 @@ function construirCostos(): Costo[] {
     c('cos-2', 'ManyChat', 'Mensajería', 'Mensual', 15, '2026-08-01', null, 'Automatización de DMs de Instagram'),
     c('cos-3', 'Instagram Plus', 'Contenido', 'Mensual', 14.99, '2026-08-01'),
     c('cos-4', 'Zoom', 'Equipo', 'Mensual', 15.99, '2026-08-01', null, 'Llamadas de venta'),
+    c('cos-6', 'Editor de video', 'Editores', 'Mensual', 400, '2026-09-01', null, 'Edición de reels (ejemplo)'),
     c('cos-5', 'Skool', 'Contenido', 'Mensual', 99, '2026-09-01', null, 'Comunidad y cursos'),
   ];
 }
@@ -377,6 +380,15 @@ export function sampleBundle(): RawBundle {
       { id: 'com-1', closer: 'Marcos', porcentaje: 0, fecha_alta: '2026-08-01', source: 'manual' },
       { id: 'com-2', closer: 'Andrea', porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
       { id: 'com-3', closer: 'Gonzalo', porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
+    ],
+    // Tarifas de ejemplo (ilustrativas)
+    comisionesPlataformas: [
+      { id: 'cp-1', plataforma: 'Stripe', porcentaje: 4.4, fijo: 0.3, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'cp-2', plataforma: 'Wise', porcentaje: 1, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'cp-3', plataforma: 'Mercado Pago', porcentaje: 6, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'cp-4', plataforma: 'Cripto', porcentaje: 1, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'cp-5', plataforma: 'DólarApp', porcentaje: 1, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'cp-6', plataforma: 'Efectivo', porcentaje: 0, fijo: 0, fecha_alta: '2026-08-01', source: 'manual' },
     ],
     costos: construirCostos(),
     log,

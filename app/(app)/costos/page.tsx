@@ -7,9 +7,10 @@ import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { cobranzasDelMes, mesesDisponibles, metricasConAnterior, serieMeses } from '@/lib/metrics';
 import { comisionesDelMes } from '@/lib/comisiones';
+import { comisionesPlataformasDelMes } from '@/lib/plataformas';
 import { costosDelMes, equivalenteMensual } from '@/lib/costos';
 import { fechaCorta, nombreMes, num, pct, usd, variacion } from '@/lib/format';
-import { CATEGORIAS_COSTO, CLOSERS, NOMBRE_CLOSER } from '@/lib/types';
+import { CATEGORIAS_COSTO, CLOSERS, NOMBRE_CLOSER, PLATAFORMAS } from '@/lib/types';
 import { getSesion, puede } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -28,8 +29,9 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
   const cm = costosDelMes(bundle.costos, f.mes);
   const serie = serieMeses(bundle, f, 6);
   const com = comisionesDelMes(bundle.comisiones, cobranzasDelMes(bundle, f), f.mes);
-  const costosTotales = actual.inversion_ads + cm.total + (actual.comisiones ?? 0);
-  const anteriorTotales = anterior.inversion_ads + (anterior.costo_software ?? 0) + (anterior.comisiones ?? 0);
+  const plat = comisionesPlataformasDelMes(bundle.comisionesPlataformas, cobranzasDelMes(bundle, f), f.mes);
+  const costosTotales = actual.inversion_ads + cm.total + (actual.comisiones ?? 0) + (actual.comisiones_plataformas ?? 0);
+  const anteriorTotales = anterior.inversion_ads + (anterior.costo_software ?? 0) + (anterior.comisiones ?? 0) + (anterior.comisiones_plataformas ?? 0);
   const margen = actual.revenue > 0 ? actual.cash_collected / actual.revenue : null;
   // Para los formularios: herramientas vigentes hoy (sin baja o con baja futura)
   const hoy = new Date().toISOString().slice(0, 10);
@@ -46,7 +48,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
           <div className="eyebrow">Costos</div>
           <h1 className="h1 mt-2">Software y costos fijos</h1>
           <p className="mt-2 max-w-2xl text-[14px] text-text-muted">
-            Lo que pagamos por mes en herramientas y en comisiones de closers. Todo se descuenta del Revenue, junto con los anuncios, para calcular el Cash Collected.
+            Lo que pagamos por mes en herramientas, editores, comisiones de closers y comisiones de las plataformas de cobro. Todo se descuenta del Revenue, junto con los anuncios, para calcular el Cash Collected.
           </p>
           {ok && <div className="ok mt-3 text-[14px]">Guardado: {ok}</div>}
           {error && <div className="bad mt-3 text-[14px]">{error}</div>}
@@ -56,22 +58,24 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
         </Suspense>
       </div>
 
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Software del mes" valor={usd(cm.total, cm.total % 1 ? 2 : 0)} variacion={variacion(cm.total, anterior.costo_software)} icono={Iconos.margen} invertir color="yellow" />
         <StatCard label="Inversión en ads" valor={usd(actual.inversion_ads)} variacion={variacion(actual.inversion_ads, anterior.inversion_ads)} icono={Iconos.ads} invertir color="red" />
         <StatCard label="Comisiones closers" valor={actual.comisiones === null ? '—' : usd(actual.comisiones)} variacion={variacion(actual.comisiones, anterior.comisiones)} icono={Iconos.asistencia} invertir color="yellow"
           nota={actual.comisiones === null ? 'Falta cargar el % de cada closer' : undefined} />
+        <StatCard label="Comisiones plataformas" valor={actual.comisiones_plataformas === null ? '—' : usd(actual.comisiones_plataformas)} variacion={variacion(actual.comisiones_plataformas, anterior.comisiones_plataformas)} icono={Iconos.cash} invertir color="yellow"
+          nota={actual.comisiones_plataformas === null ? 'Falta cargar la tarifa de cada plataforma' : undefined} />
         <StatCard label="Costos totales" valor={usd(costosTotales)} variacion={variacion(costosTotales, anteriorTotales)} icono={Iconos.cash} invertir color="red" />
         <StatCard label="Cash Collected" valor={usd(actual.cash_collected)} variacion={variacion(actual.cash_collected, anterior.cash_collected)} icono={Iconos.revenue} color="green"
           nota={margen === null ? undefined : `Margen ${pct(margen)} sobre Revenue`} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <ChartCard titulo="Costos vs. Cash Collected" sub="Ads, software y comisiones vs. lo que queda (cash, verde)" icono={Iconos.tendencia} color="red" className="lg:col-span-2">
+        <ChartCard titulo="Costos vs. Cash Collected" sub="Ads, software, comisiones y plataformas vs. lo que queda (cash, verde)" icono={Iconos.tendencia} color="red" className="lg:col-span-2">
           <CostosMes data={serie} />
         </ChartCard>
         <ChartCard titulo="Rentabilidad" sub={nombreMes(f.mes)} icono={Iconos.margen} color="green">
-          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} cash={actual.cash_collected} />
+          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} cash={actual.cash_collected} />
         </ChartCard>
       </section>
 
@@ -160,6 +164,48 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
               </div>
               <div><button className="btn-primary" type="submit">Guardar</button></div>
               <div className="text-[12px] text-text-disabled">Los meses anteriores a la fecha elegida no cambian.</div>
+            </form>
+          ) : null}
+        </div>
+      </ChartCard>
+
+      <ChartCard titulo="Comisiones de plataformas de pago" sub={`Lo que se queda cada plataforma de lo cobrado en ${nombreMes(f.mes).toLowerCase()}`} icono={Iconos.cash} color="yellow">
+        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+          <div className="-mx-6 overflow-x-auto lg:mx-0">
+            <table className="table">
+              <thead>
+                <tr><th className="!pl-6 lg:!pl-3">Plataforma</th><th className="num">Tarifa</th><th className="num">Cobros</th><th className="num">Cobrado</th><th className="num">Comisión</th></tr>
+              </thead>
+              <tbody>
+                {plat.filas.length ? plat.filas.map((p) => (
+                  <tr key={p.plataforma}>
+                    <td className="!pl-6 font-medium lg:!pl-3">{p.plataforma}</td>
+                    <td className="num">{p.porcentaje === null ? (p.plataforma === 'Sin indicar' ? '—' : <span className="tag tag-yellow">falta cargar</span>) : `${String(p.porcentaje).replace('.', ',')}%${p.fijo ? ` + ${usd(p.fijo, 2)}` : ''}`}</td>
+                    <td className="num">{num(p.cantidad)}</td>
+                    <td className="num ok">{usd(p.cobrado)}</td>
+                    <td className="num">{p.monto === null ? '—' : <span className={p.monto ? 'bad' : 'text-text-muted'}>{usd(p.monto, p.monto % 1 ? 2 : 0)}</span>}</td>
+                  </tr>
+                )) : <tr><td colSpan={5} className="!pl-6 text-text-disabled lg:!pl-3">Sin cobros este mes.</td></tr>}
+              </tbody>
+              <tfoot>
+                <tr><td className="!pl-6 h-11 font-medium lg:!pl-3" colSpan={4}>Total del mes</td><td className="num font-medium bad">{usd(plat.total, plat.total % 1 ? 2 : 0)}</td></tr>
+              </tfoot>
+            </table>
+          </div>
+          {editor ? (
+            <form method="POST" action="/api/plataformas" className="flex flex-col gap-3 rounded-xl bg-[var(--surface-2)] p-4">
+              <div className="text-[14px] font-medium">Cambiar tarifa de una plataforma</div>
+              <input type="hidden" name="mes" value={f.mes} />
+              <Campo label="Plataforma">
+                <select className="input" name="plataforma" defaultValue="Stripe">{PLATAFORMAS.map((p) => <option key={p}>{p}</option>)}</select>
+              </Campo>
+              <div className="grid grid-cols-3 gap-3">
+                <Campo label="% por cobro"><input className="input" name="porcentaje" type="number" step="0.01" min="0" max="100" required /></Campo>
+                <Campo label="Fijo (USD)"><input className="input" name="fijo" type="number" step="0.01" min="0" defaultValue="0" /></Campo>
+                <Campo label="Desde"><input className="input" name="desde" type="date" defaultValue={`${f.mes}-01`} /></Campo>
+              </div>
+              <div><button className="btn-primary" type="submit">Guardar</button></div>
+              <div className="text-[12px] text-text-disabled">Ej.: Stripe cobra un % más un fijo por cada pago. Efectivo: 0 %.</div>
             </form>
           ) : null}
         </div>
