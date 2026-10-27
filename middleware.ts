@@ -12,8 +12,11 @@ const PUBLICAS = ['/login', '/auth/'];
 const MAQUINA = ['/api/cron/', '/api/cargar', '/api/costos']; // validan su propio token Bearer
 
 const url = () => process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const anon = () => process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const service = () => process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const anon = () =>
+  process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+const service = () =>
+  process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '';
 
 function mismoOrigen(req: NextRequest): boolean {
   const origin = req.headers.get('origin');
@@ -27,7 +30,8 @@ function mismoOrigen(req: NextRequest): boolean {
 
 async function permitido(email: string): Promise<boolean> {
   const res = await fetch(`${url()}/rest/v1/usuarios?select=email&activo=eq.true&email=eq.${encodeURIComponent(email.toLowerCase())}`, {
-    headers: { apikey: service(), Authorization: `Bearer ${service()}` },
+    // Las claves nuevas (sb_secret_...) no son JWT: van solo en apikey
+    headers: service().startsWith('eyJ') ? { apikey: service(), Authorization: `Bearer ${service()}` } : { apikey: service() },
     cache: 'no-store',
   });
   if (!res.ok) return false;

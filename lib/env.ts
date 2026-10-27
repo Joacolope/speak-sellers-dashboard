@@ -5,8 +5,11 @@
  */
 export const env = {
   supabaseUrl: () => process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  supabaseAnon: () => process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-  supabaseService: () => process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  supabaseAnon: () =>
+    process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
+  supabaseService: () =>
+    process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '',
   /** Token para cargas de máquina (Claude, scripts). Mínimo 32 caracteres. */
   cargaToken: () => process.env.CARGA_API_TOKEN || '',
   cronSecret: () => process.env.CRON_SECRET || '',
