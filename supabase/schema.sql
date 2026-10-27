@@ -215,6 +215,13 @@ create table if not exists comisiones (
   check (fecha_baja is null or fecha_baja >= fecha_alta)
 );
 
+-- Comisiones iniciales (se cargan una sola vez, si la tabla está vacía).
+-- Marcos es el dueño: 0 %. Andrea y Gonzalo: 10 % sobre lo cobrado. Se cambian desde Costos.
+insert into comisiones (closer, porcentaje, fecha_alta, notas, source)
+select v.closer::closer_t, v.pct, date '2026-08-01', 'Carga inicial', 'manual'
+from (values ('Marcos', 0), ('Andrea', 10), ('Gonzalo', 10)) as v(closer, pct)
+where not exists (select 1 from comisiones);
+
 -- Quién puede entrar. El login es con Google; si el email no está acá (o está
 -- inactivo) no ve nada. admin y editor cargan datos; lector solo mira.
 create table if not exists usuarios (
@@ -260,6 +267,7 @@ create table if not exists log_agente (
 -- Auditoría: quién hizo cada carga manual (email o "token:claude")
 alter table leads add column if not exists editado_por text;
 -- Funnel por el que entró el lead (para los embudos por fuente)
+-- Orgánico (incluye Follow Me Ads) o Webinar. Valores viejos se leen como Orgánico.
 alter table leads add column if not exists funnel text check (funnel in ('Orgánico','Follow Me Ads','Webinar','Lead magnet'));
 -- Inbound (el lead escribió primero) u Outbound (salió de un mensaje en frío)
 alter table leads add column if not exists canal text not null default 'Inbound' check (canal in ('Inbound','Outbound'));

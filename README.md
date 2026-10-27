@@ -67,7 +67,7 @@ Login solo con Google. Entra quien esté en la tabla `usuarios` (se carga desde 
 
 ## Embudos por fuente
 
-El embudo de Inicio tiene botones: General, Orgánico, Follow Me Ads, Webinar y Lead magnet. Cada lead lleva su `funnel` de origen (se carga a mano, por Claude o por el agente diario). Conversaciones por funnel: orgánicas, pagadas (Follow Me Ads) o registros del webinar; Lead magnet todavía no tiene fuente de conversaciones.
+El embudo de Inicio tiene botones: **General**, **Orgánico** (incluye Follow Me Ads) y **Webinar**. Cada lead lleva su `funnel`; si no está clasificado cuenta como Orgánico. Conversaciones: Orgánico = orgánicas + pagadas + outbound con respuesta; Webinar = registros de las campañas de webinar.
 
 ## Origen de cada número
 

@@ -8,14 +8,16 @@ export type MetodoPago = 'PIF' | 'Cuotas' | 'Reserva';
 export const CLOSERS: Closer[] = ['Marcos', 'Andrea', 'Gonzalo'];
 /** Nombre completo para mostrar */
 export const NOMBRE_CLOSER: Record<Closer, string> = {
-  Marcos: 'Marcos Lanzi',
+  Marcos: 'Marcos Lanci',
   Andrea: 'Andrea Flores',
   Gonzalo: 'Gonzalo Guimil',
 };
 
-/** Funnel de origen del lead (distinto de la red/fuente). */
-export type Funnel = 'Orgánico' | 'Follow Me Ads' | 'Webinar' | 'Lead magnet';
-export const FUNNELS: Funnel[] = ['Orgánico', 'Follow Me Ads', 'Webinar', 'Lead magnet'];
+/** Funnel de origen del lead. Orgánico incluye Follow Me Ads (anuncios que llevan al perfil).
+    Valores viejos ('Follow Me Ads', 'Lead magnet') o sin clasificar cuentan como Orgánico. */
+export type Funnel = 'Orgánico' | 'Webinar';
+export const FUNNELS: Funnel[] = ['Orgánico', 'Webinar'];
+export const funnelDeLead = (f: string | null | undefined): Funnel => (f === 'Webinar' ? 'Webinar' : 'Orgánico');
 export const FUENTES: Fuente[] = ['Instagram', 'WhatsApp', 'Webinar', 'YouTube', 'Referido', 'Otro'];
 
 export interface Lead {

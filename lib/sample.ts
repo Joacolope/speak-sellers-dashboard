@@ -12,10 +12,8 @@ import { diasDelMes } from './format';
 import type { Funnel } from './types';
 
 /** Funnel de ejemplo según la fuente (ilustrativo). */
-function funnelDe(fuente: Fuente, r: number): Funnel {
-  if (fuente === 'Webinar') return 'Webinar';
-  if (fuente === 'Instagram') return r < 0.45 ? 'Orgánico' : r < 0.8 ? 'Follow Me Ads' : 'Lead magnet';
-  return 'Orgánico';
+function funnelDe(fuente: Fuente, _r: number): Funnel {
+  return fuente === 'Webinar' ? 'Webinar' : 'Orgánico';
 }
 
 // Generador determinístico (misma data en cada render)

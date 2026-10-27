@@ -1,5 +1,5 @@
 import type { Agenda, Closer, Cobranza, Filtros, Funnel, RawBundle } from './types';
-import { CLOSERS, FUNNELS } from './types';
+import { CLOSERS, FUNNELS, funnelDeLead } from './types';
 import { costosDelMes } from './costos';
 import { comisionesDelMes } from './comisiones';
 import { diasDelMes, mesAnterior, mesCorto, mesDe, ratio } from './format';
@@ -178,7 +178,7 @@ export interface NivelFunnel {
 
 export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunnel[] {
   const m = metricasMes(b, f);
-  const ag = agendasDelMes(b, f).filter((a) => !funnel || a.lead?.funnel === funnel);
+  const ag = agendasDelMes(b, f).filter((a) => !funnel || funnelDeLead(a.lead?.funnel) === funnel);
   const porCloser = (fn: (a: Agenda) => boolean | number): Partial<Record<Closer, number>> => {
     const out: Partial<Record<Closer, number>> = {};
     for (const c of CLOSERS) {
@@ -195,10 +195,9 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
   const sumN = (vals: (number | null | undefined)[]) => (vals.some((v) => v !== null && v !== undefined) ? vals.reduce<number>((acc, v) => acc + (v ?? 0), 0) : null);
   const conversaciones =
     !funnel ? m.conversaciones
-    : funnel === 'Orgánico' ? sumN(setter.map((x) => x.conv_organicas))
-    : funnel === 'Follow Me Ads' ? sumN(setter.map((x) => x.conv_pagadas))
-    : funnel === 'Webinar' ? sumN(b.ads.filter((a) => a.campana === 'webinar' && enPeriodo(f, a.fecha)).map((a) => a.conversaciones))
-    : null; // Lead magnet: todavía sin fuente de conversaciones
+    // Orgánico = orgánicas + pagadas (Follow Me Ads lleva al perfil) + outbound con respuesta
+    : funnel === 'Orgánico' ? sumN(setter.map((x) => (x.conv_organicas ?? 0) + (x.conv_pagadas ?? 0) + (x.respuestas ?? 0)))
+    : sumN(b.ads.filter((a) => a.campana === 'webinar' && enPeriodo(f, a.fecha)).map((a) => a.conversaciones));
   const ventas = ag.filter(esVenta);
   return [
     { nombre: 'Conversaciones', valor: conversaciones },
