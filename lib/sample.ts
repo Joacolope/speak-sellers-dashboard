@@ -334,7 +334,8 @@ function construirCostos(): Costo[] {
   const c = (id: string, nombre: string, categoria: Costo['categoria'], frecuencia: Costo['frecuencia'], monto: number, fecha_alta: string, fecha_baja: string | null = null, notas: string | null = null): Costo =>
     ({ id, nombre, categoria, frecuencia, monto, fecha_alta, fecha_baja, notas, source: 'manual' });
   return [
-    c('cos-1', 'GoHighLevel', 'CRM y ventas', 'Mensual', 97, '2026-08-01', null, 'CRM, calendarios y pipeline'),
+    c('cos-1', 'GoHighLevel', 'CRM y ventas', 'Mensual', 97, '2026-08-01', null, 'Plan base'),
+    c('cos-1b', 'GoHighLevel · integración WhatsApp', 'CRM y ventas', 'Mensual', 30, '2026-08-01', null, 'Add-on de WhatsApp'),
     c('cos-2', 'ManyChat', 'Mensajería', 'Mensual', 15, '2026-08-01', null, 'Automatización de DMs de Instagram'),
     c('cos-3', 'Instagram Plus', 'Contenido', 'Mensual', 14.99, '2026-08-01'),
     c('cos-4', 'Zoom', 'Equipo', 'Mensual', 15.99, '2026-08-01', null, 'Llamadas de venta'),
