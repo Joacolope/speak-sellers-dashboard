@@ -131,6 +131,25 @@ export interface AjusteMensual {
   notas?: string | null;
 }
 
+export type FrecuenciaCosto = 'Mensual' | 'Anual' | 'Único';
+export const CATEGORIAS_COSTO = ['CRM y ventas', 'Mensajería', 'Contenido', 'IA', 'Infraestructura', 'Pagos', 'Equipo', 'Otro'] as const;
+export type CategoriaCosto = (typeof CATEGORIAS_COSTO)[number];
+
+/** Un costo fijo del negocio (software, herramienta, servicio).
+    Se cuenta desde fecha_alta hasta fecha_baja (incluida). Anual = monto / 12 por mes.
+    Único = se cuenta entero en el mes de fecha_alta. */
+export interface Costo {
+  id: string;
+  nombre: string;
+  categoria: CategoriaCosto;
+  frecuencia: FrecuenciaCosto;
+  monto: number; // USD tal cual se cobra
+  fecha_alta: string; // YYYY-MM-DD
+  fecha_baja?: string | null;
+  notas?: string | null;
+  source: Source;
+}
+
 export interface LogAgente {
   id: string;
   fecha: string;
@@ -158,6 +177,7 @@ export interface RawBundle {
   organico: OrganicoDiario[];
   piezas: OrganicoPieza[];
   ajustes: AjusteMensual[];
+  costos: Costo[];
   log: LogAgente[];
   actualizaciones: UltimaActualizacion[];
 }

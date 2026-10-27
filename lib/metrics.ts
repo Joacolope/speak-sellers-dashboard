@@ -1,5 +1,6 @@
 import type { Agenda, Closer, Cobranza, Filtros, RawBundle } from './types';
 import { CLOSERS } from './types';
+import { costosDelMes } from './costos';
 import { diasDelMes, mesAnterior, mesCorto, mesDe, ratio } from './format';
 
 export interface MetricasMes {
@@ -92,7 +93,8 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const reembolsosDeVentas = Math.abs(sum(cob.filter((c) => c.es_reembolso && idsVentas.has(c.agenda_id)), (c) => c.monto_cobrado));
   const revenue = revenueBruto - reembolsosDeVentas;
   const inversion = sum(ads, (a) => a.inversion);
-  const software = ajuste?.costo_software ?? null;
+  // Software: sale de la tabla de costos; si todavía no se cargó ninguno, del ajuste mensual.
+  const software = b.costos.length ? costosDelMes(b.costos, f.mes).total : ajuste?.costo_software ?? null;
   const cash = revenue - inversion - (software ?? 0);
 
   const idsVentasMes = idsVentas;
@@ -287,6 +289,8 @@ export interface PuntoMensual {
   old_cash: number;
   roas_cash: number | null;
   roas_revenue: number | null;
+  software: number;
+  costos: number;
 }
 
 function punto(b: RawBundle, f: Filtros, mes: string): PuntoMensual {
@@ -303,6 +307,8 @@ function punto(b: RawBundle, f: Filtros, mes: string): PuntoMensual {
     old_cash: m.old_cash,
     roas_cash: m.inversion_ads ? Math.round((m.cash_collected / m.inversion_ads) * 100) / 100 : null,
     roas_revenue: m.inversion_ads ? Math.round((m.revenue / m.inversion_ads) * 100) / 100 : null,
+    software: m.costo_software ?? 0,
+    costos: Math.round((m.inversion_ads + (m.costo_software ?? 0)) * 100) / 100,
   };
 }
 
@@ -312,7 +318,7 @@ export function serieMeses(b: RawBundle, f: Filtros, n = 6): PuntoMensual[] {
   while (meses.length < n) meses.unshift(mesAnterior(meses[0]));
   const puntos = meses.map((mes) => punto(b, f, mes));
   // Recortar meses vacíos al principio (antes de que existieran datos), dejando al menos 3.
-  const vacio = (p: PuntoMensual) => !p.revenue && !p.inversion && !p.agendas && !p.new_cash && !p.old_cash;
+  const vacio = (p: PuntoMensual) => !p.revenue && !p.inversion && !p.agendas && !p.new_cash && !p.old_cash && !p.software;
   while (puntos.length > 3 && vacio(puntos[0])) puntos.shift();
   return puntos;
 }

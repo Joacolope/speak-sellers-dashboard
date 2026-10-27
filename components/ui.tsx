@@ -49,12 +49,12 @@ export function Semaforo({ valor, objetivo, invertir = false }: { valor: number 
   );
 }
 
-export function Variacion({ v }: { v: number | null }) {
+export function Variacion({ v, invertir = false }: { v: number | null; invertir?: boolean }) {
   if (v === null) return <span className="text-[13px] text-text-disabled">sin mes anterior</span>;
   const sign = v > 0 ? '+' : '';
   return (
     <span className="text-[13px]">
-      <span className={v >= 0 ? 'ok' : 'bad'}>{v >= 0 ? '▲' : '▼'} {sign}{(v * 100).toFixed(1).replace('.', ',')}%</span>{' '}
+      <span className={(v >= 0) !== invertir ? 'ok' : 'bad'}>{v >= 0 ? '▲' : '▼'} {sign}{(v * 100).toFixed(1).replace('.', ',')}%</span>{' '}
       <span className="text-text-disabled">vs. mes anterior</span>
     </span>
   );
@@ -78,14 +78,34 @@ export function Vacio({ texto }: { texto: string }) {
   return <div className="panel !p-6 text-center text-[14px] text-text-muted">{texto}</div>;
 }
 
-/** Data Dashboard Card: título PolySans 18px y el gráfico adentro. */
-export function ChartCard({ titulo, sub, children, className = '' }: { titulo: string; sub?: string; children: ReactNode; className?: string }) {
+/** Tarjeta de datos estilo referencia: título en tinta ember, ícono en círculo,
+    número grande opcional con su comparación, y el gráfico abajo. */
+export function ChartCard({
+  titulo, sub, icono, valor, comparacion, children, className = '',
+}: {
+  titulo: string;
+  sub?: string;
+  icono?: ReactNode;
+  valor?: string;
+  comparacion?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={`card flex flex-col gap-3 ${className}`}>
-      <div>
-        <h3 className="h3">{titulo}</h3>
-        {sub && <div className="mt-1 text-[13px] text-text-disabled">{sub}</div>}
+    <div className={`card flex flex-col gap-4 ${className}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="card-title">{titulo}</h3>
+          {sub && <div className="card-sub">{sub}</div>}
+        </div>
+        {icono && <span className="icon-badge" aria-hidden>{icono}</span>}
       </div>
+      {valor && (
+        <div className="-mt-1">
+          <div className="metric !text-[32px]">{valor}</div>
+          {comparacion && <div className="mt-1 text-[13px] text-text-disabled">{comparacion}</div>}
+        </div>
+      )}
       {children}
     </div>
   );

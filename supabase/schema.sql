@@ -31,6 +31,9 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   create type formato_reel_t as enum ('Reel','Carrusel','Imagen');
 exception when duplicate_object then null; end $$;
+do $$ begin
+  create type frecuencia_costo_t as enum ('Mensual','Anual','Único');
+exception when duplicate_object then null; end $$;
 
 -- ───────────────────────── Tablas ─────────────────────────
 create table if not exists leads (
@@ -189,6 +192,24 @@ create table if not exists ajustes_mensuales (
   objetivo_cierre_oferta numeric(5,4) default 0.30
 );
 
+-- Software y costos fijos. Cuenta desde fecha_alta hasta fecha_baja (incluida).
+-- Anual = monto/12 por mes. Único = entero en el mes de fecha_alta.
+-- Un cambio de precio cierra la fila vieja y abre una nueva (historial intacto).
+create table if not exists costos (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  source source_t not null default 'manual',
+  notas text,
+  nombre text not null,
+  categoria text not null default 'Otro',
+  frecuencia frecuencia_costo_t not null default 'Mensual',
+  monto numeric(12,2) not null check (monto >= 0),
+  fecha_alta date not null default current_date,
+  fecha_baja date,
+  check (fecha_baja is null or fecha_baja >= fecha_alta)
+);
+
 create table if not exists log_agente (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
@@ -208,11 +229,30 @@ begin new.updated_at = now(); return new; end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','log_agente'] loop
+  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','log_agente'] loop
     execute format('drop trigger if exists %I_updated_at on %I', t, t);
     execute format('create trigger %I_updated_at before update on %I for each row execute function set_updated_at()', t, t);
   end loop;
 end $$;
+
+-- ───────────────────────── Costos por mes ─────────────────────────
+-- Software del mes (USD). Si no hay ningún costo cargado, devuelve null y se usa
+-- ajustes_mensuales.costo_software como respaldo.
+create or replace function costo_software_mes(p_mes date) returns numeric language sql stable as $$
+  select case when not exists (select 1 from costos) then null else round(coalesce(sum(
+    case
+      when frecuencia = 'Único' then case when date_trunc('month', fecha_alta) = date_trunc('month', p_mes) then monto else 0 end
+      when fecha_alta <= (date_trunc('month', p_mes) + interval '1 month - 1 day')::date
+       and (fecha_baja is null or fecha_baja >= date_trunc('month', p_mes)::date)
+        then case when frecuencia = 'Anual' then monto / 12 else monto end
+      else 0
+    end), 0), 2) end
+  from costos
+$$;
+
+create or replace view v_costos_mes as
+select m.mes::date as mes, costo_software_mes(m.mes::date) as software
+from generate_series(date_trunc('month', now()) - interval '24 months', date_trunc('month', now()) + interval '1 month', interval '1 month') as m(mes);
 
 -- ───────────────────────── Vistas ─────────────────────────
 -- Todo se calcula, nada se tipea.
@@ -258,7 +298,10 @@ st as (
   from setter_diario group by 1
 ),
 ads as (select date_trunc('month', fecha)::date as mes, sum(inversion) as inversion_ads from ads_diario group by 1),
-aj as (select mes, costo_software from ajustes_mensuales),
+aj as (
+  select f.mes, coalesce(costo_software_mes(f.mes), a.costo_software) as costo_software
+  from v_funnel_mes f left join ajustes_mensuales a on a.mes = f.mes
+),
 cash as (
   select date_trunc('month', c.fecha_cobro)::date as mes,
          sum(c.monto_cobrado) filter (where not c.es_reembolso and date_trunc('month', a.fecha_llamada at time zone 'America/Argentina/Buenos_Aires')::date = date_trunc('month', c.fecha_cobro)::date) as new_cash,
@@ -324,7 +367,7 @@ order by c.agenda_id, c.fecha_cobro desc;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','log_agente'] loop
+  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','log_agente'] loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists %I_anon_lee on %I', t, t);
     execute format('create policy %I_anon_lee on %I for select to anon using (true)', t, t);

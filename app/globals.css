@@ -75,7 +75,7 @@
   --spacing-140: 140px;
   --radius-buttons: 0px;
   --radius-tags: 20px;
-  --radius-data-card: 20px;
+  --radius-data-card: 12px;
   --radius-nav-pills: 200px;
   --radius-asymmetric-card: 6px 0px 0px;
 }
@@ -134,6 +134,14 @@
   --bad: #f87171;
 }
 
+:root, :root[data-theme="light"], :root[data-theme="dark"] {
+  --accent-ink: color-mix(in srgb, var(--accent) 55%, var(--text));   /* títulos */
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--surface)); /* relleno de áreas */
+  --accent-tint: color-mix(in srgb, var(--accent) 10%, var(--surface)); /* fondo de íconos */
+}
+:root, :root[data-theme="light"] { --chart-muted: #a8a49c; --bg: #f3f2ef; }
+:root[data-theme="dark"] { --chart-muted: #77736b; }
+
 html { background: var(--bg); }
 
 body {
@@ -177,8 +185,23 @@ body {
 .card, .card-feature, .panel { min-width: 0; }
 .card {
   background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-data-card);
   padding: 24px;
+}
+/* Encabezado de tarjeta estilo referencia: título en tinta ember, ícono en círculo */
+.card-title {
+  font-family: var(--font-polysans);
+  font-size: 15px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--accent-ink);
+}
+.card-sub { font-size: 12px; color: var(--text-disabled); margin-top: 2px; }
+.icon-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 9999px; flex-shrink: 0;
+  background: var(--accent-tint); color: var(--accent);
 }
 .card-feature {
   background: var(--feature);

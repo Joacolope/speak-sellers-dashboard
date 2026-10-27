@@ -6,7 +6,7 @@
  */
 import type {
   Agenda, AdsDiario, Cobranza, Lead, LogAgente, OrganicoDiario, OrganicoPieza,
-  RawBundle, SetterDiario, AjusteMensual, Closer, Fuente, Asistio,
+  RawBundle, SetterDiario, AjusteMensual, Closer, Fuente, Asistio, Costo,
 } from './types';
 import { diasDelMes } from './format';
 
@@ -319,6 +319,24 @@ function construirOrganico(): { diario: OrganicoDiario[]; piezas: OrganicoPieza[
   return { diario, piezas };
 }
 
+/** Herramientas de ejemplo (precios de lista ilustrativos, no son los reales). */
+function construirCostos(): Costo[] {
+  const c = (id: string, nombre: string, categoria: Costo['categoria'], frecuencia: Costo['frecuencia'], monto: number, fecha_alta: string, fecha_baja: string | null = null, notas: string | null = null): Costo =>
+    ({ id, nombre, categoria, frecuencia, monto, fecha_alta, fecha_baja, notas, source: 'manual' });
+  return [
+    c('cos-1', 'GoHighLevel', 'CRM y ventas', 'Mensual', 97, '2026-08-01', null, 'CRM, calendarios y pipeline'),
+    c('cos-2', 'ManyChat Pro', 'Mensajería', 'Mensual', 15, '2026-08-01', null, 'Automatización de DMs de Instagram'),
+    c('cos-3', 'Claude Max', 'IA', 'Mensual', 100, '2026-09-01', null, 'Agente diario y carga manual'),
+    c('cos-4', 'Google Workspace', 'Equipo', 'Mensual', 14, '2026-08-01', null, '2 usuarios'),
+    c('cos-5', 'Zoom Pro', 'Equipo', 'Mensual', 15.99, '2026-08-01', '2026-09-30', 'Se reemplazó por Google Meet'),
+    c('cos-6', 'Canva Pro', 'Contenido', 'Anual', 120, '2026-09-01'),
+    c('cos-7', 'CapCut Pro', 'Contenido', 'Mensual', 9.99, '2026-10-01'),
+    c('cos-8', 'Vercel', 'Infraestructura', 'Mensual', 0, '2026-10-01', null, 'Plan Hobby'),
+    c('cos-9', 'Supabase', 'Infraestructura', 'Mensual', 0, '2026-10-01', null, 'Plan Free'),
+    c('cos-10', 'Plantilla de webinar', 'Contenido', 'Único', 49, '2026-09-20', null, 'Pago único'),
+  ];
+}
+
 export function sampleBundle(): RawBundle {
   const oct = construirAgendasOctubre();
   const sep = construirAgendasSeptiembre();
@@ -327,7 +345,7 @@ export function sampleBundle(): RawBundle {
   const org = construirOrganico();
   const ajustes: AjusteMensual[] = [
     { mes: '2026-09-01', costo_software: null, objetivo_asistencia: 0.6, objetivo_cierre_oferta: 0.3 },
-    { mes: '2026-10-01', costo_software: null, objetivo_asistencia: 0.6, objetivo_cierre_oferta: 0.3, notas: 'Costo de software pendiente de cargar' },
+    { mes: '2026-10-01', costo_software: null, objetivo_asistencia: 0.6, objetivo_cierre_oferta: 0.3 },
   ];
   const log: LogAgente[] = [
     {
@@ -337,7 +355,6 @@ export function sampleBundle(): RawBundle {
         'Asistencias sin marcar del 26/10: Gino, Gianluca, Tiago, Daniela, Elbio',
         'Asistencia sin marcar: Luis Paulino (14/10)',
         'Ventas sin monto en USD: Martín (~600 ARS), Damián (~600 ARS), Cristian (~67 ARS)',
-        'Costo de software de octubre sin cargar',
       ],
     },
     { id: 'log-0', fecha: '2026-10-27T09:00:00Z', source: 'ghl', resumen: 'cron ok: 12 agendas, 2 días ads, 5 historias, 1 reel' },
@@ -352,6 +369,7 @@ export function sampleBundle(): RawBundle {
     organico: org.diario,
     piezas: org.piezas,
     ajustes,
+    costos: construirCostos(),
     log,
     actualizaciones: [
       { fuente: 'GHL', fecha: '2026-10-27T09:00:00Z', ok: true },

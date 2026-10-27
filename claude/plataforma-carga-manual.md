@@ -14,6 +14,14 @@ Opción B: `POST https://speak-sellers-dashboard.vercel.app/api/cargar` con JSON
 { "pin": "1234", "tipo": "asistencia", "nombre": "Axel", "asistio": "No show" }
 ```
 
+Costos (software): `POST /api/costos`
+
+```json
+{ "pin": "1234", "accion": "alta", "nombre": "ManyChat Pro", "categoria": "Mensajería", "frecuencia": "Mensual", "monto": 15 }
+{ "pin": "1234", "accion": "precio", "id": "<uuid>", "monto": 297, "fecha": "2026-11-01" }
+{ "pin": "1234", "accion": "baja", "id": "<uuid>", "fecha": "2026-10-31" }
+```
+
 ## Traducción de frases
 
 | Joaco dice | Claude hace |
@@ -22,7 +30,10 @@ Opción B: `POST https://speak-sellers-dashboard.vercel.app/api/cargar` con JSON
 | "Betina pagó 670 hoy, le quedan 1000 para mediados de noviembre" | cobranza 670 con `pendiente=1000`, `proximo_vencimiento=2026-11-15`; `cash_collected` acumulado |
 | "Les devolvimos a Martinetti y Murakami" | cobranzas negativas (`es_reembolso=true`) y `compro=No` |
 | "Axel fue no show" | `asistio=No show` |
-| "El software de octubre salió 180" | `ajustes_mensuales` mes 2026-10-01, `costo_software=180` |
+| "Sumamos ManyChat, 15 USD por mes" | `costos`: alta `nombre=ManyChat`, `categoria=Mensajería`, `frecuencia=Mensual`, `monto=15`, `fecha_alta=hoy` |
+| "Canva lo pagamos anual, 120" | `costos`: alta con `frecuencia=Anual`, `monto=120` (cuenta 10 por mes) |
+| "GHL subió a 297 desde noviembre" | `costos`: cerrar la fila actual con `fecha_baja=2026-10-31` y abrir una nueva con `monto=297`, `fecha_alta=2026-11-01` |
+| "Dimos de baja Zoom" | `costos`: `fecha_baja` = último día pagado |
 
 ## Reglas
 

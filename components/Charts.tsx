@@ -1,62 +1,163 @@
 'use client';
 
 import {
-  Bar, BarChart, CartesianGrid, ComposedChart, LabelList, Legend, Line, LineChart,
-  ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, LabelList, Legend, Line,
+  Pie, PieChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import type { DiaAgendas, PuntoMensual, SemanaAdsCash } from '@/lib/metrics';
 import { num, usd } from '@/lib/format';
 
-/* Estilo común: grilla horizontal tenue, sin líneas de eje, valores escritos
-   sobre la serie para no tener que leer el eje. Ember = principal, Brass = secundaria. */
-const tick = { fontSize: 12, fill: 'var(--chart-axis)', fontFamily: 'var(--font-inter)' };
-const label = { fontSize: 12, fill: 'var(--text)', fontFamily: 'var(--font-inter)' };
+/* Estilo de la referencia: curvas suaves, relleno durazno, serie secundaria gris,
+   línea vertical punteada en el mes elegido, ejes mínimos y tooltip tipo píldora. */
+const ACC = 'var(--accent)';
+const SOFT = 'var(--accent-soft)';
+const MUTED = 'var(--chart-muted)';
+const MID = 'color-mix(in srgb, var(--accent) 45%, var(--surface))';
+const H = 220;
+const tick = { fontSize: 11, fill: 'var(--chart-axis)', fontFamily: 'var(--font-inter)' };
+const valor = { fontSize: 11, fill: 'var(--text-muted)', fontFamily: 'var(--font-inter)' };
 const leyenda = {
   verticalAlign: 'top' as const,
   align: 'left' as const,
   iconType: 'circle' as const,
-  iconSize: 8,
-  wrapperStyle: { fontSize: 13, color: 'var(--text-muted)', paddingBottom: 12, fontFamily: 'var(--font-inter)' },
+  iconSize: 7,
+  wrapperStyle: { fontSize: 12, paddingBottom: 8, fontFamily: 'var(--font-inter)' },
+  formatter: (v: string) => <span style={{ color: 'var(--text-muted)' }}>{v}</span>,
 };
-const tooltip = {
-  contentStyle: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 13, color: 'var(--text)' },
-  labelStyle: { color: 'var(--text-disabled)', marginBottom: 4 },
-  itemStyle: { color: 'var(--text)', padding: 0 },
-  cursor: { fill: 'var(--surface-2)', stroke: 'var(--chart-grid)' },
-};
-const C1 = 'var(--accent)';
-const C2 = 'var(--accent-2)';
-const H = 240;
 
-const usdCorto = (v: number) => {
-  if (v === 0) return '$0';
+export const usdCorto = (v: number) => {
+  if (!v) return '$0';
   const abs = Math.abs(v);
   const s = abs >= 1000 ? `${(abs / 1000).toFixed(abs >= 10000 ? 0 : 1).replace('.', ',')}k` : num(abs);
   return `${v < 0 ? '-' : ''}$${s}`;
 };
 
+type Fmt = (v: number) => string;
+interface PillProps {
+  active?: boolean;
+  label?: string | number;
+  payload?: { name: string; value: number; color?: string; stroke?: string; fill?: string; dataKey?: string }[];
+  fmt?: Fmt;
+  prefijo?: string;
+}
 
-/** Dos líneas en USD mes a mes (Cash vs Revenue). */
+/** Tooltip tipo píldora, como el globo "User" de la referencia. */
+function Pill({ active, label, payload, fmt = (v) => num(v), prefijo = '' }: PillProps) {
+  if (!active || !payload?.length) return null;
+  const filas = payload.filter((p) => p.value !== null && p.value !== undefined && p.dataKey !== 'parcial');
+  return (
+    <div className="rounded-xl border border-border bg-surface px-3 py-2 text-[12px]">
+      <div className="mb-1 text-text-disabled">{prefijo}{label}</div>
+      {filas.map((p) => (
+        <div key={p.name} className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5 text-text-muted">
+            <span className="dot !h-1.5 !w-1.5" style={{ background: p.stroke && p.stroke !== 'none' ? p.stroke : p.fill }} />
+            {p.name}
+          </span>
+          <span className="tabular-nums text-text">{fmt(p.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const grid = <CartesianGrid stroke="var(--chart-grid)" vertical={false} />;
+
+/** Marcador del mes elegido: línea punteada vertical + punto. */
+function marcador(x: string | undefined, y: number | undefined, color = ACC) {
+  if (!x) return null;
+  return [
+    <ReferenceLine key="rl" x={x} stroke={color} strokeDasharray="3 3" strokeOpacity={0.7} />,
+    y !== undefined ? <ReferenceDot key="rd" x={x} y={y} r={4} fill={color} stroke="var(--surface)" strokeWidth={2} /> : null,
+  ];
+}
+
+/** "Finance": Revenue como área durazno y Cash como línea gris, mes a mes. */
 export function CashRevenueMes({ data }: { data: PuntoMensual[] }) {
+  const ult = data[data.length - 1];
   return (
     <ResponsiveContainer width="100%" height={H}>
-      <LineChart data={data} margin={{ top: 20, right: 24, left: 4, bottom: 0 }}>
-        <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} interval={0} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={52} />
-        <ReferenceLine y={0} stroke="var(--chart-axis)" strokeOpacity={0.4} />
-        <Tooltip {...tooltip} formatter={(v: number, n: string) => [usd(v), n]} />
+      <ComposedChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        {grid}
+        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} dy={6} />
+        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={48} />
+        <Tooltip content={<Pill fmt={(v) => usd(v)} />} cursor={{ stroke: 'var(--chart-grid)' }} />
         <Legend {...leyenda} />
-        <Line type="linear" dataKey="revenue" name="Revenue" stroke={C2} strokeWidth={2} dot={{ r: 3, fill: C2, strokeWidth: 0 }} />
-        <Line type="linear" dataKey="cash" name="Cash Collected" stroke={C1} strokeWidth={2} dot={{ r: 3, fill: C1, strokeWidth: 0 }}>
-          <LabelList dataKey="cash" position="top" offset={10} formatter={(v: number) => (v ? usdCorto(v) : '')} style={label} />
-        </Line>
-      </LineChart>
+        <Area type="monotone" dataKey="revenue" name="Revenue" stroke={ACC} strokeWidth={1.5} fill={SOFT} fillOpacity={1} />
+        <Line type="monotone" dataKey="cash" name="Cash Collected" stroke={MUTED} strokeWidth={1.5} dot={false} />
+        {marcador(ult?.label, ult?.revenue)}
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }
 
-/** Barras agrupadas con el valor escrito arriba. */
+/** "Revenues": área con la tendencia; si el mes está en curso, el último tramo va punteado. */
+export function TendenciaMes({ data, campo, enCurso, nombre }: { data: PuntoMensual[]; campo: 'revenue' | 'cash'; enCurso: boolean; nombre: string }) {
+  const n = data.length;
+  const filas = data.map((p, i) => ({
+    label: p.label,
+    cerrado: enCurso && i === n - 1 ? null : p[campo],
+    parcial: enCurso && i >= n - 2 ? p[campo] : null,
+  }));
+  const ult = data[n - 1];
+  return (
+    <ResponsiveContainer width="100%" height={150}>
+      <AreaChart data={filas} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        {grid}
+        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} dy={6} />
+        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={44} />
+        <Tooltip content={<Pill fmt={(v) => usd(v)} />} cursor={{ stroke: 'var(--chart-grid)' }} />
+        <Area type="monotone" dataKey="cerrado" name={nombre} stroke={ACC} strokeWidth={1.5} fill={SOFT} fillOpacity={1} connectNulls={false} />
+        <Area type="monotone" dataKey="parcial" name={`${nombre} (mes en curso)`} stroke={ACC} strokeWidth={1.5} strokeDasharray="4 4" fill={SOFT} fillOpacity={0.5} connectNulls={false} />
+        {marcador(ult?.label, ult?.[campo], ACC)}
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Rentabilidad: anillo con el margen (Cash Collected / Revenue) y la leyenda al costado. */
+export function AnilloRentabilidad({ revenue, ads, software, cash }: { revenue: number; ads: number; software: number | null; cash: number }) {
+  const margen = revenue > 0 ? Math.max(0, Math.min(1, cash / revenue)) : null;
+  const datos = margen === null ? [{ v: 1 }] : [{ v: margen }, { v: 1 - margen }];
+  const items = [
+    { nombre: 'Revenue', valor: usd(revenue), color: 'var(--text)' },
+    { nombre: 'Ads', valor: `-${usd(ads)}`, color: MUTED },
+    { nombre: 'Software', valor: software === null ? '—' : `-${usd(software)}`, color: MID },
+    { nombre: 'Cash', valor: usd(cash), color: ACC },
+  ];
+  return (
+    <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
+      <div className="relative h-[156px] w-[156px] shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={[{ v: 1 }]} dataKey="v" innerRadius={60} outerRadius={72} startAngle={90} endAngle={-270} fill="var(--accent-tint)" stroke="none" isAnimationActive={false} />
+            <Pie data={datos} dataKey="v" innerRadius={60} outerRadius={72} startAngle={90} endAngle={-270} cornerRadius={8} stroke="none">
+              {datos.map((_, i) => <Cell key={i} fill={i === 0 && margen !== null ? ACC : 'transparent'} />)}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className="metric !text-[32px]">{margen === null ? '—' : `${Math.round(margen * 100)}%`}</div>
+          <div className="text-[12px] text-text-disabled">Margen</div>
+        </div>
+      </div>
+      <ul className="flex w-full min-w-0 flex-col gap-2.5 whitespace-nowrap text-[13px]">
+        {items.map((it) => (
+          <li key={it.nombre} className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2 text-text-muted">
+              <span className="inline-block h-2 w-3 rounded-[2px]" style={{ background: it.color }} />
+              {it.nombre}
+            </span>
+            <span className="tabular-nums text-text">{it.valor}</span>
+          </li>
+        ))}
+        {software === null && <li className="whitespace-normal text-[12px] text-text-disabled">Software sin cargar: el margen real es un poco menor.</li>}
+      </ul>
+    </div>
+  );
+}
+
+/** Barras de a pares (ROAS, New/Old Cash): naranja + gris, valor arriba. */
 export function BarrasMes({
   data, a, b, formato,
 }: {
@@ -65,131 +166,170 @@ export function BarrasMes({
   b: { key: keyof PuntoMensual; nombre: string };
   formato: 'usd' | 'x';
 }) {
-  const fmt = (v: number | null) => (v === null || v === undefined || v === 0 ? '' : formato === 'usd' ? usdCorto(v) : `${String(v).replace('.', ',')}x`);
+  const f = (v: number) => (formato === 'usd' ? usd(v) : `${String(v).replace('.', ',')}x`);
+  const etiqueta = (v: number | null) => (v === null || v === undefined || v === 0 ? '' : formato === 'usd' ? usdCorto(v) : `${String(v).replace('.', ',')}x`);
   return (
     <ResponsiveContainer width="100%" height={H}>
-      <BarChart data={data} margin={{ top: 20, right: 8, left: 4, bottom: 0 }} barGap={4}>
-        <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} interval={0} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} width={formato === 'usd' ? 52 : 32} tickFormatter={(v) => (formato === 'usd' ? usdCorto(v) : `${v}x`)} />
-        <ReferenceLine y={0} stroke="var(--chart-axis)" strokeOpacity={0.4} />
-        <Tooltip {...tooltip} formatter={(v: number, n: string) => [formato === 'usd' ? usd(v) : `${String(v).replace('.', ',')}x`, n]} />
+      <BarChart data={data} margin={{ top: 18, right: 4, left: 0, bottom: 0 }} barGap={3}>
+        {grid}
+        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} dy={6} />
+        <YAxis tick={tick} axisLine={false} tickLine={false} width={formato === 'usd' ? 48 : 30} tickFormatter={(v) => (formato === 'usd' ? usdCorto(v) : `${v}x`)} />
+        <ReferenceLine y={0} stroke="var(--chart-axis)" strokeOpacity={0.3} />
+        <Tooltip content={<Pill fmt={f} />} cursor={{ fill: 'var(--surface-2)' }} />
         <Legend {...leyenda} />
-        <Bar dataKey={a.key as string} name={a.nombre} fill={C1} radius={[4, 4, 0, 0]} maxBarSize={28}>
-          <LabelList dataKey={a.key as string} position="top" formatter={fmt} style={label} />
+        <Bar dataKey={a.key as string} name={a.nombre} fill={ACC} radius={[4, 4, 0, 0]} maxBarSize={22}>
+          <LabelList dataKey={a.key as string} position="top" formatter={etiqueta} style={valor} />
         </Bar>
-        <Bar dataKey={b.key as string} name={b.nombre} fill={C2} radius={[4, 4, 0, 0]} maxBarSize={28}>
-          <LabelList dataKey={b.key as string} position="top" formatter={fmt} style={label} />
+        <Bar dataKey={b.key as string} name={b.nombre} fill={MUTED} radius={[4, 4, 0, 0]} maxBarSize={22}>
+          <LabelList dataKey={b.key as string} position="top" formatter={etiqueta} style={valor} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-/** Una sola serie en USD mes a mes (inversión en anuncios). */
+/** Inversión en anuncios: barras durazno, el mes elegido en naranja. */
 export function InversionMes({ data }: { data: PuntoMensual[] }) {
+  const n = data.length;
   return (
     <ResponsiveContainer width="100%" height={H}>
-      <BarChart data={data} margin={{ top: 20, right: 8, left: 4, bottom: 0 }}>
-        <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} interval={0} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={52} />
-        <Tooltip {...tooltip} formatter={(v: number) => [usd(v, 2), 'Inversión']} />
-        <Bar dataKey="inversion" name="Inversión" fill={C1} radius={[4, 4, 0, 0]} maxBarSize={36}>
-          <LabelList dataKey="inversion" position="top" formatter={(v: number) => (v ? usdCorto(v) : '')} style={label} />
+      <BarChart data={data} margin={{ top: 18, right: 4, left: 0, bottom: 0 }}>
+        {grid}
+        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} dy={6} />
+        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={48} />
+        <Tooltip content={<Pill fmt={(v) => usd(v, 2)} />} cursor={{ fill: 'var(--surface-2)' }} />
+        <Bar dataKey="inversion" name="Inversión" radius={[6, 6, 0, 0]} maxBarSize={40}>
+          {data.map((_, i) => <Cell key={i} fill={i === n - 1 ? ACC : SOFT} />)}
+          <LabelList dataKey="inversion" position="top" formatter={(v: number) => (v ? usdCorto(v) : '')} style={valor} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-/** Agendas vs. Ventas mes a mes. */
+/** Agendas (área) vs. Ventas (línea gris). */
 export function AgendasVentasMes({ data }: { data: PuntoMensual[] }) {
+  const ult = data[data.length - 1];
   return (
     <ResponsiveContainer width="100%" height={H}>
-      <LineChart data={data} margin={{ top: 20, right: 24, left: 4, bottom: 0 }}>
-        <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} interval={0} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} width={32} />
-        <Tooltip {...tooltip} />
+      <ComposedChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        {grid}
+        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} dy={6} />
+        <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} width={30} />
+        <Tooltip content={<Pill />} cursor={{ stroke: 'var(--chart-grid)' }} />
         <Legend {...leyenda} />
-        <Line type="linear" dataKey="agendas" name="Agendas" stroke={C1} strokeWidth={2} dot={{ r: 3, fill: C1, strokeWidth: 0 }}>
-          <LabelList dataKey="agendas" position="top" offset={10} formatter={(v: number) => (v ? v : '')} style={label} />
-        </Line>
-        <Line type="linear" dataKey="ventas" name="Ventas" stroke={C2} strokeWidth={2} dot={{ r: 3, fill: C2, strokeWidth: 0 }}>
-          <LabelList dataKey="ventas" position="bottom" offset={10} formatter={(v: number) => (v ? v : '')} style={label} />
-        </Line>
-      </LineChart>
+        <Area type="monotone" dataKey="agendas" name="Agendas" stroke={ACC} strokeWidth={1.5} fill={SOFT} fillOpacity={1} />
+        <Line type="monotone" dataKey="ventas" name="Ventas" stroke={MUTED} strokeWidth={1.5} dot={false} />
+        {marcador(ult?.label, ult?.agendas)}
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }
 
-/** Ventas por país: barras horizontales, ordenadas, con el número al final. */
+/** Ventas por país: barra con riel durazno de fondo y el número al final. */
 export function VentasPorPais({ data }: { data: { pais: string; ventas: number }[] }) {
-  const alto = Math.max(160, data.length * 36 + 16);
+  const alto = Math.max(150, data.length * 34 + 10);
   return (
     <ResponsiveContainer width="100%" height={alto}>
-      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 36, left: 0, bottom: 0 }}>
+      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 28, left: 0, bottom: 0 }}>
         <XAxis type="number" hide allowDecimals={false} />
-        <YAxis type="category" dataKey="pais" tick={{ ...tick, fill: 'var(--text)', fontSize: 13 }} axisLine={false} tickLine={false} width={88} />
-        <Tooltip {...tooltip} formatter={(v: number) => [v, 'Ventas']} />
-        <Bar dataKey="ventas" fill={C1} radius={[0, 4, 4, 0]} barSize={18}>
-          <LabelList dataKey="ventas" position="right" style={label} />
+        <YAxis type="category" dataKey="pais" tick={{ ...tick, fill: 'var(--text)', fontSize: 13 }} axisLine={false} tickLine={false} width={84} />
+        <Tooltip content={<Pill />} cursor={false} />
+        <Bar dataKey="ventas" name="Ventas" fill={ACC} radius={6} barSize={12} background={{ fill: 'var(--accent-tint)', radius: 6 }}>
+          <LabelList dataKey="ventas" position="right" style={{ ...valor, fill: 'var(--text)' }} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-/** Inversión en ads (barras) vs. Cash cobrado (línea), por semana del mes. */
+/** Inversión (barras grises) vs. Cash cobrado (línea naranja), por semana. */
 export function AdsVsCash({ data }: { data: SemanaAdsCash[] }) {
   return (
     <ResponsiveContainer width="100%" height={H}>
-      <ComposedChart data={data} margin={{ top: 20, right: 8, left: 4, bottom: 0 }}>
-        <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-        <XAxis dataKey="semana" tick={tick} axisLine={false} tickLine={false} interval={0} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={52} />
-        <Tooltip {...tooltip} formatter={(v: number, n: string) => [usd(v), n]} labelFormatter={(l) => `Días ${l}`} />
+      <ComposedChart data={data} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
+        {grid}
+        <XAxis dataKey="semana" tick={tick} axisLine={false} tickLine={false} dy={6} />
+        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={48} />
+        <ReferenceLine y={0} stroke="var(--chart-axis)" strokeOpacity={0.3} />
+        <Tooltip content={<Pill fmt={(v) => usd(v)} prefijo="Días " />} cursor={{ fill: 'var(--surface-2)' }} />
         <Legend {...leyenda} />
-        <Bar dataKey="inversion" name="Inversión en ads" fill={C2} radius={[4, 4, 0, 0]} maxBarSize={36} />
-        <Line type="linear" dataKey="cash" name="Cash cobrado" stroke={C1} strokeWidth={2} dot={{ r: 3, fill: C1, strokeWidth: 0 }}>
-          <LabelList dataKey="cash" position="top" offset={10} formatter={(v: number) => (v ? usdCorto(v) : '')} style={label} />
+        <Bar dataKey="inversion" name="Inversión en ads" fill={SOFT} radius={[6, 6, 0, 0]} maxBarSize={40} />
+        <Line type="monotone" dataKey="cash" name="Cash cobrado" stroke={ACC} strokeWidth={1.5} dot={{ r: 3, fill: ACC, strokeWidth: 0 }}>
+          <LabelList dataKey="cash" position="top" offset={8} formatter={(v: number) => (v ? usdCorto(v) : '')} style={valor} />
         </Line>
       </ComposedChart>
     </ResponsiveContainer>
   );
 }
 
-/** Agendas por día (barras) con asistencias (línea). */
+/** Agendas por día (barras durazno) con asistencias (línea). */
 export function AgendasPorDia({ data }: { data: DiaAgendas[] }) {
   return (
     <ResponsiveContainer width="100%" height={H}>
-      <ComposedChart data={data} margin={{ top: 20, right: 8, left: 4, bottom: 0 }}>
-        <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+      <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        {grid}
         <XAxis dataKey="dia" tick={tick} axisLine={false} tickLine={false} interval={4} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} width={28} />
-        <Tooltip {...tooltip} labelFormatter={(l) => `Día ${l}`} />
+        <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} width={26} />
+        <Tooltip content={<Pill prefijo="Día " />} cursor={{ fill: 'var(--surface-2)' }} />
         <Legend {...leyenda} />
-        <Bar dataKey="agendas" name="Agendas" fill={C2} fillOpacity={0.55} radius={[3, 3, 0, 0]} maxBarSize={14} />
-        <Line type="monotone" dataKey="asistencias" name="Asistencias" stroke={C1} strokeWidth={2} dot={false} />
+        <Bar dataKey="agendas" name="Agendas" fill={SOFT} radius={[3, 3, 0, 0]} maxBarSize={12} />
+        <Line type="monotone" dataKey="asistencias" name="Asistencias" stroke={ACC} strokeWidth={1.5} dot={false} />
       </ComposedChart>
     </ResponsiveContainer>
   );
 }
 
-/** Barras apiladas por día (setter: orgánicas vs. pagadas). */
+/** Barras apiladas por día (setter: orgánicas, pagadas, outbound). */
 export function BarrasSimples({ data, series }: { data: Record<string, string | number | null>[]; series: { key: string; nombre: string; color: 'main' | 'accent' | 'soft' }[] }) {
+  const color = { main: MUTED, accent: ACC, soft: SOFT };
   return (
     <ResponsiveContainer width="100%" height={H}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
-        <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+      <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        {grid}
         <XAxis dataKey="x" tick={tick} axisLine={false} tickLine={false} interval={3} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} width={32} />
-        <Tooltip {...tooltip} labelFormatter={(l) => `Día ${l}`} />
+        <YAxis tick={tick} axisLine={false} tickLine={false} width={30} />
+        <Tooltip content={<Pill prefijo="Día " />} cursor={{ fill: 'var(--surface-2)' }} />
         <Legend {...leyenda} />
-        {series.map((s) => (
-          <Bar key={s.key} dataKey={s.key} name={s.nombre} stackId="a" fill={s.color === 'main' ? C2 : s.color === 'accent' ? C1 : 'color-mix(in srgb, var(--accent) 35%, var(--surface))'} maxBarSize={16} />
+        {series.map((s, i) => (
+          <Bar key={s.key} dataKey={s.key} name={s.nombre} stackId="a" fill={color[s.color]} maxBarSize={14} radius={i === series.length - 1 ? [3, 3, 0, 0] : 0} />
         ))}
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Costos del mes a mes: Ads + Software apilados, Cash Collected como línea. */
+export function CostosMes({ data }: { data: PuntoMensual[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={H}>
+      <ComposedChart data={data} margin={{ top: 18, right: 12, left: 0, bottom: 0 }}>
+        {grid}
+        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} dy={6} />
+        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={48} />
+        <ReferenceLine y={0} stroke="var(--chart-axis)" strokeOpacity={0.3} />
+        <Tooltip content={<Pill fmt={(v) => usd(v, 2)} />} cursor={{ fill: 'var(--surface-2)' }} />
+        <Legend {...leyenda} />
+        <Bar dataKey="inversion" name="Ads" stackId="c" fill={MUTED} maxBarSize={36} />
+        <Bar dataKey="software" name="Software" stackId="c" fill={MID} radius={[6, 6, 0, 0]} maxBarSize={36} />
+        <Line type="monotone" dataKey="cash" name="Cash Collected" stroke={ACC} strokeWidth={1.5} dot={{ r: 3, fill: ACC, strokeWidth: 0 }} />
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Barras horizontales con riel de fondo (categorías de costo, etc.). */
+export function BarrasCategoria({ data }: { data: { categoria: string; monto: number }[] }) {
+  const alto = Math.max(120, data.length * 34 + 10);
+  return (
+    <ResponsiveContainer width="100%" height={alto}>
+      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 56, left: 0, bottom: 0 }}>
+        <XAxis type="number" hide />
+        <YAxis type="category" dataKey="categoria" tick={{ ...tick, fill: 'var(--text)', fontSize: 13 }} axisLine={false} tickLine={false} width={112} />
+        <Tooltip content={<Pill fmt={(v) => usd(v, 2)} />} cursor={false} />
+        <Bar dataKey="monto" name="Por mes" fill={ACC} radius={6} barSize={12} background={{ fill: 'var(--accent-tint)', radius: 6 }}>
+          <LabelList dataKey="monto" position="right" formatter={(v: number) => usd(v, v % 1 ? 2 : 0)} style={{ ...valor, fill: 'var(--text)' }} />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );

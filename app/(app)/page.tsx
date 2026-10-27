@@ -4,7 +4,8 @@ import StatCard, { Iconos } from '@/components/StatCard';
 import Funnel from '@/components/Funnel';
 import Avisos from '@/components/Avisos';
 import {
-  AdsVsCash, AgendasPorDia, AgendasVentasMes, BarrasMes, CashRevenueMes, InversionMes, VentasPorPais,
+  AdsVsCash, AgendasPorDia, AgendasVentasMes, AnilloRentabilidad, BarrasMes, CashRevenueMes, InversionMes,
+  TendenciaMes, VentasPorPais,
 } from '@/components/Charts';
 import { ChartCard, DemoBanner, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
@@ -13,7 +14,7 @@ import {
   acumuladoAnual, adsVsCashSemanal, agendasPorDia, avisos, funnelMes, mesesDisponibles,
   metricasConAnterior, resumenCloser, serieMeses, ventasPorPais,
 } from '@/lib/metrics';
-import { nombreMes, num, pct, usd, variacion } from '@/lib/format';
+import { mesActual, mesAnterior, nombreMes, num, pct, usd, variacion } from '@/lib/format';
 import { CLOSERS } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +33,10 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
   const closers = CLOSERS.map((c) => resumenCloser(bundle, f, c));
   const hoy = new Date().toISOString().slice(0, 10);
   const pendientes = avisos(bundle, f, hoy);
+  const enCurso = f.mes === mesActual();
+  const vsAnterior = (v: number) => (
+    <>vs. <span className="text-text-muted">{usd(v)}</span> en {nombreMes(mesAnterior(f.mes)).split(' ')[0].toLowerCase()}</>
+  );
 
   return (
     <>
@@ -63,37 +68,72 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <StatCard label="% Cierre / ofertas" valor={pct(actual.pct_cierre_oferta)} variacion={variacion(actual.pct_cierre_oferta, anterior.pct_cierre_oferta)} icono={Iconos.cierre} />
       </section>
 
-      {/* Fila 2 · mes a mes */}
+      {/* Fila 2 · finanzas y rentabilidad (estilo de la referencia) */}
       <section className="grid gap-4 lg:grid-cols-3">
-        <ChartCard titulo="Cash y Revenue" sub="Últimos 6 meses · USD">
+        <ChartCard titulo="Finanzas" sub="Revenue y Cash Collected · últimos meses" icono={Iconos.tendencia} className="lg:col-span-2">
           <CashRevenueMes data={serie} />
         </ChartCard>
-        <ChartCard titulo="ROAS Cash y ROAS Revenue" sub="Cuántas veces vuelve lo invertido en ads">
-          <BarrasMes data={serie} a={{ key: 'roas_cash', nombre: 'ROAS Cash' }} b={{ key: 'roas_revenue', nombre: 'ROAS Revenue' }} formato="x" />
+        <ChartCard titulo="Rentabilidad" sub="Cuánto queda de cada dólar vendido" icono={Iconos.margen}>
+          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} cash={actual.cash_collected} />
         </ChartCard>
-        <ChartCard titulo="Inversión en anuncios" sub="Últimos 6 meses · USD">
+      </section>
+
+      {/* Fila 3 · revenue, cash y anuncios */}
+      <section className="grid gap-4 lg:grid-cols-3">
+        <ChartCard
+          titulo="Revenue"
+          sub={enCurso ? 'Mes en curso · tramo punteado' : nombreMes(f.mes)}
+          icono={Iconos.revenue}
+          valor={usd(actual.revenue)}
+          comparacion={vsAnterior(anterior.revenue)}
+        >
+          <TendenciaMes data={serie} campo="revenue" enCurso={enCurso} nombre="Revenue" />
+        </ChartCard>
+        <ChartCard
+          titulo="Cash Collected"
+          sub="Revenue − ads − software"
+          icono={Iconos.cash}
+          valor={usd(actual.cash_collected)}
+          comparacion={vsAnterior(anterior.cash_collected)}
+        >
+          <TendenciaMes data={serie} campo="cash" enCurso={enCurso} nombre="Cash" />
+        </ChartCard>
+        <ChartCard
+          titulo="Inversión en anuncios"
+          sub="Meta Ads"
+          icono={Iconos.ads}
+          valor={usd(actual.inversion_ads, 2)}
+          comparacion={vsAnterior(anterior.inversion_ads)}
+        >
           <InversionMes data={serie} />
         </ChartCard>
       </section>
 
-      {/* Fila 3 · agendas, embudo, cash nuevo/viejo */}
+      {/* Fila 4 · agendas, embudo, ROAS */}
       <section className="grid gap-4 lg:grid-cols-3">
-        <ChartCard titulo="Agendas vs. Ventas" sub="Últimos 6 meses">
+        <ChartCard titulo="Agendas vs. Ventas" sub="Últimos meses" icono={Iconos.agendas}>
           <AgendasVentasMes data={serie} />
         </ChartCard>
-        <ChartCard titulo="Embudo del mes" sub="De la conversación a la venta · pasá el mouse para ver por closer">
+        <ChartCard titulo="Embudo del mes" sub="De la conversación a la venta · pasá el mouse para ver por closer" icono={Iconos.embudo}>
           <Funnel niveles={funnel} />
         </ChartCard>
-        <ChartCard titulo="New Cash vs. Old Cash" sub="Ventas del mes vs. cobros de ventas anteriores">
-          <BarrasMes data={serie} a={{ key: 'new_cash', nombre: 'New Cash' }} b={{ key: 'old_cash', nombre: 'Old Cash' }} formato="usd" />
+        <ChartCard titulo="ROAS" sub="Veces que vuelve lo invertido en ads" icono={Iconos.tendencia}>
+          <BarrasMes data={serie} a={{ key: 'roas_cash', nombre: 'ROAS Cash' }} b={{ key: 'roas_revenue', nombre: 'ROAS Revenue' }} formato="x" />
         </ChartCard>
       </section>
 
-      {/* Fila 4 · país, acumulados, closers */}
-      <section className="grid gap-4 lg:grid-cols-3">
-        <ChartCard titulo="Ventas por país" sub={nombreMes(f.mes)}>
+      {/* Fila 5 · cash nuevo/viejo, país */}
+      <section className="grid gap-4 lg:grid-cols-2">
+        <ChartCard titulo="New Cash vs. Old Cash" sub="Ventas del mes vs. cobros de ventas anteriores" icono={Iconos.cash}>
+          <BarrasMes data={serie} a={{ key: 'new_cash', nombre: 'New Cash' }} b={{ key: 'old_cash', nombre: 'Old Cash' }} formato="usd" />
+        </ChartCard>
+        <ChartCard titulo="Ventas por país" sub={nombreMes(f.mes)} icono={Iconos.globo}>
           {paises.length ? <VentasPorPais data={paises} /> : <Vacio texto="Sin ventas este mes." />}
         </ChartCard>
+      </section>
+
+      {/* Fila 6 · acumulados y closers */}
+      <section className="grid gap-4 lg:grid-cols-3">
         <div className="flex flex-col gap-4">
           <div className="card-feature flex flex-1 flex-col justify-center gap-3">
             <div className="eyebrow">Acumulado {anual.year} · Revenue</div>
@@ -104,7 +144,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
             <div className="metric-xl">{usd(anual.cash)}</div>
           </div>
         </div>
-        <ChartCard titulo="Closers" sub={nombreMes(f.mes)}>
+        <ChartCard titulo="Closers" sub={nombreMes(f.mes)} icono={Iconos.asistencia} className="lg:col-span-2">
           <div className="-mx-3 overflow-x-auto">
           <table className="table [&_td]:!px-3 [&_th]:!px-3">
             <thead>
@@ -132,12 +172,12 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         </ChartCard>
       </section>
 
-      {/* Fila 5 · el mes por dentro */}
+      {/* Fila 7 · el mes por dentro */}
       <section className="grid gap-4 lg:grid-cols-2">
-        <ChartCard titulo="Inversión en ads vs. Cash cobrado" sub="Por semana del mes">
+        <ChartCard titulo="Inversión en ads vs. Cash cobrado" sub="Por semana del mes" icono={Iconos.ads}>
           <AdsVsCash data={semanas} />
         </ChartCard>
-        <ChartCard titulo="Agendas por día" sub="Con asistencias">
+        <ChartCard titulo="Agendas por día" sub="Con asistencias" icono={Iconos.agendas}>
           <AgendasPorDia data={dias} />
         </ChartCard>
       </section>

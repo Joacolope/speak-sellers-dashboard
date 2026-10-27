@@ -12,6 +12,7 @@ const SECCIONES = [
   { href: '/cobranzas', label: 'Cobranzas' },
   { href: '/organico', label: 'Orgánico' },
   { href: '/anuncios', label: 'Anuncios' },
+  { href: '/costos', label: 'Costos' },
   { href: '/puntos-de-contacto', label: 'Contacto' },
 ];
 

@@ -12,6 +12,14 @@ Los dashboards siguen `DESIGN_dashboards.md` (papel cálido, 95 % acromático, a
 - Verde y rojo solo para semáforos y variaciones vs. mes anterior.
 - Los componentes usan solo variables semánticas (`--bg`, `--surface`, `--accent`, …) definidas en `app/globals.css`.
 
+## Costos
+
+En `/costos` se carga cada herramienta (nombre, categoría, monto en USD, mensual / anual / pago único, desde cuándo). El software del mes se calcula solo y se descuenta del Revenue junto con los anuncios:
+
+`Cash Collected = Revenue − inversión en ads − software del mes`
+
+Los cambios de precio cierran la fila vieja y abren una nueva, así los meses pasados no cambian. Si no hay ningún costo cargado, se usa `ajustes_mensuales.costo_software` como respaldo.
+
 ## Conversaciones
 
 "Conversaciones" son charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Es el primer nivel del embudo y la base de "% Agenda / Conversación".
@@ -42,6 +50,7 @@ Sin `DASHBOARD_PASSWORD` no pide contraseña (solo en local). Sin `SUPABASE_URL`
 | `/organico` | Orgánico + Top performers |
 | `/anuncios` | Anuncios + Daily FM Tracker |
 | `/puntos-de-contacto` | Puntos de contacto |
+| `/costos` | Nuevo: software y costos fijos por mes |
 | `/cargar` | Formulario manual (Venta / Cobranza / Asistencia, con PIN) |
 
 Filtro global por mes, closer y fuente en la URL (`?mes=2026-10&closer=Marcos&fuente=Instagram`). Toggle oscuro/claro en la barra superior.
