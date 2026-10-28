@@ -183,6 +183,13 @@ body {
 
 * { box-shadow: none !important; }
 
+/* Tailwind v4 deja los botones con cursor normal: se devuelve la manito y un efecto al tocar */
+button:not(:disabled), [role="button"], summary, select, label[for] { cursor: pointer; }
+button:disabled { cursor: progress; opacity: .7; }
+button, a, .chip, .btn-primary, .btn-secondary { transition: background-color .15s, color .15s, border-color .15s, opacity .15s, transform .08s; }
+button:not(:disabled):active, a:active, .chip:active { transform: scale(.97); }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
 ::selection { background: var(--blue); color: #ffffff; }
 
 /* ───────────── Tipografía ───────────── */
@@ -254,7 +261,9 @@ body {
   white-space: nowrap;
 }
 .btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-text); border: 1px solid var(--btn-primary-bg); }
+.btn-primary:hover { opacity: .88; }
 .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border-outline); }
+.btn-secondary:hover { background: var(--surface-2); }
 
 .chip {
   background: transparent;
@@ -266,7 +275,7 @@ body {
   font-weight: 500;
   white-space: nowrap;
 }
-.chip:hover { color: var(--text); }
+.chip:hover { color: var(--text); border-color: var(--border-outline); }
 .chip[data-active="true"] { background: var(--text); border-color: var(--text); color: var(--surface); }
 
 .input {
@@ -334,3 +343,6 @@ body {
 .icon-red { background: var(--red-soft); color: var(--red-ink); }
 .icon-yellow { background: var(--yellow-soft); color: var(--yellow-ink); }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; }
+
+@keyframes girar { to { transform: rotate(360deg); } }
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: girar .7s linear infinite; }
