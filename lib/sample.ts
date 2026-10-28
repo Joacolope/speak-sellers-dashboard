@@ -267,7 +267,9 @@ function construirAds(): AdsDiario[] {
       frecuencia: Math.round((impresiones / alcance) * 100) / 100,
       cpm: Math.round((inversion / impresiones) * 1000 * 100) / 100,
       ctr: Math.round((visitas / impresiones) * 10000) / 10000,
-      visitas_perfil: visitas, seguidores, conversaciones: null,
+      visitas_perfil: visitas, seguidores,
+      conversaciones: Math.round(seguidores * (0.12 + rand() * 0.08)),
+      comentarios: Math.round(seguidores * (0.2 + rand() * 0.15)),
       bitacora: i === 0 ? 'Arranca Follow Me Ads' : fecha === '2026-10-04' ? 'Webinar en vivo, se solapa con campaña' : null,
       source: 'meta',
     });

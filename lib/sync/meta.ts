@@ -66,6 +66,7 @@ export async function syncMetaAds(sb: SupabaseClient, dry = false): Promise<stri
       seguidores: accion(ins, ['onsite_conversion.follow', 'ig_follow']),
       // Webinar no busca conversaciones: mide registros
       conversaciones: c === 'webinar' ? null : accion(ins, ['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.total_messaging_connection']),
+      comentarios: c === 'follow_me' ? accion(ins, ['comment']) : null,
       registros: c === 'webinar' ? accion(ins, ['complete_registration', 'offsite_conversion.fb_pixel_complete_registration', 'lead', 'onsite_conversion.lead_grouped']) : null,
       source: 'meta',
       updated_at: new Date().toISOString(),

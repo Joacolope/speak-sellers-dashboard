@@ -153,6 +153,8 @@ create table if not exists ads_diario (
 );
 -- Campañas de webinar: registros que reporta Meta (no conversaciones).
 alter table ads_diario add column if not exists registros int;
+-- Follow Me Ads: comentarios en los anuncios (además de conversaciones y seguidores).
+alter table ads_diario add column if not exists comentarios int;
 
 -- Foto de las campañas de Meta (la pisa el cron): estado, presupuesto y rendimiento.
 create table if not exists campanas_meta (

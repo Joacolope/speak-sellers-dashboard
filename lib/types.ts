@@ -122,6 +122,8 @@ export interface AdsDiario {
   conversaciones?: number | null;
   /** Solo campañas de webinar: registros que reporta Meta. */
   registros?: number | null;
+  /** Comentarios en los anuncios (Follow Me Ads) */
+  comentarios?: number | null;
   bitacora?: string | null;
   source: Source;
 }
