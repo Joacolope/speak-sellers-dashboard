@@ -22,10 +22,11 @@ import CuotasPorCobrar from '@/components/CuotasPorCobrar';
 import { alertas as calcularAlertas } from '@/lib/alertas';
 import { progresoMetas } from '@/lib/metas';
 import { cuotasPorCobrar } from '@/lib/cuotas';
+import { colorRespuesta, formatoEspera } from '@/lib/respuesta';
 import { getSesion, puede } from '@/lib/auth';
 import Link from 'next/link';
 import { comisionesDelMes } from '@/lib/comisiones';
-import { fechaLarga, hoyAR, mesAnterior, mesDe, nombreMes, num, pct, usd, variacion } from '@/lib/format';
+import { fechaCorta, fechaLarga, hoyAR, mesAnterior, mesDe, nombreMes, num, pct, usd, variacion } from '@/lib/format';
 import { CLOSERS, NOMBRE_CLOSER } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -77,6 +78,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
   const metas = progresoMetas(bundle, f, hoy);
   const lista = calcularAlertas(bundle, hoy, enCurso ? metas.items : []);
   const cuotas = cuotasPorCobrar(bundle, hoy);
+  const respuesta = bundle.setter.filter((s) => s.tr_mediana_min != null).sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? null;
   const ok = typeof searchParams.ok === 'string' ? searchParams.ok : null;
   const error = typeof searchParams.error === 'string' ? searchParams.error : null;
   const vsAnterior = (v: number) => (
@@ -101,7 +103,14 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <section className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between gap-4">
             <div className="eyebrow">Para mirar hoy</div>
-            <Link href="/resumen" className="text-[13px] text-text-muted hover:text-text">Resumen del viernes →</Link>
+            <div className="flex flex-wrap items-center gap-4">
+              {respuesta && (
+                <Link href="/setter" className="text-[13px] text-text-muted hover:text-text" title="Mediana del tiempo de respuesta en DMs de Instagram">
+                  Respuesta en DMs ({fechaCorta(respuesta.fecha)}): <span className={`font-medium ${colorRespuesta(respuesta.tr_mediana_min ?? null)}`}>{formatoEspera(respuesta.tr_mediana_min)}</span>
+                </Link>
+              )}
+              <Link href="/resumen" className="text-[13px] text-text-muted hover:text-text">Resumen del viernes →</Link>
+            </div>
           </div>
           <Alertas alertas={lista} />
         </section>

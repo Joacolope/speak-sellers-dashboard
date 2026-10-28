@@ -38,6 +38,11 @@ En Claude Code → menú del entorno (barra de título de la sesión) → **Edit
 
 (Dejar tildado "Allow package managers".) Con eso Claude prueba el sitio, corre el cron a mano y carga la migración.
 
+## 4a. Tiempo de respuesta del setter (DMs de Instagram)
+- [ ] `META_PAGE_ID` en Vercel = ID de la página de Facebook conectada al Instagram (Meta Business Suite → Configuración → Páginas)
+- [ ] El `META_TOKEN` (usuario de sistema) necesita los permisos `instagram_manage_messages`, `instagram_basic`, `pages_show_list`, `pages_read_engagement`, `pages_manage_metadata` y `business_management`, con la página y la cuenta de Instagram asignadas como activos
+- [ ] En la app de Instagram: Configuración → Mensajes → Herramientas conectadas → "Permitir acceso a los mensajes" activado
+
 ## 4b. Resumen semanal por mail (viernes 18:00 AR)
 - [ ] Crear cuenta en resend.com con `joaquin@salesspawn.com` → API Keys → Create (permiso "Sending access")
 - [ ] En Vercel → Settings → Environment Variables: `RESEND_API_KEY` = esa key

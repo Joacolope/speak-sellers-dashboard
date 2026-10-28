@@ -5,6 +5,7 @@ import { progresoMetas, type ProgresoMeta } from './metas';
 import { cuotasPorCobrar, totalCuotas, type CuotaPendiente } from './cuotas';
 import { alertas, type Alerta } from './alertas';
 import { MESES, mesDe, num, pct, sumarDias, usd, variacion } from './format';
+import { OBJETIVO_RESPUESTA_MIN, formatoEspera, resumenRespuesta } from './respuesta';
 
 export interface Semana {
   facturacion: number;
@@ -56,6 +57,7 @@ export interface DatosResumen {
   vencidas: CuotaPendiente[];
   proxSemana: CuotaPendiente[];
   alertas: Alerta[];
+  respuesta: { actual: number | null; anterior: number | null; sinResponder: number };
 }
 
 /** Semana que termina hoy (viernes a la tarde: de sábado a viernes) contra la anterior. */
@@ -74,6 +76,11 @@ export function datosResumen(b: RawBundle, hoy: string): DatosResumen {
     vencidas: cuotas.vencidas,
     proxSemana: cuotas.semana,
     alertas: alertas(b, hoy, m.items),
+    respuesta: (() => {
+      const en = (desde: string, hasta: string) => resumenRespuesta(b.setter.filter((s) => s.fecha >= desde && s.fecha <= hasta));
+      const r = en(desde, hoy);
+      return { actual: r.medianaPeriodo, anterior: en(sumarDias(hoy, -13), sumarDias(hoy, -7)).medianaPeriodo, sinResponder: r.sinRespuestaPeriodo };
+    })(),
   };
 }
 
@@ -153,6 +160,7 @@ export function htmlResumen(d: DatosResumen, appUrl: string): string {
       <div style="font-size:28px;color:${C.tinta};margin:6px 0 4px">Semana del ${fechaTxt(d.desde)} al ${fechaTxt(d.hasta)}</div>
       <div style="font-size:14px;color:${C.gris};margin-bottom:16px">Cobraste <strong style="color:${C.verde}">${usd(a.cobrado)}</strong> con ${num(a.ventas)} ${a.ventas === 1 ? 'venta nueva' : 'ventas nuevas'} y ${num(a.agendas)} agendas.</div>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 -6px">${filas}</table>
+      ${d.respuesta.actual !== null ? `<div style="font-size:14px;color:${C.tinta};margin:14px 0 0">Tiempo de respuesta en DMs: <strong style="color:${d.respuesta.actual <= OBJETIVO_RESPUESTA_MIN ? C.verde : d.respuesta.actual <= OBJETIVO_RESPUESTA_MIN * 2 ? C.amarillo : C.rojo}">${formatoEspera(d.respuesta.actual)}</strong> <span style="color:${C.gris}">(objetivo ${OBJETIVO_RESPUESTA_MIN} min${d.respuesta.anterior !== null ? `, semana anterior ${formatoEspera(d.respuesta.anterior)}` : ''}${d.respuesta.sinResponder ? ` · ${d.respuesta.sinResponder} sin responder` : ''})</span></div>` : ''}
       ${metas}${alertasHtml}${ventas}${closers}${cobrar}
       <div style="margin:32px 0 8px"><a href="${esc(appUrl)}" style="background:${C.tinta};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:10px;font-size:14px;display:inline-block">Abrir el dashboard</a></div>
       <div style="font-size:12px;color:${C.claro};margin-top:24px">Se manda solo todos los viernes a las 18:00 (Argentina). Cash cobrado = cobros de la semana menos reembolsos.</div>

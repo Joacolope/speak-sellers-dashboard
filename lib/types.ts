@@ -102,6 +102,13 @@ export interface SetterDiario {
   frio_wa?: number | null;
   seguimiento_wa?: number | null;
   respuestas_wa?: number | null;
+  /** Velocidad de respuesta en DMs de Instagram (automática) */
+  tr_mediana_min?: number | null;
+  tr_promedio_min?: number | null;
+  pct_rapidas?: number | null;
+  sin_respuesta?: number | null;
+  conv_api?: number | null;
+  respuestas_lentas?: { usuario: string; llego: string; espera_min: number | null }[] | null;
   seguimientos?: number | null;
   links_enviados?: number | null;
   agendas?: number | null;

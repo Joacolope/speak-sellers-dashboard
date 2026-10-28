@@ -2,6 +2,7 @@ import type { RawBundle } from './types';
 import { cuotasPorCobrar, totalCuotas } from './cuotas';
 import type { ProgresoMeta } from './metas';
 import { num, pct, sumarDias, usd } from './format';
+import { OBJETIVO_RESPUESTA_MIN, formatoEspera } from './respuesta';
 
 export interface Alerta {
   nivel: 'red' | 'yellow' | 'blue';
@@ -65,6 +66,13 @@ export function alertas(b: RawBundle, hoy: string, metas: ProgresoMeta[] = []): 
     if (ahora !== null && antes !== null && ahora >= antes * 1.3)
       out.push({ nivel: 'yellow', texto: `Costo por ${w.resultado} de ${w.nombre} subió ${pct(ahora / antes - 1)} esta semana (${usd(ahora, 2)} vs. ${usd(antes, 2)})`, href: '/anuncios' });
   }
+
+  // Velocidad de respuesta del setter (ayer)
+  const sAyer = b.setter.find((s) => s.fecha === ayer);
+  if (sAyer?.tr_mediana_min != null && sAyer.tr_mediana_min > OBJETIVO_RESPUESTA_MIN)
+    out.push({ nivel: sAyer.tr_mediana_min > OBJETIVO_RESPUESTA_MIN * 2 ? 'red' : 'yellow', texto: `Tiempo de respuesta en DMs ayer: ${formatoEspera(sAyer.tr_mediana_min)} (objetivo ${OBJETIVO_RESPUESTA_MIN} min)`, href: '/setter' });
+  if (sAyer?.sin_respuesta)
+    out.push({ nivel: 'yellow', texto: `${sAyer.sin_respuesta === 1 ? '1 mensaje' : `${sAyer.sin_respuesta} mensajes`} de ayer ${sAyer.sin_respuesta === 1 ? 'quedó' : 'quedaron'} sin responder en Instagram`, href: '/setter' });
 
   // Datos que faltan
   if (b.setter.length && !b.setter.some((s) => s.fecha === ayer))

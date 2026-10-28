@@ -233,6 +233,18 @@ function construirSetter(): SetterDiario[] {
         conv_frio: 25 + Math.floor(rand() * 20),
         mensajes_seguimiento: 20 + Math.floor(rand() * 20),
         respuestas: 10 + Math.floor(rand() * 15),
+        // Velocidad de respuesta (en real la calcula el cron con la API de mensajes)
+        tr_mediana_min: Math.round((3 + rand() * 18) * 10) / 10,
+        tr_promedio_min: Math.round((8 + rand() * 30) * 10) / 10,
+        pct_rapidas: Math.round((0.35 + rand() * 0.4) * 100) / 100,
+        sin_respuesta: fecha === '2026-10-27' ? 1 : rand() < 0.35 ? 1 + Math.floor(rand() * 3) : 0,
+        conv_api: Math.round((org + pag) * (0.85 + rand() * 0.2)),
+        respuestas_lentas: fecha === '2026-10-27' ? [
+          { usuario: 'martin.ventas', llego: '2026-10-27T22:40:00Z', espera_min: null },
+          { usuario: 'sofi.closer', llego: '2026-10-27T13:05:00Z', espera_min: 94 },
+          { usuario: 'leo_highticket', llego: '2026-10-27T19:30:00Z', espera_min: 61 },
+          { usuario: 'caro.sales', llego: '2026-10-27T15:12:00Z', espera_min: 38 },
+        ] : null,
         frio_wa: 8 + Math.floor(rand() * 12),
         seguimiento_wa: 10 + Math.floor(rand() * 10),
         respuestas_wa: 4 + Math.floor(rand() * 8),

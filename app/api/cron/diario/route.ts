@@ -4,6 +4,7 @@ import { bearerValido, env } from '@/lib/env';
 import { syncGhl } from '@/lib/sync/ghl';
 import { syncMetaAds, syncMetaCampanas } from '@/lib/sync/meta';
 import { syncIgOrganico } from '@/lib/sync/ig';
+import { syncTiempoRespuesta } from '@/lib/sync/respuesta';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
   await correr('Meta', () => syncMetaAds(sb, dry));
   await correr('Campañas', () => syncMetaCampanas(sb, dry));
   await correr('IG', () => syncIgOrganico(sb, dry));
+  await correr('Respuesta', () => syncTiempoRespuesta(sb, dry));
 
   const resumen = `cron ${errores.length ? 'con errores' : 'ok'}: ${Object.entries(resultados).map(([k, v]) => `${k} ${v}`).join(', ')}`;
   if (!dry) {

@@ -130,6 +130,13 @@ create table if not exists setter_diario (
 alter table setter_diario add column if not exists frio_wa int;
 alter table setter_diario add column if not exists seguimiento_wa int;
 alter table setter_diario add column if not exists respuestas_wa int;
+-- Velocidad de respuesta en los DMs de Instagram (la calcula el cron con la API de mensajes).
+alter table setter_diario add column if not exists tr_mediana_min numeric(8,1);
+alter table setter_diario add column if not exists tr_promedio_min numeric(8,1);
+alter table setter_diario add column if not exists pct_rapidas numeric(5,4);
+alter table setter_diario add column if not exists sin_respuesta int;
+alter table setter_diario add column if not exists conv_api int;          -- conversaciones con ida y vuelta según Instagram
+alter table setter_diario add column if not exists respuestas_lentas jsonb;
 
 create table if not exists ads_diario (
   id uuid primary key default gen_random_uuid(),

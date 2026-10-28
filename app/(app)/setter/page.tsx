@@ -6,7 +6,8 @@ import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { mesesDisponibles, metricasMes } from '@/lib/metrics';
 import { getSesion, puede } from '@/lib/auth';
-import { fechaCorta, mesDe, num, pct } from '@/lib/format';
+import { fechaCorta, fechaHora, mesDe, num, pct } from '@/lib/format';
+import { OBJETIVO_RESPUESTA_MIN, colorRespuesta, formatoEspera, resumenRespuesta } from '@/lib/respuesta';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,9 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
   const totOut = outIg.resp + outWa.resp;
   const metaConv = bundle.ads.filter((a) => mesDe(a.fecha) === f.mes).reduce((acc, a) => acc + (a.conversaciones ?? 0), 0);
   const m = metricasMes(bundle, { ...f, closer: 'todos', fuente: 'todas' });
+  const rr = resumenRespuesta(filas);
+  const convApi = filas.reduce((acc, s) => acc + (s.conv_api ?? 0), 0);
+  const chartResp = filas.filter((s) => s.tr_mediana_min != null).map((s) => ({ x: s.fecha.slice(8), mediana: s.tr_mediana_min ?? 0 }));
   const chart = filas.map((s) => ({ x: s.fecha.slice(8), organicas: s.conv_organicas ?? 0, pagadas: s.conv_pagadas ?? 0, outbound: (s.respuestas ?? 0) + (s.respuestas_wa ?? 0) }));
 
   return (
@@ -64,6 +68,64 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
         <div className="card flex flex-col gap-2"><div className="metric" style={{ color: 'var(--green-ink)' }}>{pct(m.pct_agenda_outbound)}</div><div className="text-[14px] text-text-muted">% Agenda outbound · {num(m.agendas_outbound)} / {num(m.conv_outbound)} respuestas en frío</div></div>
       </section>
 
+      <Seccion
+        eyebrow="Velocidad de respuesta · DMs de Instagram"
+        titulo="¿Cuánto tarda el setter en contestar?"
+        aside={rr.ultimo ? <span className="text-[13px] text-text-disabled">Se actualiza solo cada mañana · último día: {fechaCorta(rr.ultimo.fecha)}</span> : undefined}
+      >
+        {rr.ultimo ? (
+          <>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="card flex flex-col gap-2" title="La mitad de los mensajes se contestó en menos de este tiempo">
+                <div className={`metric ${colorRespuesta(rr.ultimo.tr_mediana_min ?? null)}`}>{formatoEspera(rr.ultimo.tr_mediana_min)}</div>
+                <div className="text-[14px] text-text-muted">Tiempo de respuesta · {fechaCorta(rr.ultimo.fecha)}</div>
+                <div className="text-[13px] text-text-disabled">Mediana · objetivo {OBJETIVO_RESPUESTA_MIN} min · promedio {formatoEspera(rr.ultimo.tr_promedio_min)}</div>
+              </div>
+              <div className="card flex flex-col gap-2">
+                <div className={`metric ${colorRespuesta(rr.medianaPeriodo)}`}>{formatoEspera(rr.medianaPeriodo)}</div>
+                <div className="text-[14px] text-text-muted">Tiempo de respuesta del mes</div>
+                <div className="text-[13px] text-text-disabled">Promedio de {num(rr.dias)} días medidos</div>
+              </div>
+              <div className="card flex flex-col gap-2">
+                <div className="metric">{pct(rr.pctRapidasPeriodo)}</div>
+                <div className="text-[14px] text-text-muted">Respondidas en menos de 5 min</div>
+                <div className="text-[13px] text-text-disabled">Promedio del mes</div>
+              </div>
+              <div className="card flex flex-col gap-2">
+                <div className={`metric ${rr.ultimo.sin_respuesta ? 'bad' : 'ok'}`}>{num(rr.ultimo.sin_respuesta ?? 0)}</div>
+                <div className="text-[14px] text-text-muted">Sin responder · {fechaCorta(rr.ultimo.fecha)}</div>
+                <div className="text-[13px] text-text-disabled">{num(rr.sinRespuestaPeriodo)} en el mes</div>
+              </div>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="card">
+                <div className="eyebrow mb-4">Tiempo de respuesta por día (mediana, minutos)</div>
+                <BarrasSimples data={chartResp} series={[{ key: 'mediana', nombre: 'Minutos', color: 'main' }]} />
+              </div>
+              <div className="card flex flex-col gap-3">
+                <div className="eyebrow">Para auditar · las más lentas del {fechaCorta(rr.ultimo.fecha)}</div>
+                {rr.ultimo.respuestas_lentas?.length ? (
+                  <ul className="flex flex-col">
+                    {rr.ultimo.respuestas_lentas.map((r) => (
+                      <li key={r.usuario + r.llego} className="flex items-center justify-between gap-3 border-t border-border py-2 text-[14px]">
+                        <span className="min-w-0">
+                          <span className="block truncate text-text">@{r.usuario}</span>
+                          <span className="block text-[12px] text-text-disabled">escribió {fechaHora(r.llego)}</span>
+                        </span>
+                        <span className={`shrink-0 tabular-nums ${r.espera_min === null ? 'bad' : colorRespuesta(r.espera_min)}`}>{r.espera_min === null ? 'Sin responder' : formatoEspera(r.espera_min)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <div className="text-[14px] text-text-muted">Todas respondidas rápido.</div>}
+              </div>
+            </div>
+            <p className="text-[13px] text-text-disabled">
+              Se mide desde que el lead escribe hasta la primera respuesta humana: las respuestas automáticas de ManyChat (menos de 15 segundos) no cuentan. Es la mediana: la mitad de los mensajes se contestó más rápido que eso.
+            </p>
+          </>
+        ) : <Vacio texto="Todavía sin datos. Se llena solo cuando esté conectada la API de mensajes de Instagram (META_TOKEN + META_PAGE_ID)." />}
+      </Seccion>
+
       <Seccion eyebrow="Outbound por canal">
         <div className="grid gap-4 md:grid-cols-2">
           {[
@@ -87,6 +149,7 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
         aside={
           <div className="rounded-lg border border-border-strong bg-surface-2 px-4 py-2 text-[14px]">
             Weekly: <strong>{num(totPag)}</strong> pagadas · Meta: <strong>{metaConv ? num(metaConv) : '—'}</strong>
+            {convApi ? <> · Instagram (ida y vuelta): <strong>{num(convApi)}</strong> vs. cargadas <strong>{num(totOrg + totPag)}</strong></> : null}
             {metaConv ? <span className="text-text-muted"> · diferencia {pct(Math.abs(totPag - metaConv) / metaConv)}</span> : null}
           </div>
         }

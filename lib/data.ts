@@ -63,7 +63,12 @@ export async function cargarBundle(): Promise<RawBundle> {
     leads: leads.data as Lead[],
     agendas: agendasConLead,
     cobranzas: cobranzas.data as RawBundle['cobranzas'],
-    setter: setter.data as RawBundle['setter'],
+    setter: (setter.data ?? []).map((s) => ({
+      ...s,
+      tr_mediana_min: s.tr_mediana_min == null ? null : Number(s.tr_mediana_min),
+      tr_promedio_min: s.tr_promedio_min == null ? null : Number(s.tr_promedio_min),
+      pct_rapidas: s.pct_rapidas == null ? null : Number(s.pct_rapidas),
+    })) as RawBundle['setter'],
     ads: ads.data as RawBundle['ads'],
     campanas: (campanas.data ?? []).map((c) => ({
       ...c,

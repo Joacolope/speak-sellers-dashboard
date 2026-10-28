@@ -5,6 +5,7 @@ import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { agendasDelMes, mesesDisponibles, metricasMes } from '@/lib/metrics';
 import { FUNNELS, funnelDeLead } from '@/lib/types';
+import { colorRespuesta, formatoEspera, resumenRespuesta } from '@/lib/respuesta';
 import { mesCorto, num, pct, usd } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +18,8 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
     const ag = agendasDelMes(bundle, { ...f, mes, dia: null });
     // Agendas separadas por funnel: mezclar webinar con orgánico sesga la tasa de agenda
     const porFunnel = Object.fromEntries(FUNNELS.map((fu) => [fu, ag.filter((a) => funnelDeLead(a.lead?.funnel, a.lead?.fuente) === fu).length]));
-    return { mes, m: metricasMes(bundle, { ...f, mes }), aj: bundle.ajustes.find((a) => a.mes.startsWith(mes)), porFunnel };
+    const resp = resumenRespuesta(bundle.setter.filter((s) => s.fecha.startsWith(mes)));
+    return { mes, m: metricasMes(bundle, { ...f, mes }), aj: bundle.ajustes.find((a) => a.mes.startsWith(mes)), porFunnel, resp };
   });
 
   return (
@@ -39,7 +41,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
             <thead>
               <tr className="group-head">
                 <th></th>
-                <th colSpan={7}>Setter</th>
+                <th colSpan={8}>Setter</th>
                 <th colSpan={12 + FUNNELS.length}>Closer</th>
                 <th colSpan={4}>Costos</th>
                 <th colSpan={4}>Conversión</th>
@@ -52,6 +54,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num" title="Inbound + outbound con ida y vuelta">Conversaciones</th>
                 <th className="num">Seguimientos</th>
                 <th className="num">Links</th>
+                <th className="num" title="Mediana del tiempo de respuesta en DMs de Instagram (promedio de los días del mes)">Tiempo resp.</th>
                 <th className="num">Agendas totales</th>
                 {FUNNELS.map((fu) => <th key={fu} className="num">Agendas {fu.toLowerCase()}</th>)}
                 <th className="num">Llamadas presentadas</th>
@@ -77,7 +80,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
               </tr>
             </thead>
             <tbody>
-              {filas.map(({ mes, m, aj, porFunnel }) => (
+              {filas.map(({ mes, m, aj, porFunnel, resp }) => (
                 <tr key={mes} className={mes === f.mes ? 'bg-surface-2' : ''}>
                   <td className="font-medium">{mesCorto(mes)}</td>
                   <td className="num">{num(m.conv_organicas)}</td>
@@ -86,6 +89,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                   <td className="num font-medium">{num(m.conversaciones)}</td>
                   <td className="num">{num(m.seguimientos)}</td>
                   <td className="num">{num(m.links_enviados)}</td>
+                  <td className={`num ${colorRespuesta(resp.medianaPeriodo)}`}>{formatoEspera(resp.medianaPeriodo)}</td>
                   <td className="num font-medium">{num(m.agendas)}</td>
                   {FUNNELS.map((fu) => <td key={fu} className="num">{num(porFunnel[fu])}</td>)}
                   <td className="num">{num(m.asistencias)}</td>
