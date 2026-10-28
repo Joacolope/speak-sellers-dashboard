@@ -10,7 +10,7 @@ const corto = (v: number | null) => (v === null ? '—' : v >= 1000 ? `$${(v / 1
 /* Embudo estilizado: cada nivel es un trapecio que encastra con el siguiente.
    El ancho es fijo y decreciente (se lee la forma); el número manda.
    Relleno: Ember mezclado con la superficie, de 100 % a 45 %. */
-const ANCHOS = [100, 90, 80, 70, 60, 51];
+const ANCHOS = [100, 91, 82, 73, 64, 56, 48];
 
 export default function Funnel({ niveles, sinAviso = false }: { niveles: NivelFunnel[]; sinAviso?: boolean }) {
   const [hover, setHover] = useState<number | null>(null);
@@ -70,7 +70,7 @@ export default function Funnel({ niveles, sinAviso = false }: { niveles: NivelFu
       {!sinAviso && niveles.some((n) => n.valor === null) && (
         <div className="mt-2 text-[13px] text-text-disabled">
           {niveles[0].nombre === 'Registrados'
-            ? 'Registrados y asistentes de cada webinar se cargan en "Cargar" (o dictándoselos a Claude).'
+            ? 'Registrados, calificados y asistentes de cada webinar se cargan en "Cargar" (o dictándoselos a Claude).'
             : 'Conversaciones sin dato para esta fuente: se cargan desde el setter, Instagram o Meta.'}
         </div>
       )}

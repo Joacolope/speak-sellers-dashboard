@@ -116,7 +116,28 @@ export interface AdsDiario {
   visitas_perfil?: number | null;
   seguidores?: number | null;
   conversaciones?: number | null;
+  /** Solo campañas de webinar: registros que reporta Meta. */
+  registros?: number | null;
   bitacora?: string | null;
+  source: Source;
+}
+
+export interface CampanaMeta {
+  id: string;
+  nombre: string;
+  estado: string; // ACTIVE, PAUSED, ...
+  objetivo?: string | null;
+  tipo: 'follow_me' | 'webinar' | 'otra';
+  presupuesto_diario?: number | null;
+  presupuesto_total?: number | null;
+  inicio?: string | null;
+  fin?: string | null;
+  inversion_7d?: number | null;
+  resultados_7d?: number | null;
+  inversion_mes?: number | null;
+  resultados_mes?: number | null;
+  resultado?: string | null;
+  updated_at?: string | null;
   source: Source;
 }
 
@@ -207,6 +228,7 @@ export interface Webinar {
   fecha: string; // YYYY-MM-DD
   nombre?: string | null;
   registrados?: number | null;
+  registrados_calificados?: number | null;
   asistentes?: number | null;
   source: Source;
 }
@@ -235,6 +257,7 @@ export interface RawBundle {
   cobranzas: Cobranza[];
   setter: SetterDiario[];
   ads: AdsDiario[];
+  campanas: CampanaMeta[];
   organico: OrganicoDiario[];
   piezas: OrganicoPieza[];
   ajustes: AjusteMensual[];

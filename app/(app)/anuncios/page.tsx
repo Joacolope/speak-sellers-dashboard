@@ -1,10 +1,62 @@
 import { Suspense } from 'react';
 import Filtros from '@/components/Filtros';
-import { DemoBanner, Seccion, SourceDot, Vacio } from '@/components/ui';
+import { DemoBanner, Seccion, SourceDot, Tag, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { mesesDisponibles } from '@/lib/metrics';
-import { fechaCorta, mesDe, num, pct, usd } from '@/lib/format';
+import { fechaCorta, fechaHora, mesDe, num, pct, usd } from '@/lib/format';
+import type { CampanaMeta } from '@/lib/types';
+import { resumenWebinars, totalWebinars } from '@/lib/webinars';
+
+function Dato({ valor, label, sub }: { valor: string; label: string; sub?: string }) {
+  return (
+    <div className="card flex flex-col gap-2">
+      <div className="metric">{valor}</div>
+      <div className="text-[14px] text-text-muted">{label}</div>
+      {sub && <div className="text-[13px] text-text-disabled">{sub}</div>}
+    </div>
+  );
+}
+
+const TIPO: Record<CampanaMeta['tipo'], { label: string; color: 'blue' | 'yellow' | 'gray' }> = {
+  follow_me: { label: 'Follow Me Ads', color: 'blue' },
+  webinar: { label: 'Webinar', color: 'yellow' },
+  otra: { label: 'Otra', color: 'gray' },
+};
+
+const SINGULAR: Record<string, string> = { registros: 'registro', seguidores: 'seguidor', visitas: 'visita', conversaciones: 'conversación' };
+
+function TarjetaCampana({ c }: { c: CampanaMeta }) {
+  const activa = c.estado === 'ACTIVE';
+  return (
+    <div className={`card flex min-w-0 flex-col gap-4 ${activa ? '' : 'opacity-70'}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-medium text-text" title={c.nombre}>{c.nombre}</div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Tag color={TIPO[c.tipo].color}>{TIPO[c.tipo].label}</Tag>
+            <Tag color={activa ? 'green' : 'gray'}>{activa ? 'Activa' : 'Pausada'}</Tag>
+          </div>
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="text-[15px] tabular-nums text-text">{c.presupuesto_diario ? `${usd(c.presupuesto_diario)}/día` : c.presupuesto_total ? usd(c.presupuesto_total) : '—'}</div>
+          <div className="text-[12px] text-text-disabled">{c.presupuesto_diario || !c.presupuesto_total ? 'presupuesto' : 'presupuesto total'}</div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3 border-t border-border pt-4">
+        <div><div className="text-[18px] tabular-nums text-text">{usd(c.inversion_7d, 2)}</div><div className="text-[12px] text-text-muted">Inversión 7 días</div></div>
+        <div><div className="text-[18px] tabular-nums text-text">{num(c.resultados_7d)}</div><div className="text-[12px] text-text-muted capitalize">{c.resultado ?? 'resultados'} 7 días</div></div>
+        <div><div className="text-[18px] tabular-nums text-text">{costo(c.inversion_7d ?? 0, c.resultados_7d ?? null)}</div><div className="text-[12px] text-text-muted">Costo por {SINGULAR[c.resultado ?? ''] ?? 'resultado'}</div></div>
+      </div>
+      <div className="text-[12px] text-text-disabled">
+        En el mes: {usd(c.inversion_mes, 2)} · {num(c.resultados_mes)} {c.resultado ?? 'resultados'}
+      </div>
+    </div>
+  );
+}
+
+const costo = (inv: number, n: number | null) => (n ? usd(inv / n, 2) : '—');
+const de = (n: number | null, total: number | null, que: string) => (n !== null && total ? `${pct(n / total)} de ${que}` : undefined);
 
 export const dynamic = 'force-dynamic';
 
@@ -20,11 +72,11 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
   const fmInv = sum(fm, (a) => a.inversion);
   const fmVis = sum(fm, (a) => a.visitas_perfil);
   const fmSeg = sum(fm, (a) => a.seguidores);
-  const webInv = sum(web, (a) => a.inversion);
-  const webConv = sum(web, (a) => a.conversaciones);
-  const newCashWebinar = bundle.agendas
-    .filter((a) => mesDe(a.fecha_llamada) === f.mes && a.lead?.fuente === 'Webinar' && (a.compro === 'Si' || a.compro === 'Reserva'))
-    .reduce((s, a) => s + (a.cash_collected ?? 0), 0);
+  const activas = bundle.campanas.filter((c) => c.estado === 'ACTIVE').sort((a, b) => (b.inversion_7d ?? 0) - (a.inversion_7d ?? 0));
+  const pausadasMes = bundle.campanas.filter((c) => c.estado !== 'ACTIVE' && (c.inversion_mes ?? 0) > 0);
+  const actualizadoCamp = bundle.campanas.reduce<string | null>((m, c) => (c.updated_at && (!m || c.updated_at > m) ? c.updated_at : m), null);
+  const webinars = resumenWebinars(bundle, f);
+  const w = totalWebinars(webinars);
 
   return (
     <>
@@ -39,25 +91,129 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
         </Suspense>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Seccion eyebrow="Follow Me Ads · mensual">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            <div className="card flex flex-col gap-2"><div className="metric">{usd(fmInv, 2)}</div><div className="text-[14px] text-text-muted">Inversión</div></div>
-            <div className="card flex flex-col gap-2"><div className="metric">{num(fmVis)}</div><div className="text-[14px] text-text-muted">Visitas al perfil</div></div>
-            <div className="card flex flex-col gap-2"><div className="metric">{num(fmSeg)}</div><div className="text-[14px] text-text-muted">Nuevos seguidores</div></div>
-            <div className="card flex flex-col gap-2"><div className="metric">{fmSeg ? usd(fmInv / fmSeg, 2) : '—'}</div><div className="text-[14px] text-text-muted">Costo por seguidor</div></div>
-            <div className="card flex flex-col gap-2"><div className="metric">{fmVis ? usd(fmInv / fmVis, 2) : '—'}</div><div className="text-[14px] text-text-muted">Costo por visita</div></div>
+      <Seccion
+        eyebrow="Ahora en Meta"
+        titulo={`Campañas activas (${activas.length})`}
+        aside={actualizadoCamp ? <span className="text-[13px] text-text-disabled">Actualizado {fechaHora(actualizadoCamp)}</span> : undefined}
+      >
+        {activas.length ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {activas.map((c) => <TarjetaCampana key={c.id} c={c} />)}
           </div>
-        </Seccion>
-        <Seccion eyebrow="Webinars / otras campañas">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            <div className="card flex flex-col gap-2"><div className="metric">{usd(webInv, 2)}</div><div className="text-[14px] text-text-muted">Inversión</div></div>
-            <div className="card flex flex-col gap-2"><div className="metric">{num(webConv)}</div><div className="text-[14px] text-text-muted">Conversaciones</div></div>
-            <div className="card flex flex-col gap-2"><div className="metric">{webConv ? usd(webInv / webConv, 2) : '—'}</div><div className="text-[14px] text-text-muted">Costo por conversación</div></div>
-            <div className="card flex flex-col gap-2"><div className="metric">{usd(newCashWebinar)}</div><div className="text-[14px] text-text-muted">Ventas nuevas generadas</div></div>
+        ) : <Vacio texto={bundle.campanas.length ? 'No hay campañas corriendo ahora.' : 'Las campañas aparecen cuando se conecte Meta (META_TOKEN).'} />}
+        {pausadasMes.length > 0 && (
+          <details className="group">
+            <summary className="cursor-pointer text-[14px] text-text-muted">Pausadas que gastaron este mes ({pausadasMes.length})</summary>
+            <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {pausadasMes.map((c) => <TarjetaCampana key={c.id} c={c} />)}
+            </div>
+          </details>
+        )}
+      </Seccion>
+
+      <Seccion eyebrow="Follow Me Ads · mensual">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+          <Dato valor={usd(fmInv, 2)} label="Inversión" />
+          <Dato valor={num(fmVis)} label="Visitas al perfil" />
+          <Dato valor={num(fmSeg)} label="Nuevos seguidores" />
+          <Dato valor={costo(fmInv, fmSeg)} label="Costo por seguidor" />
+          <Dato valor={costo(fmInv, fmVis)} label="Costo por visita" />
+        </div>
+      </Seccion>
+
+      <Seccion eyebrow={`Webinars · ${webinars.length === 1 ? webinars[0].nombre : `${webinars.length} webinars en el mes`}`}>
+        {webinars.length ? (
+          <>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+              <Dato valor={usd(w.inversion, 2)} label="Inversión" sub="Anuncios hasta el día del vivo" />
+              <Dato valor={num(w.registrados)} label="Registrados" />
+              <Dato valor={costo(w.inversion, w.registrados)} label="Costo por registrado" />
+              <Dato valor={num(w.calificados)} label="Registrados calificados" sub={de(w.calificados, w.registrados, 'registrados')} />
+              <Dato valor={costo(w.inversion, w.calificados)} label="Costo por calificado" />
+              <Dato valor={num(w.asistentes)} label="Asistentes" sub={de(w.asistentes, w.registrados, 'registrados')} />
+              <Dato valor={costo(w.inversion, w.asistentes)} label="Costo por asistente" />
+              <Dato valor={num(w.presentadas)} label="Llamadas presentadas" sub={`de ${num(w.agendas)} agendas`} />
+              <Dato valor={usd(w.cash)} label="Ventas nuevas" sub={`${num(w.ventas)} ventas`} />
+              <Dato valor={w.inversion ? `${num(w.cash / w.inversion, 2)}x` : '—'} label="ROAS" sub="Ventas nuevas / inversión" />
+            </div>
+            {webinars.length > 1 && (
+              <div className="card overflow-x-auto !p-0">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Webinar</th>
+                      <th className="num">Inversión</th>
+                      <th className="num">Registrados</th>
+                      <th className="num">Calificados</th>
+                      <th className="num">Asistentes</th>
+                      <th className="num">Agendas</th>
+                      <th className="num">Presentadas</th>
+                      <th className="num">Ventas</th>
+                      <th className="num">Ventas nuevas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {webinars.map((x) => (
+                      <tr key={x.fecha}>
+                        <td>{x.nombre}</td>
+                        <td className="num">{usd(x.inversion, 2)}</td>
+                        <td className="num">{num(x.registrados)}</td>
+                        <td className="num">{num(x.calificados)}</td>
+                        <td className="num">{num(x.asistentes)}</td>
+                        <td className="num">{num(x.agendas)}</td>
+                        <td className="num">{num(x.presentadas)}</td>
+                        <td className="num">{num(x.ventas)}</td>
+                        <td className="num">{usd(x.cash)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="text-[13px] text-text-disabled">
+              Registrados, calificados y asistentes se cargan en &quot;Cargar → Webinar&quot;. Si no hay registrados cargados se usan los registros de Meta.
+              Agendas y ventas: leads del funnel Webinar con llamada desde el vivo hasta el webinar siguiente.
+            </p>
+          </>
+        ) : <Vacio texto="No hubo webinars este mes. Se cargan en Cargar → Webinar." />}
+      </Seccion>
+
+      <Seccion eyebrow="Daily Webinar Tracker" titulo="Anuncios de webinar · día por día">
+        {web.length ? (
+          <div className="card overflow-x-auto !p-0">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th className="num">Inversión</th>
+                  <th className="num">Impresiones</th>
+                  <th className="num">Alcance</th>
+                  <th className="num">CPM</th>
+                  <th className="num">CTR</th>
+                  <th className="num">Registros</th>
+                  <th className="num">Costo / registro</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {web.map((a) => (
+                  <tr key={a.fecha}>
+                    <td>{fechaCorta(a.fecha)}</td>
+                    <td className="num">{usd(a.inversion, 2)}</td>
+                    <td className="num">{num(a.impresiones)}</td>
+                    <td className="num">{num(a.alcance)}</td>
+                    <td className="num">{usd(a.cpm, 2)}</td>
+                    <td className="num">{pct(a.ctr)}</td>
+                    <td className="num">{num(a.registros)}</td>
+                    <td className="num">{costo(a.inversion, a.registros ?? null)}</td>
+                    <td><SourceDot source={a.source} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </Seccion>
-      </div>
+        ) : <Vacio texto="Sin anuncios de webinar este mes." />}
+      </Seccion>
 
       <Seccion eyebrow="Daily FM Tracker" titulo="Follow Me Ads · día por día">
         {fm.length ? (

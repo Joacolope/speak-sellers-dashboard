@@ -91,6 +91,7 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
           <Campo label="Fecha del webinar"><input className="input" name="fecha" type="date" required /></Campo>
           <Campo label="Nombre (opcional)"><input className="input" name="nombre_webinar" placeholder="Ej.: Webinar 4/10" /></Campo>
           <Campo label="Registrados"><input className="input" name="registrados" type="number" min="0" /></Campo>
+          <Campo label="Registrados calificados"><input className="input" name="registrados_calificados" type="number" min="0" /></Campo>
           <Campo label="Asistentes"><input className="input" name="asistentes" type="number" min="0" /></Campo>
         </Bloque>
       </div>

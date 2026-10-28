@@ -202,12 +202,13 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
     { nombre: 'Agendas', valor: ag.length, porCloser: porCloser(() => true) },
   ];
 
-  // Webinar: Registrados → Asistentes → Agendas → Ventas
+  // Webinar: Registrados → Calificados → Asistentes → Agendas → Presentadas → Ventas
   if (funnel === 'Webinar') {
     const webs = b.webinars.filter((w) => enPeriodo(f, w.fecha));
-    const sumW = (k: 'registrados' | 'asistentes') => (webs.some((w) => w[k] !== null && w[k] !== undefined) ? webs.reduce((acc, w) => acc + (w[k] ?? 0), 0) : null);
+    const sumW = (k: 'registrados' | 'registrados_calificados' | 'asistentes') => (webs.some((w) => w[k] !== null && w[k] !== undefined) ? webs.reduce((acc, w) => acc + (w[k] ?? 0), 0) : null);
     return [
       { nombre: 'Registrados', valor: sumW('registrados') },
+      { nombre: 'Calificados', valor: sumW('registrados_calificados') },
       { nombre: 'Asistentes', valor: sumW('asistentes') },
       ...nivelesFinales,
       { nombre: 'Llamadas presentadas', valor: ag.filter((a) => a.asistio === 'Asistió').length, porCloser: porCloser((a) => a.asistio === 'Asistió') },

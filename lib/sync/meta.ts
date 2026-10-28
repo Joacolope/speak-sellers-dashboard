@@ -64,7 +64,9 @@ export async function syncMetaAds(sb: SupabaseClient, dry = false): Promise<stri
       ctr: Number(ins.ctr) / 100,
       visitas_perfil: accion(ins, ['onsite_conversion.ig_profile_visit', 'link_click']),
       seguidores: accion(ins, ['onsite_conversion.follow', 'ig_follow']),
-      conversaciones: accion(ins, ['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.total_messaging_connection']),
+      // Webinar no busca conversaciones: mide registros
+      conversaciones: c === 'webinar' ? null : accion(ins, ['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.total_messaging_connection']),
+      registros: c === 'webinar' ? accion(ins, ['complete_registration', 'offsite_conversion.fb_pixel_complete_registration', 'lead', 'onsite_conversion.lead_grouped']) : null,
       source: 'meta',
       updated_at: new Date().toISOString(),
     };
@@ -76,4 +78,84 @@ export async function syncMetaAds(sb: SupabaseClient, dry = false): Promise<stri
     n++;
   }
   return `${n} días ads`;
+}
+
+interface CampanaApi {
+  id: string;
+  name: string;
+  effective_status: string;
+  objective?: string;
+  daily_budget?: string;
+  lifetime_budget?: string;
+  start_time?: string;
+  stop_time?: string;
+}
+
+interface InsightCampana {
+  campaign_id: string;
+  spend: string;
+  actions?: { action_type: string; value: string }[];
+}
+
+/** Qué cuenta como resultado según el tipo de campaña: webinar mide registros, no conversaciones. */
+function resultadoDe(tipo: 'follow_me' | 'webinar' | 'otra', objetivo?: string): { nombre: string; acciones: string[] } {
+  if (tipo === 'webinar' || objetivo === 'OUTCOME_LEADS')
+    return { nombre: 'registros', acciones: ['complete_registration', 'offsite_conversion.fb_pixel_complete_registration', 'lead', 'onsite_conversion.lead_grouped'] };
+  if (tipo === 'follow_me') return { nombre: 'seguidores', acciones: ['onsite_conversion.follow', 'ig_follow'] };
+  if (objetivo === 'OUTCOME_TRAFFIC') return { nombre: 'visitas', acciones: ['onsite_conversion.ig_profile_visit', 'link_click'] };
+  return { nombre: 'conversaciones', acciones: ['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.total_messaging_connection'] };
+}
+
+/** Foto de las campañas activas y pausadas: estado, presupuesto y rendimiento de 7 días y del mes. */
+export async function syncMetaCampanas(sb: SupabaseClient, dry = false): Promise<string> {
+  const cuenta = process.env.META_AD_ACCOUNT;
+  if (!cuenta) throw new Error('Falta META_AD_ACCOUNT');
+  const camps = await graph<{ data: CampanaApi[] }>(`${cuenta}/campaigns`, {
+    fields: 'id,name,effective_status,objective,daily_budget,lifetime_budget,start_time,stop_time',
+    effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED', 'IN_PROCESS', 'WITH_ISSUES']),
+    limit: '200',
+  });
+  const insights = async (preset: string) => {
+    const r = await graph<{ data: InsightCampana[] }>(`${cuenta}/insights`, { level: 'campaign', date_preset: preset, fields: 'campaign_id,spend,actions', limit: '500' });
+    return new Map((r.data ?? []).map((i) => [i.campaign_id, i]));
+  };
+  const [sem, mes] = await Promise.all([insights('last_7d'), insights('this_month')]);
+  const suma = (i: InsightCampana | undefined, tipos: string[]) => {
+    const a = i?.actions?.find((x) => tipos.includes(x.action_type));
+    return a ? Number(a.value) : i ? 0 : null;
+  };
+  // Los presupuestos de Meta vienen en centavos
+  const plata = (v?: string) => (v ? Number(v) / 100 : null);
+  const filas = (camps.data ?? []).map((c) => {
+    const tipo = campana(c.name) ?? 'otra';
+    const res = resultadoDe(tipo, c.objective);
+    const s7 = sem.get(c.id);
+    const sm = mes.get(c.id);
+    return {
+      id: c.id,
+      nombre: c.name,
+      estado: c.effective_status,
+      objetivo: c.objective ?? null,
+      tipo,
+      presupuesto_diario: plata(c.daily_budget),
+      presupuesto_total: plata(c.lifetime_budget),
+      inicio: c.start_time ?? null,
+      fin: c.stop_time ?? null,
+      inversion_7d: s7 ? Number(s7.spend) : 0,
+      resultados_7d: suma(s7, res.acciones),
+      inversion_mes: sm ? Number(sm.spend) : 0,
+      resultados_mes: suma(sm, res.acciones),
+      resultado: res.nombre,
+      source: 'meta',
+      updated_at: new Date().toISOString(),
+    };
+  });
+  if (!dry && filas.length) {
+    const { error } = await sb.from('campanas_meta').upsert(filas, { onConflict: 'id' });
+    if (error) throw new Error(`campanas_meta: ${error.message}`);
+    // Las que ya no vienen (archivadas o borradas) dejan de figurar como activas
+    const ids = filas.map((f) => f.id);
+    await sb.from('campanas_meta').update({ estado: 'ARCHIVED', updated_at: new Date().toISOString() }).not('id', 'in', `(${ids.join(',')})`);
+  }
+  return `${filas.filter((f) => f.estado === 'ACTIVE').length} campañas activas`;
 }

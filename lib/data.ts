@@ -21,12 +21,13 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
   desde.setUTCMonth(desde.getUTCMonth() - 14);
   const desdeIso = desde.toISOString().slice(0, 10);
 
-  const [leads, agendas, cobranzas, setter, ads, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log] = await Promise.all([
+  const [leads, agendas, cobranzas, setter, ads, campanas, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log] = await Promise.all([
     sb.from('leads').select('*'),
     sb.from('agendas').select('*').gte('fecha_llamada', desdeIso),
     sb.from('cobranzas').select('*').gte('fecha_cobro', desdeIso),
     sb.from('setter_diario').select('*').gte('fecha', desdeIso),
     sb.from('ads_diario').select('*').gte('fecha', desdeIso),
+    sb.from('campanas_meta').select('*'),
     sb.from('organico_diario').select('*').gte('fecha', desdeIso),
     sb.from('organico_piezas').select('*').gte('fecha', desdeIso),
     sb.from('ajustes_mensuales').select('*'),
@@ -37,7 +38,7 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
     sb.from('log_agente').select('*').order('fecha', { ascending: false }).limit(30),
   ]);
 
-  const errores = [leads, agendas, cobranzas, setter, ads, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log].map((r) => r.error).filter(Boolean);
+  const errores = [leads, agendas, cobranzas, setter, ads, campanas, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log].map((r) => r.error).filter(Boolean);
   if (errores.length) throw new Error(`Supabase: ${errores.map((e) => e!.message).join('; ')}`);
 
   const leadsById = new Map<string, Lead>((leads.data as Lead[]).map((l) => [l.id, l]));
@@ -59,6 +60,13 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
     cobranzas: cobranzas.data as RawBundle['cobranzas'],
     setter: setter.data as RawBundle['setter'],
     ads: ads.data as RawBundle['ads'],
+    campanas: (campanas.data ?? []).map((c) => ({
+      ...c,
+      presupuesto_diario: c.presupuesto_diario === null ? null : Number(c.presupuesto_diario),
+      presupuesto_total: c.presupuesto_total === null ? null : Number(c.presupuesto_total),
+      inversion_7d: c.inversion_7d === null ? null : Number(c.inversion_7d),
+      inversion_mes: c.inversion_mes === null ? null : Number(c.inversion_mes),
+    })) as RawBundle['campanas'],
     organico: organico.data as RawBundle['organico'],
     piezas: piezas.data as RawBundle['piezas'],
     ajustes: ajustes.data as RawBundle['ajustes'],

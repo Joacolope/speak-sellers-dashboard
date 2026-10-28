@@ -147,6 +147,29 @@ create table if not exists ads_diario (
   bitacora text,
   unique (fecha, campana)
 );
+-- Campañas de webinar: registros que reporta Meta (no conversaciones).
+alter table ads_diario add column if not exists registros int;
+
+-- Foto de las campañas de Meta (la pisa el cron): estado, presupuesto y rendimiento.
+create table if not exists campanas_meta (
+  id text primary key,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  source source_t not null default 'meta',
+  nombre text not null,
+  estado text not null,                -- effective_status: ACTIVE, PAUSED, ...
+  objetivo text,
+  tipo text not null default 'otra' check (tipo in ('follow_me','webinar','otra')),
+  presupuesto_diario numeric(12,2),
+  presupuesto_total numeric(12,2),
+  inicio timestamptz,
+  fin timestamptz,
+  inversion_7d numeric(12,2),
+  resultados_7d int,
+  inversion_mes numeric(12,2),
+  resultados_mes int,
+  resultado text                       -- qué cuenta como resultado (registros, seguidores, conversaciones)
+);
 
 create table if not exists organico_diario (
   id uuid primary key default gen_random_uuid(),
@@ -251,6 +274,9 @@ create table if not exists webinars (
   asistentes int check (asistentes >= 0),
   editado_por text
 );
+-- Registrados que cumplen el perfil (respuestas del formulario de registro).
+alter table webinars add column if not exists registrados_calificados int check (registrados_calificados >= 0);
+
 -- Dato real conocido: webinar del 4/10 con 975 registrados (asistentes sin cargar).
 insert into webinars (fecha, nombre, registrados, source) values ('2026-10-04', 'Webinar 4/10', 975, 'migracion')
 on conflict (fecha) do nothing;
@@ -361,7 +387,7 @@ begin new.updated_at = now(); return new; end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','webinars','usuarios','log_agente'] loop
+  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','campanas_meta','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','webinars','usuarios','log_agente'] loop
     execute format('drop trigger if exists %I_updated_at on %I', t, t);
     execute format('create trigger %I_updated_at before update on %I for each row execute function set_updated_at()', t, t);
   end loop;
@@ -543,7 +569,7 @@ $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','webinars','log_agente'] loop
+  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','campanas_meta','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','webinars','log_agente'] loop
     execute format('alter table %I enable row level security', t);
     execute format('alter table %I force row level security', t);
     execute format('drop policy if exists %I_anon_lee on %I', t, t);           -- política vieja, insegura

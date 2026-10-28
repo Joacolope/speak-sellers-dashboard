@@ -283,14 +283,14 @@ function construirAds(): AdsDiario[] {
       frecuencia: 1.6,
       cpm: Math.round((inversion / impresiones) * 1000 * 100) / 100,
       ctr: 0.012,
-      visitas_perfil: null, seguidores: null,
-      conversaciones: Math.round(975 / diasW.length * f),
+      visitas_perfil: null, seguidores: null, conversaciones: null,
+      registros: Math.round(975 / diasW.length * f),
       source: 'meta',
     });
   });
   // Webinar 6/9: 286,92 USD
-  out.push({ fecha: '2026-09-04', campana: 'webinar', inversion: 150, impresiones: 110000, alcance: 70000, frecuencia: 1.57, cpm: 1.36, ctr: 0.011, visitas_perfil: null, seguidores: null, conversaciones: 160, source: 'meta' });
-  out.push({ fecha: '2026-09-05', campana: 'webinar', inversion: 136.92, impresiones: 98000, alcance: 64000, frecuencia: 1.53, cpm: 1.4, ctr: 0.011, visitas_perfil: null, seguidores: null, conversaciones: 140, source: 'meta' });
+  out.push({ fecha: '2026-09-04', campana: 'webinar', inversion: 150, impresiones: 110000, alcance: 70000, frecuencia: 1.57, cpm: 1.36, ctr: 0.011, visitas_perfil: null, seguidores: null, conversaciones: null, registros: 170, source: 'meta' });
+  out.push({ fecha: '2026-09-05', campana: 'webinar', inversion: 136.92, impresiones: 98000, alcance: 64000, frecuencia: 1.53, cpm: 1.4, ctr: 0.011, visitas_perfil: null, seguidores: null, conversaciones: null, registros: 150, source: 'meta' });
   return out;
 }
 
@@ -384,6 +384,12 @@ export function sampleBundle(): RawBundle {
     cobranzas: construirCobranzas(agendas),
     setter: construirSetter(),
     ads: construirAds(),
+    campanas: [
+      { id: 'c1', nombre: 'Follow Me Ads · Reels top', estado: 'ACTIVE', objetivo: 'OUTCOME_ENGAGEMENT', tipo: 'follow_me', presupuesto_diario: 25, inicio: '2026-10-01', inversion_7d: 171.4, resultados_7d: 236, inversion_mes: 612.3, resultados_mes: 845, resultado: 'seguidores', source: 'meta' },
+      { id: 'c2', nombre: 'Webinar Noviembre · Registro', estado: 'ACTIVE', objetivo: 'OUTCOME_LEADS', tipo: 'webinar', presupuesto_diario: 80, inicio: '2026-10-24', inversion_7d: 402.1, resultados_7d: 188, inversion_mes: 402.1, resultados_mes: 188, resultado: 'registros', source: 'meta' },
+      { id: 'c3', nombre: 'Lookalike · Tráfico al perfil', estado: 'ACTIVE', objetivo: 'OUTCOME_TRAFFIC', tipo: 'otra', presupuesto_diario: 10, inicio: '2026-10-15', inversion_7d: 68.9, resultados_7d: 41, inversion_mes: 131.5, resultados_mes: 77, resultado: 'conversaciones', source: 'meta' },
+      { id: 'c4', nombre: 'Webinar 4/10 · Registro', estado: 'PAUSED', objetivo: 'OUTCOME_LEADS', tipo: 'webinar', presupuesto_diario: 250, inicio: '2026-09-25', fin: '2026-10-04', inversion_7d: 0, resultados_7d: 0, inversion_mes: 1005.8, resultados_mes: 402, resultado: 'registros', source: 'meta' },
+    ],
     organico: org.diario,
     piezas: org.piezas,
     ajustes,
@@ -395,8 +401,8 @@ export function sampleBundle(): RawBundle {
     ],
     // Webinar del 4/10: 975 registrados es real (spec); asistentes y el del 6/9 son de ejemplo
     webinars: [
-      { id: 'web-1', fecha: '2026-09-06', nombre: 'Webinar 6/9', registrados: 320, asistentes: 95, source: 'manual' },
-      { id: 'web-2', fecha: '2026-10-04', nombre: 'Webinar 4/10', registrados: 975, asistentes: 240, source: 'manual' },
+      { id: 'web-1', fecha: '2026-09-06', nombre: 'Webinar 6/9', registrados: 320, registrados_calificados: 130, asistentes: 95, source: 'manual' },
+      { id: 'web-2', fecha: '2026-10-04', nombre: 'Webinar 4/10', registrados: 975, registrados_calificados: 410, asistentes: 240, source: 'manual' },
     ],
     // Tarifas reales (mismas que la carga inicial de la base)
     comisionesPlataformas: [

@@ -36,15 +36,18 @@ export async function POST(req: NextRequest) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data.fecha ?? '')) return volver({ error: 'Falta la fecha del webinar' });
     const entero = (v: unknown) => (v === undefined || v === '' || v === null ? null : Number.isInteger(Number(v)) && Number(v) >= 0 && Number(v) < 1e6 ? Number(v) : NaN);
     const registrados = entero(data.registrados);
+    const calificados = entero(data.registrados_calificados);
     const asistentes = entero(data.asistentes);
-    if (Number.isNaN(registrados) || Number.isNaN(asistentes)) return volver({ error: 'Registrados y asistentes tienen que ser números enteros' });
+    if (Number.isNaN(registrados) || Number.isNaN(calificados) || Number.isNaN(asistentes)) return volver({ error: 'Registrados, calificados y asistentes tienen que ser números enteros' });
+    if (registrados !== null && calificados !== null && calificados > registrados) return volver({ error: 'Los calificados no pueden ser más que los registrados' });
     const fila: Record<string, unknown> = { fecha: data.fecha, source: 'manual', editado_por: auth.quien };
     if (data.nombre_webinar) fila.nombre = String(data.nombre_webinar).slice(0, 120);
     if (registrados !== null) fila.registrados = registrados;
+    if (calificados !== null) fila.registrados_calificados = calificados;
     if (asistentes !== null) fila.asistentes = asistentes;
     const { error } = await sb.from('webinars').upsert(fila, { onConflict: 'fecha' });
     if (error) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
-    return volver({ ok: `Webinar ${data.fecha} · ${registrados ?? '—'} registrados · ${asistentes ?? '—'} asistentes` });
+    return volver({ ok: `Webinar ${data.fecha} · ${registrados ?? '—'} registrados · ${calificados ?? '—'} calificados · ${asistentes ?? '—'} asistentes` });
   }
 
   const nombre = (data.nombre ?? '').trim().slice(0, 120);

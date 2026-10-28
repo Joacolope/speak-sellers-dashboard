@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { supabase, supabaseConfigurado } from '@/lib/supabase';
 import { bearerValido, env } from '@/lib/env';
 import { syncGhl } from '@/lib/sync/ghl';
-import { syncMetaAds } from '@/lib/sync/meta';
+import { syncMetaAds, syncMetaCampanas } from '@/lib/sync/meta';
 import { syncIgOrganico } from '@/lib/sync/ig';
 
 export const maxDuration = 300;
@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
 
   await correr('GHL', () => syncGhl(sb, dry));
   await correr('Meta', () => syncMetaAds(sb, dry));
+  await correr('Campañas', () => syncMetaCampanas(sb, dry));
   await correr('IG', () => syncIgOrganico(sb, dry));
 
   const resumen = `cron ${errores.length ? 'con errores' : 'ok'}: ${Object.entries(resultados).map(([k, v]) => `${k} ${v}`).join(', ')}`;
