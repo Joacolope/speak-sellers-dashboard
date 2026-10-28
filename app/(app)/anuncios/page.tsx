@@ -75,6 +75,7 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
   const activas = bundle.campanas.filter((c) => c.estado === 'ACTIVE').sort((a, b) => (b.inversion_7d ?? 0) - (a.inversion_7d ?? 0));
   const pausadasMes = bundle.campanas.filter((c) => c.estado !== 'ACTIVE' && (c.inversion_mes ?? 0) > 0);
   const actualizadoCamp = bundle.campanas.reduce<string | null>((m, c) => (c.updated_at && (!m || c.updated_at > m) ? c.updated_at : m), null);
+  const webTotalMes = sum(web, (a) => a.inversion);
   const webinars = resumenWebinars(bundle, f);
   const w = totalWebinars(webinars);
 
@@ -90,6 +91,14 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
           <Filtros filtros={f} meses={meses} mostrarCloser={false} mostrarFuente={false} />
         </Suspense>
       </div>
+
+      <Seccion eyebrow="Inversión del mes por funnel">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Dato valor={usd(fmInv + webTotalMes, 2)} label="Total invertido" />
+          <Dato valor={usd(fmInv, 2)} label="Orgánico · Follow Me Ads" sub={fmInv + webTotalMes ? `${pct(fmInv / (fmInv + webTotalMes))} del total` : undefined} />
+          <Dato valor={usd(webTotalMes, 2)} label="Webinar" sub={fmInv + webTotalMes ? `${pct(webTotalMes / (fmInv + webTotalMes))} del total` : undefined} />
+        </div>
+      </Seccion>
 
       <Seccion
         eyebrow="Ahora en Meta"

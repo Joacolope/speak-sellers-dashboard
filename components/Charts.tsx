@@ -112,7 +112,7 @@ export function AnilloRentabilidad({ revenue, ads, software, comisiones, platafo
   // Semáforo del margen: ≥ 50 % verde, 20–50 % amarillo, < 20 % rojo
   const colorMargen = margen === null ? MUTED : margen >= 0.5 ? G : margen >= 0.2 ? Y : R;
   const items = [
-    { nombre: 'Revenue', valor: usd(revenue), color: B, clase: '' },
+    { nombre: 'Facturación', valor: usd(revenue), color: B, clase: '' },
     { nombre: 'Ads', valor: `-${usd(ads)}`, color: R, clase: 'bad' },
     { nombre: 'Software', valor: software === null ? '—' : `-${usd(software)}`, color: 'color-mix(in srgb, var(--red) 50%, var(--surface))', clase: 'bad' },
     { nombre: 'Comisiones', valor: comisiones === null ? '—' : `-${usd(comisiones)}`, color: Y, clase: 'bad' },

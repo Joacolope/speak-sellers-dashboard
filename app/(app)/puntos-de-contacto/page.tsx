@@ -24,6 +24,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
     const k = c.lead?.fuente ?? 'Otro';
     porFuente.set(k, (porFuente.get(k) ?? 0) + 1);
   }
+  const sinPrimerToque = compradores.filter((a) => !a.lead?.primer_punto_contacto).length;
   const torta = Array.from(porFuente.entries()).map(([name, value]) => ({ name, value }));
   const utms = Object.fromEntries((['utm_campaign', 'utm_source', 'utm_content', 'utm_medium'] as const).map((n) => [n, agendasPorUtm(bundle, f, n)]));
 
@@ -45,7 +46,11 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
       </ChartCard>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <Seccion eyebrow="Compradores" titulo={`${num(compradores.length)} ventas`}>
+        <Seccion
+          eyebrow="Compradores · trazabilidad inversa"
+          titulo={`${num(compradores.length)} ventas`}
+          aside={sinPrimerToque ? <span className="tag tag-yellow">{num(sinPrimerToque)} sin primer punto de contacto</span> : undefined}
+        >
           {compradores.length ? (
             <div className="card overflow-x-auto !p-0">
               <table className="table">
@@ -54,7 +59,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                     <th>Mes</th>
                     <th>Fecha de cierre</th>
                     <th>Nombre · Instagram</th>
-                    <th className="num">Cash Collected</th>
+                    <th className="num">Cobrado</th>
                     <th>Fuente</th>
                     <th>Primer punto de contacto</th>
                     <th>Último punto de contacto</th>
@@ -70,8 +75,8 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                       <td className="font-medium">{a.lead?.nombre}{a.lead?.instagram && <span className="ml-2 text-text-muted">{a.lead.instagram}</span>}</td>
                       <td className="num">{usd(a.cash_collected)}</td>
                       <td>{a.lead?.fuente ?? '—'}</td>
-                      <td>{a.lead?.primer_punto_contacto ?? <span className="text-text-disabled">— (onboarding)</span>}</td>
-                      <td>{a.lead?.ultimo_punto_contacto ?? <span className="text-text-disabled">— (onboarding)</span>}</td>
+                      <td>{a.lead?.primer_punto_contacto ?? <span className="warn">Falta</span>}</td>
+                      <td>{a.lead?.ultimo_punto_contacto ?? <span className="text-text-disabled">—</span>}</td>
                       <td>{a.lead?.fuente === 'Webinar' ? 'Funnel' : 'Instagram'}</td>
                       <td className="text-text-muted">{[a.lead?.utm_campaign, a.lead?.utm_content].filter(Boolean).join(' · ') || '—'}</td>
                     </tr>

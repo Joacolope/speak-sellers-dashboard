@@ -109,7 +109,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
 
       {/* Fila 1 · números grandes */}
       <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Revenue" valor={usd(actual.revenue)} variacion={variacion(actual.revenue, anterior.revenue)} icono={Iconos.revenue} color="blue" />
+        <StatCard label="Facturación" valor={usd(actual.revenue)} variacion={variacion(actual.revenue, anterior.revenue)} icono={Iconos.revenue} color="blue" />
         <StatCard
           label="Cash Collected"
           valor={usd(actual.cash_collected)}
@@ -142,19 +142,19 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} cash={actual.cash_collected} />
         </ChartCard>
         <ChartCard
-          titulo="Revenue"
+          titulo="Facturación"
           color="blue"
-          sub={enCurso ? 'Mes en curso · tramo punteado' : nombreMes(f.mes)}
+          sub={`Valor total vendido, aunque se cobre en cuotas${enCurso ? ' · mes en curso punteado' : ''}`}
           icono={Iconos.revenue}
           valor={usd(actual.revenue)}
           comparacion={vsAnterior(anterior.revenue)}
         >
-          <TendenciaMes data={serie} campo="revenue" enCurso={enCurso} nombre="Revenue" />
+          <TendenciaMes data={serie} campo="revenue" enCurso={enCurso} nombre="Facturación" />
         </ChartCard>
         <ChartCard
           titulo="Cash Collected"
           color="green"
-          sub="Revenue − ads − software − comisiones (closers y plataformas)"
+          sub="Facturación − ads − software − comisiones (closers y plataformas)"
           icono={Iconos.cash}
           valor={usd(actual.cash_collected)}
           comparacion={vsAnterior(anterior.cash_collected)}
@@ -186,7 +186,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       {/* Fila 4 · ROAS, ventas nuevas vs cuotas, país */}
       <section className="grid gap-4 lg:grid-cols-3">
         <ChartCard titulo="ROAS" sub="Veces que vuelve lo invertido en ads" icono={Iconos.tendencia} color="green">
-          <BarrasMes data={serie} a={{ key: 'roas_cash', nombre: 'ROAS Cash', color: 'green' }} b={{ key: 'roas_revenue', nombre: 'ROAS Revenue', color: 'blue' }} formato="x" />
+          <BarrasMes data={serie} a={{ key: 'roas_cash', nombre: 'ROAS cash', color: 'green' }} b={{ key: 'roas_revenue', nombre: 'ROAS facturación', color: 'blue' }} formato="x" />
         </ChartCard>
         <ChartCard titulo="Ventas nuevas vs. Cuotas cobradas" sub="Plata de ventas cerradas en el mes vs. cuotas de ventas de meses anteriores" icono={Iconos.cash} color="green">
           <BarrasMes data={serie} a={{ key: 'new_cash', nombre: 'Ventas nuevas', color: 'green' }} b={{ key: 'old_cash', nombre: 'Cuotas cobradas', color: 'yellow' }} formato="usd" />
@@ -205,7 +205,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="flex flex-col gap-4">
           <div className="card-feature flex flex-1 flex-col justify-center gap-3 !bg-[var(--blue-soft)]">
-            <div className="eyebrow !text-[var(--blue-ink)]">Acumulado {anual.year} · Revenue</div>
+            <div className="eyebrow !text-[var(--blue-ink)]">Acumulado {anual.year} · Facturación</div>
             <div className="metric-xl">{usd(anual.revenue)}</div>
           </div>
           <div className="card-feature flex flex-1 flex-col justify-center gap-3 !bg-[var(--green-soft)]">

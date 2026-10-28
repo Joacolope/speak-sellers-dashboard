@@ -3,7 +3,8 @@ import Filtros from '@/components/Filtros';
 import { DemoBanner, Seccion, Semaforo } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
-import { mesesDisponibles, metricasMes } from '@/lib/metrics';
+import { agendasDelMes, mesesDisponibles, metricasMes } from '@/lib/metrics';
+import { FUNNELS, funnelDeLead } from '@/lib/types';
 import { mesCorto, num, pct, usd } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +13,12 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
   const bundle = await getBundle();
   const f = leerFiltros(searchParams);
   const meses = mesesDisponibles(bundle, f.mes);
-  const filas = meses.map((mes) => ({ mes, m: metricasMes(bundle, { ...f, mes }), aj: bundle.ajustes.find((a) => a.mes.startsWith(mes)) }));
+  const filas = meses.map((mes) => {
+    const ag = agendasDelMes(bundle, { ...f, mes, dia: null });
+    // Agendas separadas por funnel: mezclar webinar con orgánico sesga la tasa de agenda
+    const porFunnel = Object.fromEntries(FUNNELS.map((fu) => [fu, ag.filter((a) => funnelDeLead(a.lead?.funnel, a.lead?.fuente) === fu).length]));
+    return { mes, m: metricasMes(bundle, { ...f, mes }), aj: bundle.ajustes.find((a) => a.mes.startsWith(mes)), porFunnel };
+  });
 
   return (
     <>
@@ -34,7 +40,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
               <tr className="group-head">
                 <th></th>
                 <th colSpan={7}>Setter</th>
-                <th colSpan={12}>Closer</th>
+                <th colSpan={12 + FUNNELS.length}>Closer</th>
                 <th colSpan={4}>Costos</th>
                 <th colSpan={4}>Conversión</th>
               </tr>
@@ -46,7 +52,8 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num" title="Inbound + outbound con ida y vuelta">Conversaciones</th>
                 <th className="num">Seguimientos</th>
                 <th className="num">Links</th>
-                <th className="num">Agendas</th>
+                <th className="num">Agendas totales</th>
+                {FUNNELS.map((fu) => <th key={fu} className="num">Agendas {fu.toLowerCase()}</th>)}
                 <th className="num">Llamadas presentadas</th>
                 <th className="num">% Asistencia</th>
                 <th className="num">No show</th>
@@ -55,8 +62,8 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num">Ventas</th>
                 <th className="num">% cierre total</th>
                 <th className="num">% cierre / llamadas</th>
-                <th className="num">Cash Collected</th>
-                <th className="num">Revenue</th>
+                <th className="num" title="Facturación − ads − software − comisiones">Cash Collected</th>
+                <th className="num" title="Valor total de las ventas del mes, aunque se cobren en cuotas">Facturación</th>
                 <th className="num" title="Cobrado de ventas cerradas en el mes">Ventas nuevas</th>
                 <th className="num" title="Cuotas cobradas de ventas de meses anteriores">Cuotas cobradas</th>
                 <th className="num">Inversión ads</th>
@@ -70,7 +77,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
               </tr>
             </thead>
             <tbody>
-              {filas.map(({ mes, m, aj }) => (
+              {filas.map(({ mes, m, aj, porFunnel }) => (
                 <tr key={mes} className={mes === f.mes ? 'bg-surface-2' : ''}>
                   <td className="font-medium">{mesCorto(mes)}</td>
                   <td className="num">{num(m.conv_organicas)}</td>
@@ -79,7 +86,8 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                   <td className="num font-medium">{num(m.conversaciones)}</td>
                   <td className="num">{num(m.seguimientos)}</td>
                   <td className="num">{num(m.links_enviados)}</td>
-                  <td className="num">{num(m.agendas)}</td>
+                  <td className="num font-medium">{num(m.agendas)}</td>
+                  {FUNNELS.map((fu) => <td key={fu} className="num">{num(porFunnel[fu])}</td>)}
                   <td className="num">{num(m.asistencias)}</td>
                   <td className="num"><Semaforo valor={m.pct_asistencia} objetivo={aj?.objetivo_asistencia ?? 0.6} /></td>
                   <td className="num">{num(m.no_show)}</td>
@@ -106,7 +114,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
           </table>
         </div>
         <div className="text-[14px] text-text-muted">
-          Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Revenue = plata que entró − reembolsos. Cash Collected = Revenue − inversión en ads − software − comisiones de closers − comisiones de plataformas de pago (todo se carga en Costos). <span className="text-text-disabled">*</span> sin software cargado.
+          Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Facturación = valor total de las ventas cerradas en el mes (aunque se cobren en cuotas) − reembolsos. Cash Collected = Facturación − inversión en ads − software − comisiones de closers − comisiones de plataformas de pago (todo se carga en Costos). <span className="text-text-disabled">*</span> sin software cargado.
           Semáforo: % Asistencia ≥ {pct(0.6)} y % cierre / llamadas ≥ {pct(0.3)}. % Agenda inbound = agendas de gente que escribió / conversaciones inbound; outbound = agendas de mensajes en frío / respuestas outbound (configurable en <code className="mono text-[12px]">ajustes_mensuales</code>).
         </div>
       </Seccion>

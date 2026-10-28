@@ -6,14 +6,14 @@ import ThemeToggle from './ThemeToggle';
 
 const SECCIONES = [
   { href: '/', label: 'Inicio' },
-  { href: '/metricas', label: 'Métricas' },
-  { href: '/setter', label: 'Setter' },
   { href: '/closers', label: 'Closers' },
+  { href: '/setter', label: 'Setter' },
   { href: '/cobranzas', label: 'Cobranzas' },
-  { href: '/organico', label: 'Orgánico' },
-  { href: '/anuncios', label: 'Anuncios' },
-  { href: '/costos', label: 'Costos' },
+  { href: '/metricas', label: 'Métricas' },
   { href: '/puntos-de-contacto', label: 'Contacto' },
+  { href: '/anuncios', label: 'Anuncios' },
+  { href: '/organico', label: 'Orgánico' },
+  { href: '/costos', label: 'Costos' },
 ];
 
 export default function TopNav({ email, rol, puedeCargar }: { email: string; rol: string; puedeCargar: boolean }) {

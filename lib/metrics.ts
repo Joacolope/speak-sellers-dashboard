@@ -289,9 +289,14 @@ export interface ResumenCloser {
   closer: Closer;
   agendas: number;
   asistencias: number;
+  no_show: number;
+  canceladas: number;
+  pendientes: number;
   pct_show: number | null;
   ofertas: number;
   cierres: number;
+  /** Ventas con seña (compro = Reserva) */
+  senas: number;
   pct_cierre: number | null;
   cash: number;
   revenue: number;
@@ -306,9 +311,13 @@ export function resumenCloser(b: RawBundle, f: Filtros, closer: Closer | 'todos'
     closer: closer === 'todos' ? 'Marcos' : closer,
     agendas: ag.length,
     asistencias,
+    no_show: ag.filter((a) => a.asistio === 'No show').length,
+    canceladas: ag.filter((a) => a.asistio === 'Canceló').length,
+    pendientes: ag.filter((a) => a.asistio === 'Pendiente').length,
     pct_show: ratio(asistencias, ag.length),
     ofertas,
     cierres,
+    senas: ag.filter((a) => a.compro === 'Reserva').length,
     pct_cierre: ratio(cierres, asistencias), // cierres sobre llamadas presentadas
     cash: sum(ag.filter(esVenta), (a) => a.cash_collected),
     revenue: sum(ag.filter(esVenta), (a) => a.revenue),

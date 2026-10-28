@@ -9,7 +9,7 @@ export const metadata = {
 /** Página pública (la que ve Google y cualquiera sin sesión). No muestra datos. */
 export default function Bienvenida() {
   const items = [
-    ['Ventas y cobranzas', 'Revenue, cash collected, cuotas cobradas y comisiones de cada mes.'],
+    ['Ventas y cobranzas', 'Facturación, cash collected, cuotas cobradas y comisiones de cada mes.'],
     ['Agendas y closers', 'Agendas, llamadas presentadas, cierres y desempeño de cada closer.'],
     ['Embudos', 'De la conversación a la venta, por fuente: orgánico, webinar y YouTube.'],
     ['Anuncios y orgánico', 'Inversión en Meta Ads y rendimiento de reels e historias de Instagram.'],

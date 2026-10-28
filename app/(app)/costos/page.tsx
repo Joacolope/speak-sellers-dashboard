@@ -48,7 +48,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
           <div className="eyebrow">Costos</div>
           <h1 className="h1 mt-2">Software y costos fijos</h1>
           <p className="mt-2 max-w-2xl text-[14px] text-text-muted">
-            Lo que pagamos por mes en herramientas, editores, comisiones de closers y comisiones de las plataformas de cobro. Todo se descuenta del Revenue, junto con los anuncios, para calcular el Cash Collected.
+            Lo que pagamos por mes en herramientas, editores, comisiones de closers y comisiones de las plataformas de cobro. Todo se descuenta de la facturación, junto con los anuncios, para calcular el Cash Collected.
           </p>
           {ok && <div className="ok mt-3 text-[14px]">Guardado: {ok}</div>}
           {error && <div className="bad mt-3 text-[14px]">{error}</div>}
@@ -67,7 +67,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
           nota={actual.comisiones_plataformas === null ? 'Falta cargar la tarifa de cada plataforma' : undefined} />
         <StatCard label="Costos totales" valor={usd(costosTotales)} variacion={variacion(costosTotales, anteriorTotales)} icono={Iconos.cash} invertir color="red" />
         <StatCard label="Cash Collected" valor={usd(actual.cash_collected)} variacion={variacion(actual.cash_collected, anterior.cash_collected)} icono={Iconos.revenue} color="green"
-          nota={margen === null ? undefined : `Margen ${pct(margen)} sobre Revenue`} />
+          nota={margen === null ? undefined : `Margen ${pct(margen)} sobre facturación`} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">

@@ -71,6 +71,12 @@ function utms(c: GhlContact | null) {
   };
 }
 
+/** "contenido · campaña · fuente" del link con que llegó (primer toque) o agendó (último toque). */
+function toque(a?: Atribucion): string | null {
+  const t = [a?.utmContent, a?.utmCampaign, a?.utmSource ?? a?.sessionSource].map((v) => (v ? String(v).trim() : '')).filter(Boolean);
+  return t.length ? t.join(' · ').slice(0, 200) : null;
+}
+
 function paisPorPrefijo(tel?: string): string | null {
   if (!tel) return null;
   const t = tel.replace(/\s|-/g, '');
@@ -150,6 +156,13 @@ export async function syncGhl(sb: SupabaseClient, dry = false): Promise<string> 
       .select('id')
       .single();
     if (eLead || !lead) throw new Error(`leads upsert: ${eLead?.message}`);
+
+    // Primer y último punto de contacto desde la atribución de GHL, sin depender del
+    // formulario de onboarding. Solo completa lo vacío: lo cargado a mano no se pisa.
+    const primero = toque(contacto?.attributionSource);
+    const ultimo = toque(contacto?.lastAttributionSource) ?? primero;
+    if (primero) await sb.from('leads').update({ primer_punto_contacto: primero }).eq('id', lead.id).is('primer_punto_contacto', null);
+    if (ultimo) await sb.from('leads').update({ ultimo_punto_contacto: ultimo }).eq('id', lead.id).is('ultimo_punto_contacto', null);
 
     const { data: existente } = await sb.from('agendas').select('id, source, asistio').eq('ghl_event_id', ev.id).maybeSingle();
     const campos: Record<string, unknown> = {

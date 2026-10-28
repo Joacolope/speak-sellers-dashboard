@@ -14,7 +14,16 @@ export const dynamic = 'force-dynamic';
 
 const OPC_ASISTIO = ['Asistió', 'No show', 'Canceló', 'Pendiente'].map((v) => ({ value: v, label: v }));
 const OPC_COMPRO = ['Si', 'No', 'Reserva'].map((v) => ({ value: v, label: v }));
-const OPC_BOOL = [{ value: 'true', label: 'Sí' }, { value: 'false', label: 'No' }];
+
+function Dato({ valor, label, sub, clase = '' }: { valor: string; label: string; sub?: string; clase?: string }) {
+  return (
+    <div className="card flex flex-col gap-2">
+      <div className={`metric ${clase}`}>{valor}</div>
+      <div className="text-[14px] text-text-muted">{label}</div>
+      {sub && <div className="text-[13px] text-text-disabled">{sub}</div>}
+    </div>
+  );
+}
 
 export default async function Closers({ searchParams }: { searchParams: SearchParams }) {
   const bundle = await getBundle();
@@ -23,6 +32,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
   const meses = mesesDisponibles(bundle, f.mes);
   const agendas = agendasDelMes(bundle, f).sort((a, b) => b.fecha_llamada.localeCompare(a.fecha_llamada));
   const resumen = resumenCloser(bundle, f, f.closer);
+  const porCloser = CLOSERS.map((c) => resumenCloser(bundle, f, c));
 
   return (
     <>
@@ -64,11 +74,56 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
       </div>
 
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="card flex flex-col gap-2"><div className="metric">{num(resumen.agendas)}</div><div className="text-[14px] text-text-muted">Agendas</div></div>
-        <div className="card flex flex-col gap-2"><div className={`metric ${claseSemaforo(resumen.pct_show, 0.6)}`}>{pct(resumen.pct_show)}</div><div className="text-[14px] text-text-muted">% Show</div></div>
-        <div className="card flex flex-col gap-2"><div className={`metric ${claseSemaforo(resumen.pct_cierre, 0.3)}`}>{pct(resumen.pct_cierre)}</div><div className="text-[14px] text-text-muted">% Cierre / llamadas</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric ok">{usd(resumen.cash)}</div><div className="text-[14px] text-text-muted">Cash</div></div>
+        <Dato valor={num(resumen.agendas)} label="Agendas" sub={resumen.pendientes ? `${num(resumen.pendientes)} por venir` : undefined} />
+        <Dato valor={num(resumen.asistencias)} label="Llamadas presentadas" sub={`${num(resumen.no_show)} no show · ${num(resumen.canceladas)} canceladas`} />
+        <Dato valor={pct(resumen.pct_show)} clase={claseSemaforo(resumen.pct_show, 0.6)} label="% Show" sub={`Objetivo ${pct(0.6)}`} />
+        <Dato valor={num(resumen.cierres)} label="Ventas" sub={resumen.senas ? `${num(resumen.senas)} con seña` : undefined} />
+        <Dato valor={pct(resumen.pct_cierre)} clase={claseSemaforo(resumen.pct_cierre, 0.3)} label="% Cierre / llamadas" sub={`Objetivo ${pct(0.3)}`} />
+        <Dato valor={usd(resumen.cash)} clase="ok" label="Cobrado en las llamadas" />
+        <Dato valor={usd(resumen.revenue)} label="Valor de las ventas" sub="Incluye cuotas a cobrar" />
+        <Dato valor={resumen.asistencias ? usd(resumen.cash / resumen.asistencias) : '—'} label="Cash por llamada" sub="Cobrado / presentadas" />
       </section>
+
+      {f.closer === 'todos' && (
+        <Seccion eyebrow="Comparativa" titulo="Closer por closer">
+          <div className="card overflow-x-auto !p-0">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Closer</th>
+                  <th className="num">Agendas</th>
+                  <th className="num">Presentadas</th>
+                  <th className="num">No show</th>
+                  <th className="num">Canceladas</th>
+                  <th className="num">% Show</th>
+                  <th className="num">Ventas</th>
+                  <th className="num">Con seña</th>
+                  <th className="num">% Cierre</th>
+                  <th className="num">Cobrado</th>
+                  <th className="num">Cash por llamada</th>
+                </tr>
+              </thead>
+              <tbody>
+                {porCloser.map((r) => (
+                  <tr key={r.closer}>
+                    <td className="font-medium"><Link href={`/closers${queryDe({ ...f, closer: r.closer })}`} className="hover:underline">{NOMBRE_CLOSER[r.closer]}</Link></td>
+                    <td className="num">{num(r.agendas)}</td>
+                    <td className="num">{num(r.asistencias)}</td>
+                    <td className="num">{num(r.no_show)}</td>
+                    <td className="num">{num(r.canceladas)}</td>
+                    <td className={`num ${claseSemaforo(r.pct_show, 0.6)}`}>{pct(r.pct_show)}</td>
+                    <td className="num">{num(r.cierres)}</td>
+                    <td className="num">{num(r.senas)}</td>
+                    <td className={`num ${claseSemaforo(r.pct_cierre, 0.3)}`}>{pct(r.pct_cierre)}</td>
+                    <td className="num ok">{usd(r.cash)}</td>
+                    <td className="num">{r.asistencias ? usd(r.cash / r.asistencias) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Seccion>
+      )}
 
       <Seccion eyebrow="Agendas" titulo={`${num(agendas.length)} llamadas`} aside={editor ? <span className="text-[14px] text-text-muted">Las celdas con borde al pasar el mouse se editan con un click.</span> : undefined}>
         {agendas.length ? (
@@ -81,13 +136,11 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                   <th>Teléfono</th>
                   <th>País</th>
                   <th>Closer</th>
-                  <th className="num">Cualif.</th>
                   <th>¿Asistió?</th>
-                  <th>Oferta</th>
                   <th>Compró</th>
                   <th>Producto</th>
-                  <th className="num">Cash Collected</th>
-                  <th className="num">Revenue</th>
+                  <th className="num" title="Lo que pagó en la llamada">Cobrado</th>
+                  <th className="num" title="Valor total de la venta, aunque se pague en cuotas">Valor de la venta</th>
                   <th>Fuente</th>
                   <th>UTM</th>
                   <th>Conf. WhatsApp</th>
@@ -105,14 +158,9 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                     <td className="text-text-muted">{a.lead?.telefono ?? '—'}</td>
                     <td>{a.lead?.pais ?? '—'}</td>
                     <td>{NOMBRE_CLOSER[a.closer]}</td>
-                    <td className="num">{num(a.lead?.cualificacion_economica)}</td>
                     <td className="editable">
                       <EditableCell agendaId={a.id} campo="asistio" valor={a.asistio} tipo="select" opciones={OPC_ASISTIO} demo={bundle.demo} editable={editor}
                         mostrar={<EstadoAsistio v={a.asistio} />} />
-                    </td>
-                    <td className="editable">
-                      <EditableCell agendaId={a.id} campo="oferta_hecha" valor={a.oferta_hecha ? 'true' : a.oferta_hecha === false ? 'false' : null} tipo="select" opciones={OPC_BOOL} demo={bundle.demo} editable={editor}
-                        mostrar={a.oferta_hecha ? 'Sí' : a.oferta_hecha === false ? 'No' : undefined} />
                     </td>
                     <td className="editable">
                       <EditableCell agendaId={a.id} campo="compro" valor={a.compro} tipo="select" opciones={OPC_COMPRO} demo={bundle.demo} editable={editor}

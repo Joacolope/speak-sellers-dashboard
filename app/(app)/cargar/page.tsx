@@ -48,8 +48,8 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
               <option>PIF</option><option>Cuotas</option><option>Reserva</option>
             </select>
           </Campo>
-          <Campo label="Cash collected (USD)"><input className="input" name="cash_collected" type="number" step="0.01" /></Campo>
-          <Campo label="Revenue (USD)"><input className="input" name="revenue" type="number" step="0.01" /></Campo>
+          <Campo label="Cobrado hoy (USD)"><input className="input" name="cash_collected" type="number" step="0.01" /></Campo>
+          <Campo label="Valor total de la venta (USD)"><input className="input" name="revenue" type="number" step="0.01" /></Campo>
           <Campo label="Producto"><input className="input" name="producto" defaultValue="Speak Sellers" /></Campo>
           <Campo label="Plataforma de cobro">
             <select className="input" name="plataforma" defaultValue="Stripe">{PLATAFORMAS.map((p) => <option key={p}>{p}</option>)}</select>
@@ -75,12 +75,6 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
               <option>Asistió</option><option>No show</option><option>Canceló</option><option>Pendiente</option>
             </select>
           </Campo>
-          <Campo label="Oferta hecha">
-            <select className="input" name="oferta_hecha" defaultValue="">
-              <option value="">—</option><option value="true">Sí</option><option value="false">No</option>
-            </select>
-          </Campo>
-          <Campo label="Cualificación económica (1–10)"><input className="input" name="cualificacion_economica" type="number" min="1" max="10" /></Campo>
           <Campo label="Closer (si hay que corregirlo)">
             <select className="input" name="closer" defaultValue="">
               <option value="">—</option>{CLOSERS.map((c) => <option key={c}>{c}</option>)}
