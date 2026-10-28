@@ -8,7 +8,7 @@ import type {
   Agenda, AdsDiario, Cobranza, Lead, LogAgente, OrganicoDiario, OrganicoPieza,
   RawBundle, SetterDiario, AjusteMensual, Closer, Fuente, Asistio, Costo,
 } from './types';
-import { diasDelMes } from './format';
+import { diasDelMes, sumarDias } from './format';
 import type { Funnel } from './types';
 
 /** UTMs de ejemplo según la fuente (ilustrativos). */
@@ -198,7 +198,8 @@ function construirCobranzas(agendas: Agenda[]): Cobranza[] {
           monto_cobrado: a.cash_collected,
           pendiente: a.lead_id === 'lead-oct-1' ? 1000 : a.metodo_pago === 'Cuotas' ? Math.round(a.cash_collected * 0.5) : 0,
           cuotas_restantes: a.lead_id === 'lead-oct-1' ? 1 : a.metodo_pago === 'Cuotas' ? 1 : 0,
-          proximo_vencimiento: a.lead_id === 'lead-oct-1' ? '2026-11-15' : a.metodo_pago === 'Cuotas' ? '2026-11-10' : null,
+          // Las cuotas de ventas de septiembre vencen a los 30 días (algunas ya vencidas)
+          proximo_vencimiento: a.lead_id === 'lead-oct-1' ? '2026-11-15' : a.metodo_pago === 'Cuotas' ? (a.fecha_llamada < '2026-10' ? sumarDias(a.fecha_llamada, 30) : sumarDias(a.fecha_llamada, 15)) : null,
           closer: a.closer,
           es_reembolso: false,
           source: a.source,
@@ -366,7 +367,7 @@ export function sampleBundle(): RawBundle {
   const org = construirOrganico();
   const ajustes: AjusteMensual[] = [
     { mes: '2026-09-01', costo_software: null, objetivo_asistencia: 0.6, objetivo_cierre_oferta: 0.3 },
-    { mes: '2026-10-01', costo_software: null, objetivo_asistencia: 0.6, objetivo_cierre_oferta: 0.3 },
+    { mes: '2026-10-01', costo_software: null, objetivo_asistencia: 0.6, objetivo_cierre_oferta: 0.3, meta_revenue: 25000, meta_cash: 12000, meta_ventas: 20, meta_agendas: 70 },
   ];
   const log: LogAgente[] = [
     {

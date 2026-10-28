@@ -15,7 +15,12 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
   if (!sesion) throw new Error('No autorizado');
   // Vista de ejemplo: la activa el usuario desde la barra (cookie). Nunca mezcla datos reales.
   if (!supabaseConfigurado() || cookies().get('ss_demo')?.value === '1') return sampleBundle();
+  return cargarBundle();
+});
 
+/** Lectura sin sesión: solo para procesos del servidor ya autorizados (cron con CRON_SECRET). */
+export async function cargarBundle(): Promise<RawBundle> {
+  if (!supabaseConfigurado()) return sampleBundle();
   const sb = supabase();
   const desde = new Date();
   desde.setUTCMonth(desde.getUTCMonth() - 14);
@@ -69,7 +74,11 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
     })) as RawBundle['campanas'],
     organico: organico.data as RawBundle['organico'],
     piezas: piezas.data as RawBundle['piezas'],
-    ajustes: ajustes.data as RawBundle['ajustes'],
+    ajustes: (ajustes.data ?? []).map((a) => ({
+      ...a,
+      meta_revenue: a.meta_revenue == null ? null : Number(a.meta_revenue),
+      meta_cash: a.meta_cash == null ? null : Number(a.meta_cash),
+    })) as RawBundle['ajustes'],
     costos: (costos.data ?? []).map((c) => ({ ...c, monto: Number(c.monto) })) as RawBundle['costos'],
     comisiones: (comisiones.data ?? []).map((c) => ({ ...c, porcentaje: Number(c.porcentaje) })) as RawBundle['comisiones'],
     webinars: (webinars.data ?? []) as RawBundle['webinars'],
@@ -77,4 +86,4 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
     log: logs,
     actualizaciones,
   };
-});
+}

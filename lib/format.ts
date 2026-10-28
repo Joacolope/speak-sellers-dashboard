@@ -50,6 +50,15 @@ export function mesCorto(mes: string): string {
   return `${MESES[m - 1].slice(0, 3)} ${String(y).slice(2)}`;
 }
 
+/** Fecha de hoy en Argentina (YYYY-MM-DD): el servidor corre en UTC. */
+export function hoyAR(): string {
+  return new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);
+}
+
+export function sumarDias(fecha: string, n: number): string {
+  return new Date(new Date(`${fecha.slice(0, 10)}T00:00:00Z`).getTime() + n * 86400000).toISOString().slice(0, 10);
+}
+
 export function mesActual(): string {
   const now = new Date();
   // Hora Argentina (UTC-3)

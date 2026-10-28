@@ -340,15 +340,6 @@ export interface Pendiente {
 
 export function avisos(b: RawBundle, f: Filtros, hoy: string): Pendiente[] {
   const out: Pendiente[] = [];
-  const en7 = new Date(hoy);
-  en7.setUTCDate(en7.getUTCDate() + 7);
-  const limite = en7.toISOString().slice(0, 10);
-  for (const c of b.cobranzas) {
-    if (c.pendiente && c.pendiente > 0 && c.proximo_vencimiento && c.proximo_vencimiento <= limite) {
-      const ag = b.agendas.find((a) => a.id === c.agenda_id);
-      out.push({ tipo: 'cobranza', texto: `${ag?.lead?.nombre ?? 'Lead'} · $${c.pendiente} vence ${c.proximo_vencimiento.slice(8)}/${c.proximo_vencimiento.slice(5, 7)}` });
-    }
-  }
   const faltan = comisionesDelMes(b.comisiones, cobranzasDelMes(b, f), f.mes).faltan;
   if (b.comisiones.length || faltan.length) for (const c of faltan) out.push({ tipo: 'agente', texto: `Falta el % de comisión de ${c} (sección Costos)` });
   const platFaltan = comisionesPlataformasDelMes(b.comisionesPlataformas, cobranzasDelMes(b, f), f.mes);

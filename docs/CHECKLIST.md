@@ -38,7 +38,15 @@ En Claude Code → menú del entorno (barra de título de la sesión) → **Edit
 
 (Dejar tildado "Allow package managers".) Con eso Claude prueba el sitio, corre el cron a mano y carga la migración.
 
+## 4b. Resumen semanal por mail (viernes 18:00 AR)
+- [ ] Crear cuenta en resend.com con `joaquin@salesspawn.com` → API Keys → Create (permiso "Sending access")
+- [ ] En Vercel → Settings → Environment Variables: `RESEND_API_KEY` = esa key
+- [ ] `RESUMEN_EMAILS` = `joaquin@salesspawn.com` (sin dominio verificado, Resend solo manda al dueño de la cuenta)
+- [ ] Para mandarlo a más gente: verificar `salesspawn.com` en Resend → Domains, y poner `RESUMEN_DESDE=Speak Sellers <resumen@salesspawn.com>`
+- [ ] Redeploy y probar con "Mandarme una prueba" en `/resumen`
+
 ## 5. Datos que tiene que pasar Joaco
+- [ ] Metas del mes (se cargan en Inicio → Meta del mes)
 - [ ] Lista de softwares que pagan y cuánto (o cargarlos en `/costos`)
 - [ ] Cotización o USD exactos de los pagos en ARS (Martín, Damián, Cristian)
 - [ ] OK para migrar el spreadsheet "Dashboard - Speak Sellers" (Claude lo lee desde Google Drive)

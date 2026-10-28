@@ -3,20 +3,11 @@ import type { UltimaActualizacion } from '@/lib/types';
 import { fechaHora } from '@/lib/format';
 
 export default function Avisos({ pendientes, actualizaciones }: { pendientes: Pendiente[]; actualizaciones: UltimaActualizacion[] }) {
-  const cobranzas = pendientes.filter((p) => p.tipo === 'cobranza');
   const agente = pendientes.filter((p) => p.tipo === 'agente');
   const fuentes = pendientes.filter((p) => p.tipo === 'fuente');
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <div className="card">
-        <div className="h3 mb-3">Cobranzas pendientes esta semana</div>
-        {cobranzas.length ? (
-          <ul className="flex flex-col gap-2 text-[14px]">
-            {cobranzas.map((p) => <li key={p.texto} className="flex gap-2"><span className="warn">●</span><span>{p.texto}</span></li>)}
-          </ul>
-        ) : <div className="text-[14px] text-text-muted">Nada por cobrar esta semana.</div>}
-      </div>
+    <div className="grid gap-4 md:grid-cols-2">
       <div className="card">
         <div className="h3 mb-3">Pendientes del agente</div>
         {agente.length ? (

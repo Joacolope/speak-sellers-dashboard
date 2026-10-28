@@ -16,8 +16,16 @@ import {
 } from '@/lib/metrics';
 import ClosersDesplegable, { type DetalleCloser } from '@/components/ClosersDesplegable';
 import TablaUtm from '@/components/TablaUtm';
+import Alertas from '@/components/Alertas';
+import MetasMes from '@/components/MetasMes';
+import CuotasPorCobrar from '@/components/CuotasPorCobrar';
+import { alertas as calcularAlertas } from '@/lib/alertas';
+import { progresoMetas } from '@/lib/metas';
+import { cuotasPorCobrar } from '@/lib/cuotas';
+import { getSesion, puede } from '@/lib/auth';
+import Link from 'next/link';
 import { comisionesDelMes } from '@/lib/comisiones';
-import { fechaLarga, mesActual, mesAnterior, nombreMes, num, pct, usd, variacion } from '@/lib/format';
+import { fechaLarga, hoyAR, mesAnterior, mesDe, nombreMes, num, pct, usd, variacion } from '@/lib/format';
 import { CLOSERS, NOMBRE_CLOSER } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -26,8 +34,9 @@ export const dynamic = 'force-dynamic';
 const semaforo = (v: number | null, objetivo: number): 'green' | 'yellow' | 'red' | 'blue' =>
   v === null ? 'blue' : v >= objetivo ? 'green' : v >= objetivo * 0.85 ? 'yellow' : 'red';
 
-export default async function Inicio({ searchParams }: { searchParams: SearchParams }) {
+export default async function Inicio({ searchParams }: { searchParams: SearchParams & { ok?: string; error?: string } }) {
   const bundle = await getBundle();
+  const sesion = await getSesion();
   const f = leerFiltros(searchParams);
   const meses = mesesDisponibles(bundle, f.mes);
   const { actual, anterior } = metricasConAnterior(bundle, f);
@@ -62,9 +71,14 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       href: `/closers${queryDe({ ...f, closer: r.closer })}`,
     };
   });
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyAR();
   const pendientes = avisos(bundle, f, hoy);
-  const enCurso = f.mes === mesActual();
+  const enCurso = f.mes === mesDe(hoy);
+  const metas = progresoMetas(bundle, f, hoy);
+  const lista = calcularAlertas(bundle, hoy, enCurso ? metas.items : []);
+  const cuotas = cuotasPorCobrar(bundle, hoy);
+  const ok = typeof searchParams.ok === 'string' ? searchParams.ok : null;
+  const error = typeof searchParams.error === 'string' ? searchParams.error : null;
   const vsAnterior = (v: number) => (
     <>vs. <span className="text-text-muted">{usd(v)}</span> en {nombreMes(mesAnterior(f.mes)).split(' ')[0].toLowerCase()}</>
   );
@@ -83,6 +97,16 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         </Suspense>
       </div>
 
+      {enCurso && (
+        <section className="flex flex-col gap-3">
+          <div className="flex items-baseline justify-between gap-4">
+            <div className="eyebrow">Para mirar hoy</div>
+            <Link href="/resumen" className="text-[13px] text-text-muted hover:text-text">Resumen del viernes →</Link>
+          </div>
+          <Alertas alertas={lista} />
+        </section>
+      )}
+
       {/* Fila 1 · números grandes */}
       <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Revenue" valor={usd(actual.revenue)} variacion={variacion(actual.revenue, anterior.revenue)} icono={Iconos.revenue} color="blue" />
@@ -98,6 +122,18 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <StatCard label="Agendas" valor={num(actual.agendas)} variacion={variacion(actual.agendas, anterior.agendas)} icono={Iconos.agendas} color="blue" />
         <StatCard label="% Asistencia" valor={pct(actual.pct_asistencia)} variacion={variacion(actual.pct_asistencia, anterior.pct_asistencia)} icono={Iconos.asistencia} color={semaforo(actual.pct_asistencia, 0.6)} />
         <StatCard label="% Cierre / llamadas" valor={pct(actual.pct_cierre_asistencia)} variacion={variacion(actual.pct_cierre_asistencia, anterior.pct_cierre_asistencia)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_asistencia, 0.3)} />
+      </section>
+
+      {/* Metas del mes y lo que falta cobrar */}
+      <section id="metas" className="grid scroll-mt-6 gap-4 lg:grid-cols-3">
+        <ChartCard titulo="Meta del mes" sub={`${nombreMes(f.mes)} · avance y proyección a fin de mes`} icono={Iconos.tendencia} color="green" className="lg:col-span-2">
+          {ok && <div className="ok text-[14px]">{ok}</div>}
+          {error && <div className="bad text-[14px]">{error}</div>}
+          <MetasMes items={metas.items} transcurridos={metas.transcurridos} dias={metas.dias} mes={f.mes} editable={puede(sesion, 'editor')} />
+        </ChartCard>
+        <ChartCard titulo="Cuotas por cobrar" sub="Lo que falta cobrar de ventas en cuotas" icono={Iconos.cash} color="yellow">
+          <CuotasPorCobrar {...cuotas} />
+        </ChartCard>
       </section>
 
       {/* Fila 2 · rentabilidad, revenue y cash */}

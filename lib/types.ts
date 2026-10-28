@@ -181,6 +181,10 @@ export interface AjusteMensual {
   costo_software?: number | null;
   objetivo_asistencia?: number | null; // 0.6
   objetivo_cierre_oferta?: number | null; // 0.3
+  meta_revenue?: number | null;
+  meta_cash?: number | null;
+  meta_ventas?: number | null;
+  meta_agendas?: number | null;
   notas?: string | null;
 }
 

@@ -225,6 +225,12 @@ create table if not exists ajustes_mensuales (
   objetivo_asistencia numeric(5,4) default 0.60,
   objetivo_cierre_oferta numeric(5,4) default 0.30
 );
+-- Metas del mes (para la barra de avance y la proyección).
+alter table ajustes_mensuales add column if not exists meta_revenue numeric(12,2) check (meta_revenue >= 0);
+alter table ajustes_mensuales add column if not exists meta_cash numeric(12,2) check (meta_cash >= 0);
+alter table ajustes_mensuales add column if not exists meta_ventas int check (meta_ventas >= 0);
+alter table ajustes_mensuales add column if not exists meta_agendas int check (meta_agendas >= 0);
+alter table ajustes_mensuales add column if not exists editado_por text;
 
 -- % de comisión de cada closer sobre lo cobrado (neto de reembolsos).
 -- Un cambio de % cierra la fila vieja (fecha_baja) y abre una nueva.
