@@ -8,7 +8,7 @@ import { createServerClient } from '@supabase/ssr';
  *  3. Exige que el email esté en la tabla `usuarios` y activo.
  */
 
-const PUBLICAS = ['/login', '/auth/'];
+const PUBLICAS = ['/login', '/auth/', '/privacidad', '/terminos'];
 const MAQUINA = ['/api/cron/', '/api/cargar', '/api/costos']; // validan su propio token Bearer
 
 const url = () => process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
