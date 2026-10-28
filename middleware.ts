@@ -58,6 +58,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 });
   }
 
+  // Archivo de verificación de Google Search Console (público, sin login)
+  if (/^\/google[a-z0-9]+\.html$/.test(pathname)) return NextResponse.next();
+
   if (PUBLICAS.some((p) => pathname.startsWith(p)) || esMaquina || pathname.startsWith('/api/cron/')) {
     return NextResponse.next();
   }
