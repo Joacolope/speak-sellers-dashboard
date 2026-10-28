@@ -8,7 +8,7 @@ import { createServerClient } from '@supabase/ssr';
  *  3. Exige que el email esté en la tabla `usuarios` y activo.
  */
 
-const PUBLICAS = ['/login', '/auth/', '/privacidad', '/terminos'];
+const PUBLICAS = ['/login', '/auth/', '/privacidad', '/terminos', '/bienvenida'];
 const MAQUINA = ['/api/cron/', '/api/cargar', '/api/costos']; // validan su propio token Bearer
 
 const url = () => process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -64,7 +64,8 @@ export async function middleware(req: NextRequest) {
 
   // Sin Supabase: en local se ve el demo; publicado, nada se abre hasta configurarlo.
   if (!url() || !anon() || !service()) {
-    return process.env.VERCEL_ENV ? aLogin(req, { falta: '1' }) : NextResponse.next();
+    if (process.env.VERCEL_ENV) return pathname === '/' ? NextResponse.rewrite(new URL('/bienvenida', req.url)) : aLogin(req, { falta: '1' });
+    return NextResponse.next();
   }
 
   // 2. Sesión: refresca cookies y valida el usuario contra Supabase
@@ -86,6 +87,8 @@ export async function middleware(req: NextRequest) {
 
   if (!email) {
     if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Iniciá sesión' }, { status: 401 });
+    // La dirección principal sin sesión muestra la presentación pública (la pide Google para verificar la marca)
+    if (pathname === '/') return NextResponse.rewrite(new URL('/bienvenida', req.url));
     return aLogin(req, pathname === '/' ? {} : { next: pathname + req.nextUrl.search });
   }
 
