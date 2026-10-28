@@ -6,7 +6,8 @@ import { DemoBanner, EstadoAsistio, EstadoCompro, Seccion, SiNo, claseSemaforo, 
 import { getBundle } from '@/lib/data';
 import { leerFiltros, queryDe, type SearchParams } from '@/lib/filtros';
 import { agendasDelMes, mesesDisponibles, resumenCloser } from '@/lib/metrics';
-import { fechaCorta, num, pct, usd } from '@/lib/format';
+import { fechaCorta, hoyAR, num, pct, usd } from '@/lib/format';
+import { cuotasPorCobrar, totalCuotas } from '@/lib/cuotas';
 import { CLOSERS, NOMBRE_CLOSER } from '@/lib/types';
 import { getSesion, puede } from '@/lib/auth';
 
@@ -33,6 +34,8 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
   const agendas = agendasDelMes(bundle, f).sort((a, b) => b.fecha_llamada.localeCompare(a.fecha_llamada));
   const resumen = resumenCloser(bundle, f, f.closer);
   const porCloser = CLOSERS.map((c) => resumenCloser(bundle, f, c));
+  const cuotas = cuotasPorCobrar(bundle, hoyAR());
+  const pendiente = totalCuotas([...cuotas.vencidas, ...cuotas.semana, ...cuotas.proximas].filter((c) => f.closer === 'todos' || c.closer === f.closer));
 
   return (
     <>
@@ -80,7 +83,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
         <Dato valor={num(resumen.cierres)} label="Ventas" sub={resumen.senas ? `${num(resumen.senas)} con seña` : undefined} />
         <Dato valor={pct(resumen.pct_cierre)} clase={claseSemaforo(resumen.pct_cierre, 0.3)} label="% Cierre / llamadas" sub={`Objetivo ${pct(0.3)}`} />
         <Dato valor={usd(resumen.cash)} clase="ok" label="Cobrado en las llamadas" />
-        <Dato valor={usd(resumen.revenue)} label="Valor de las ventas" sub="Incluye cuotas a cobrar" />
+        <Dato valor={usd(pendiente)} clase={pendiente ? 'warn' : ''} label="Pendiente de cobrar" sub="Cuotas que faltan de sus ventas" />
         <Dato valor={resumen.asistencias ? usd(resumen.cash / resumen.asistencias) : '—'} label="Cash por llamada" sub="Cobrado / presentadas" />
       </section>
 

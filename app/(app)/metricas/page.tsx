@@ -63,7 +63,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num">% cierre total</th>
                 <th className="num">% cierre / llamadas</th>
                 <th className="num" title="Facturación − ads − software − comisiones">Cash Collected</th>
-                <th className="num" title="Valor total de las ventas del mes, aunque se cobren en cuotas">Facturación</th>
+                <th className="num" title="Lo que entró en el mes: ventas nuevas + cuotas cobradas − reembolsos">Facturación</th>
                 <th className="num" title="Cobrado de ventas cerradas en el mes">Ventas nuevas</th>
                 <th className="num" title="Cuotas cobradas de ventas de meses anteriores">Cuotas cobradas</th>
                 <th className="num">Inversión ads</th>
@@ -114,7 +114,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
           </table>
         </div>
         <div className="text-[14px] text-text-muted">
-          Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Facturación = valor total de las ventas cerradas en el mes (aunque se cobren en cuotas) − reembolsos. Cash Collected = Facturación − inversión en ads − software − comisiones de closers − comisiones de plataformas de pago (todo se carga en Costos). <span className="text-text-disabled">*</span> sin software cargado.
+          Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Facturación = lo que entró en el mes (ventas nuevas + cuotas cobradas) − reembolsos; las cuotas pendientes no cuentan hasta que se cobran. Cash Collected = Facturación − inversión en ads − software − comisiones de closers − comisiones de plataformas de pago (todo se carga en Costos). <span className="text-text-disabled">*</span> sin software cargado.
           Semáforo: % Asistencia ≥ {pct(0.6)} y % cierre / llamadas ≥ {pct(0.3)}. % Agenda inbound = agendas de gente que escribió / conversaciones inbound; outbound = agendas de mensajes en frío / respuestas outbound (configurable en <code className="mono text-[12px]">ajustes_mensuales</code>).
         </div>
       </Seccion>

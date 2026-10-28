@@ -98,8 +98,9 @@ export async function POST(req: NextRequest) {
         agenda_id: agenda.id,
         fecha_cobro: ahora.slice(0, 10),
         monto_cobrado: patch.cash_collected,
-        pendiente: 0,
-        cuotas_restantes: 0,
+        // Lo que falta del valor total queda como pendiente (no cuenta en facturación hasta cobrarse)
+        pendiente: Math.max(0, Number(patch.revenue ?? 0) - Number(patch.cash_collected)),
+        cuotas_restantes: Number(patch.revenue ?? 0) > Number(patch.cash_collected) ? 1 : 0,
         closer: agenda.closer,
         es_reembolso: false,
         plataforma,

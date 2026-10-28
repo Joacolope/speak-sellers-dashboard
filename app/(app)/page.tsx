@@ -144,7 +144,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <ChartCard
           titulo="Facturación"
           color="blue"
-          sub={`Valor total vendido, aunque se cobre en cuotas${enCurso ? ' · mes en curso punteado' : ''}`}
+          sub={`Lo que entró: ventas nuevas + cuotas − reembolsos${enCurso ? ' · mes en curso punteado' : ''}`}
           icono={Iconos.revenue}
           valor={usd(actual.revenue)}
           comparacion={vsAnterior(anterior.revenue)}

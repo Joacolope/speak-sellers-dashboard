@@ -103,14 +103,17 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const ofertas = ag.filter((a) => a.oferta_hecha).length;
   const ventasAg = ag.filter(esVenta);
   const reservas = ag.filter((a) => a.compro === 'Reserva').length;
-  const revenueBruto = sum(ventasAg, (a) => a.revenue);
-  // Reembolsos del mes (informativo). Para no restarlos dos veces, al revenue solo
-  // se le descuentan los de ventas que siguen contando como venta (reembolso parcial);
-  // una venta devuelta por completo ya salió del conteo con compro = No.
   const idsVentas = new Set(ventasAg.map((a) => a.id));
   const reembolsos = Math.abs(sum(cob.filter((c) => c.es_reembolso), (c) => c.monto_cobrado));
-  const reembolsosDeVentas = Math.abs(sum(cob.filter((c) => c.es_reembolso && idsVentas.has(c.agenda_id)), (c) => c.monto_cobrado));
-  const revenue = revenueBruto - reembolsosDeVentas;
+  // Ventas nuevas = cobrado este período de ventas cerradas en el período; cuotas = cobrado de ventas anteriores.
+  // Si una venta tiene cash_collected pero ningún cobro registrado (se editó a mano), cuenta igual.
+  const conCobro = new Set(b.cobranzas.map((c) => c.agenda_id));
+  const newCash =
+    sum(cob.filter((c) => !c.es_reembolso && idsVentas.has(c.agenda_id)), (c) => c.monto_cobrado) +
+    sum(ventasAg.filter((a) => !conCobro.has(a.id)), (a) => a.cash_collected);
+  const oldCash = sum(cob.filter((c) => !c.es_reembolso && !idsVentas.has(c.agenda_id)), (c) => c.monto_cobrado);
+  // Facturación = lo que entró de verdad (las cuotas pendientes no cuentan hasta cobrarse) − reembolsos
+  const revenue = newCash + oldCash - reembolsos;
   const inversion = sum(ads, (a) => a.inversion);
   // Software: sale de la tabla de costos; si todavía no se cargó ninguno, del ajuste mensual.
   const softwareMes = b.costos.length ? costosDelMes(b.costos, f.mes).total : ajuste?.costo_software ?? null;
@@ -120,12 +123,9 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const comisiones = com.sinConfigurar ? null : com.total;
   const plat = comisionesPlataformasDelMes(b.comisionesPlataformas, cob, f.mes);
   const comisionesPlataformas = plat.sinConfigurar ? null : plat.total;
-  // Cash Collected (lo que queda) = Revenue − ads − software − comisiones de closers − comisiones de plataformas
+  // Cash Collected (lo que queda) = Facturación − ads − software − comisiones de closers − comisiones de plataformas
   const cash = revenue - inversion - (software ?? 0) - (comisiones ?? 0) - (comisionesPlataformas ?? 0);
 
-  const idsVentasMes = idsVentas;
-  const newCash = sum(cob.filter((c) => !c.es_reembolso && idsVentasMes.has(c.agenda_id)), (c) => c.monto_cobrado);
-  const oldCash = sum(cob.filter((c) => !c.es_reembolso && !idsVentasMes.has(c.agenda_id)), (c) => c.monto_cobrado);
 
   const convOrg = sumNullable(setter, (s) => s.conv_organicas);
   const convPag = sumNullable(setter, (s) => s.conv_pagadas);
@@ -198,7 +198,8 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
     return out;
   };
   const ventas = ag.filter(esVenta);
-  const usdVentas = funnel ? ventas.reduce((acc, a) => acc + (a.revenue ?? 0), 0) : m.revenue;
+  // Lo cobrado de las ventas del período (sin cuotas pendientes)
+  const usdVentas = funnel ? ventas.reduce((acc, a) => acc + (a.cash_collected ?? 0), 0) : m.new_cash;
   const nivelesFinales: NivelFunnel[] = [
     { nombre: 'Agendas', valor: ag.length, porCloser: porCloser(() => true) },
   ];
@@ -214,7 +215,7 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
       ...nivelesFinales,
       { nombre: 'Llamadas presentadas', valor: ag.filter((a) => a.asistio === 'Asistió').length, porCloser: porCloser((a) => a.asistio === 'Asistió') },
       { nombre: 'Ventas', valor: ventas.length, porCloser: porCloser(esVenta) },
-      { nombre: 'Ventas USD', valor: usdVentas, esUsd: true, porCloser: porCloser((a) => (esVenta(a) ? a.revenue ?? 0 : 0)) },
+      { nombre: 'Cobrado USD', valor: usdVentas, esUsd: true, porCloser: porCloser((a) => (esVenta(a) ? a.cash_collected ?? 0 : 0)) },
     ];
   }
 
@@ -231,7 +232,7 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
     ...nivelesFinales,
     { nombre: 'Llamadas presentadas', valor: ag.filter((a) => a.asistio === 'Asistió').length, porCloser: porCloser((a) => a.asistio === 'Asistió') },
     { nombre: 'Cierres', valor: ventas.length, porCloser: porCloser(esVenta) },
-    { nombre: 'Ventas USD', valor: usdVentas, esUsd: true, porCloser: porCloser((a) => (esVenta(a) ? a.revenue ?? 0 : 0)) },
+    { nombre: 'Cobrado USD', valor: usdVentas, esUsd: true, porCloser: porCloser((a) => (esVenta(a) ? a.cash_collected ?? 0 : 0)) },
   ];
 }
 
