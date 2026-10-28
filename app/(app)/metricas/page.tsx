@@ -47,7 +47,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num">Seguimientos</th>
                 <th className="num">Links</th>
                 <th className="num">Agendas</th>
-                <th className="num">Llamadas hechas</th>
+                <th className="num">Llamadas presentadas</th>
                 <th className="num">% Asistencia</th>
                 <th className="num">No show</th>
                 <th className="num">% No show</th>

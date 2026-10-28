@@ -184,7 +184,7 @@ export interface NivelFunnel {
 
 export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunnel[] {
   const m = metricasMes(b, f);
-  const ag = agendasDelMes(b, f).filter((a) => !funnel || funnelDeLead(a.lead?.funnel) === funnel);
+  const ag = agendasDelMes(b, f).filter((a) => !funnel || funnelDeLead(a.lead?.funnel, a.lead?.fuente) === funnel);
   const porCloser = (fn: (a: Agenda) => boolean | number): Partial<Record<Closer, number>> => {
     const out: Partial<Record<Closer, number>> = {};
     for (const c of CLOSERS) {
@@ -196,21 +196,40 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
     }
     return out;
   };
-  // Conversaciones del funnel: orgánicas, pagadas (Follow Me Ads) o registros del webinar
+  const ventas = ag.filter(esVenta);
+  const usdVentas = funnel ? ventas.reduce((acc, a) => acc + (a.revenue ?? 0), 0) : m.revenue;
+  const nivelesFinales: NivelFunnel[] = [
+    { nombre: 'Agendas', valor: ag.length, porCloser: porCloser(() => true) },
+  ];
+
+  // Webinar: Registrados → Asistentes → Agendas → Ventas
+  if (funnel === 'Webinar') {
+    const webs = b.webinars.filter((w) => enPeriodo(f, w.fecha));
+    const sumW = (k: 'registrados' | 'asistentes') => (webs.some((w) => w[k] !== null && w[k] !== undefined) ? webs.reduce((acc, w) => acc + (w[k] ?? 0), 0) : null);
+    return [
+      { nombre: 'Registrados', valor: sumW('registrados') },
+      { nombre: 'Asistentes', valor: sumW('asistentes') },
+      ...nivelesFinales,
+      { nombre: 'Llamadas presentadas', valor: ag.filter((a) => a.asistio === 'Asistió').length, porCloser: porCloser((a) => a.asistio === 'Asistió') },
+      { nombre: 'Ventas', valor: ventas.length, porCloser: porCloser(esVenta) },
+      { nombre: 'Ventas USD', valor: usdVentas, esUsd: true, porCloser: porCloser((a) => (esVenta(a) ? a.revenue ?? 0 : 0)) },
+    ];
+  }
+
+  // General / Orgánico / YouTube: Conversaciones → Agendas → Llamadas → Cierres
   const setter = b.setter.filter((x) => enPeriodo(f, x.fecha));
   const sumN = (vals: (number | null | undefined)[]) => (vals.some((v) => v !== null && v !== undefined) ? vals.reduce<number>((acc, v) => acc + (v ?? 0), 0) : null);
   const conversaciones =
     !funnel ? m.conversaciones
     // Orgánico = orgánicas + pagadas (Follow Me Ads lleva al perfil) + outbound con respuesta
     : funnel === 'Orgánico' ? sumN(setter.map((x) => (x.conv_organicas ?? 0) + (x.conv_pagadas ?? 0) + (x.respuestas ?? 0)))
-    : sumN(b.ads.filter((a) => a.campana === 'webinar' && enPeriodo(f, a.fecha)).map((a) => a.conversaciones));
-  const ventas = ag.filter(esVenta);
+    : null; // YouTube: todavía sin fuente de conversaciones
   return [
     { nombre: 'Conversaciones', valor: conversaciones },
-    { nombre: 'Agendas', valor: ag.length, porCloser: porCloser(() => true) },
-    { nombre: 'Llamadas hechas', valor: ag.filter((a) => a.asistio === 'Asistió').length, porCloser: porCloser((a) => a.asistio === 'Asistió') },
+    ...nivelesFinales,
+    { nombre: 'Llamadas presentadas', valor: ag.filter((a) => a.asistio === 'Asistió').length, porCloser: porCloser((a) => a.asistio === 'Asistió') },
     { nombre: 'Cierres', valor: ventas.length, porCloser: porCloser(esVenta) },
-    { nombre: 'Ventas USD', valor: funnel ? ventas.reduce((acc, a) => acc + (a.revenue ?? 0), 0) : m.revenue, esUsd: true, porCloser: porCloser((a) => (esVenta(a) ? a.revenue ?? 0 : 0)) },
+    { nombre: 'Ventas USD', valor: usdVentas, esUsd: true, porCloser: porCloser((a) => (esVenta(a) ? a.revenue ?? 0 : 0)) },
   ];
 }
 
@@ -288,7 +307,7 @@ export function resumenCloser(b: RawBundle, f: Filtros, closer: Closer | 'todos'
     pct_show: ratio(asistencias, ag.length),
     ofertas,
     cierres,
-    pct_cierre: ratio(cierres, asistencias), // cierres sobre llamadas hechas
+    pct_cierre: ratio(cierres, asistencias), // cierres sobre llamadas presentadas
     cash: sum(ag.filter(esVenta), (a) => a.cash_collected),
     revenue: sum(ag.filter(esVenta), (a) => a.revenue),
   };

@@ -69,7 +69,7 @@ export default function ClosersDesplegable({ filas }: { filas: DetalleCloser[] }
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="flex flex-col gap-1.5 text-[13px]">
                           <div className="font-medium text-text">Resumen</div>
-                          <div className="flex justify-between"><span className="text-text-muted">Llamadas hechas</span><span>{num(c.llamadas)}</span></div>
+                          <div className="flex justify-between"><span className="text-text-muted">Llamadas presentadas</span><span>{num(c.llamadas)}</span></div>
                           <div className="flex justify-between"><span className="text-text-muted">No show</span><span className={c.noShow ? 'bad' : ''}>{num(c.noShow)}</span></div>
                           <div className="flex justify-between"><span className="text-text-muted">Pendientes de marcar</span><span className={c.pendientes ? 'warn' : ''}>{num(c.pendientes)}</span></div>
                           <div className="flex justify-between"><span className="text-text-muted">Comisión</span><span>{c.porcentaje === null ? 'falta cargar %' : `${String(c.porcentaje).replace('.', ',')}% de lo cobrado`}</span></div>

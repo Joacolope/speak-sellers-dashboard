@@ -21,7 +21,7 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
   desde.setUTCMonth(desde.getUTCMonth() - 14);
   const desdeIso = desde.toISOString().slice(0, 10);
 
-  const [leads, agendas, cobranzas, setter, ads, organico, piezas, ajustes, costos, comisiones, comPlat, log] = await Promise.all([
+  const [leads, agendas, cobranzas, setter, ads, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log] = await Promise.all([
     sb.from('leads').select('*'),
     sb.from('agendas').select('*').gte('fecha_llamada', desdeIso),
     sb.from('cobranzas').select('*').gte('fecha_cobro', desdeIso),
@@ -33,10 +33,11 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
     sb.from('costos').select('*').order('fecha_alta'),
     sb.from('comisiones').select('*').order('fecha_alta'),
     sb.from('comisiones_plataformas').select('*').order('fecha_alta'),
+    sb.from('webinars').select('*').order('fecha'),
     sb.from('log_agente').select('*').order('fecha', { ascending: false }).limit(30),
   ]);
 
-  const errores = [leads, agendas, cobranzas, setter, ads, organico, piezas, ajustes, costos, comisiones, comPlat, log].map((r) => r.error).filter(Boolean);
+  const errores = [leads, agendas, cobranzas, setter, ads, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log].map((r) => r.error).filter(Boolean);
   if (errores.length) throw new Error(`Supabase: ${errores.map((e) => e!.message).join('; ')}`);
 
   const leadsById = new Map<string, Lead>((leads.data as Lead[]).map((l) => [l.id, l]));
@@ -63,6 +64,7 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
     ajustes: ajustes.data as RawBundle['ajustes'],
     costos: (costos.data ?? []).map((c) => ({ ...c, monto: Number(c.monto) })) as RawBundle['costos'],
     comisiones: (comisiones.data ?? []).map((c) => ({ ...c, porcentaje: Number(c.porcentaje) })) as RawBundle['comisiones'],
+    webinars: (webinars.data ?? []) as RawBundle['webinars'],
     comisionesPlataformas: (comPlat.data ?? []).map((c) => ({ ...c, porcentaje: Number(c.porcentaje), fijo: Number(c.fijo) })) as RawBundle['comisionesPlataformas'],
     log: logs,
     actualizaciones,

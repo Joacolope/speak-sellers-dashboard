@@ -67,7 +67,7 @@ Login solo con Google. Entra quien esté en la tabla `usuarios` (se carga desde 
 
 ## Embudos por fuente
 
-El embudo de Inicio tiene botones: **General**, **Orgánico** (incluye Follow Me Ads) y **Webinar**. Cada lead lleva su `funnel`; si no está clasificado cuenta como Orgánico. Conversaciones: Orgánico = orgánicas + pagadas + outbound con respuesta; Webinar = registros de las campañas de webinar.
+El embudo de Inicio tiene botones: **General**, **Orgánico** (incluye Follow Me Ads), **Webinar** y **YouTube**. Cada lead lleva su `funnel`; si no está clasificado se deduce de la fuente (YouTube / Webinar) y si no, cuenta como Orgánico. Conversaciones: Orgánico = orgánicas + pagadas + outbound con respuesta; Webinar = registros de las campañas de webinar.
 
 ## Origen de cada número
 

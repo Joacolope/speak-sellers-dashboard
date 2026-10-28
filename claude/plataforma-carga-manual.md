@@ -34,7 +34,8 @@ Costos (software): `POST /api/costos`
 | "Canva lo pagamos anual, 120" | `costos`: alta con `frecuencia=Anual`, `monto=120` (cuenta 10 por mes) |
 | "GHL subió a 297 desde noviembre" | `costos`: cerrar la fila actual con `fecha_baja=2026-10-31` y abrir una nueva con `monto=297`, `fecha_alta=2026-11-01` |
 | "La comisión de Andrea es 10%" | `comisiones`: `closer=Andrea`, `porcentaje=10`, `fecha_alta` = desde cuándo (o `POST /api/comisiones`) |
-| "Este lead vino por el webinar" | `leads.funnel = 'Webinar'` (si no, `Orgánico`, que incluye Follow Me Ads) |
+| "Este lead vino por el webinar / por YouTube" | `leads.funnel = 'Webinar'` o `'YouTube'` (si no, `Orgánico`, que incluye Follow Me Ads) |
+| "El webinar del 4/10 tuvo 975 registrados y 240 asistentes" | `webinars` (upsert por fecha) o `POST /api/cargar` con `tipo: "webinar"`, `fecha`, `registrados`, `asistentes` |
 | "Dimos de baja Zoom" | `costos`: `fecha_baja` = último día pagado |
 
 ## Reglas

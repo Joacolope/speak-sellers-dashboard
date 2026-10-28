@@ -18,9 +18,11 @@ export const NOMBRE_CLOSER: Record<Closer, string> = {
 
 /** Funnel de origen del lead. Orgánico incluye Follow Me Ads (anuncios que llevan al perfil).
     Valores viejos ('Follow Me Ads', 'Lead magnet') o sin clasificar cuentan como Orgánico. */
-export type Funnel = 'Orgánico' | 'Webinar';
-export const FUNNELS: Funnel[] = ['Orgánico', 'Webinar'];
-export const funnelDeLead = (f: string | null | undefined): Funnel => (f === 'Webinar' ? 'Webinar' : 'Orgánico');
+export type Funnel = 'Orgánico' | 'Webinar' | 'YouTube';
+export const FUNNELS: Funnel[] = ['Orgánico', 'Webinar', 'YouTube'];
+/** Funnel efectivo: el cargado; si no hay, se deduce de la fuente (YouTube / Webinar); si no, Orgánico. */
+export const funnelDeLead = (f: string | null | undefined, fuente?: string | null): Funnel =>
+  f === 'Webinar' || f === 'YouTube' ? f : !f && (fuente === 'YouTube' || fuente === 'Webinar') ? fuente : 'Orgánico';
 export const FUENTES: Fuente[] = ['Instagram', 'WhatsApp', 'Webinar', 'YouTube', 'Referido', 'Otro'];
 
 export interface Lead {
@@ -193,6 +195,16 @@ export interface ComisionPlataforma {
   source: Source;
 }
 
+/** Un webinar: registrados y asistentes (se cargan a mano o por Claude). */
+export interface Webinar {
+  id: string;
+  fecha: string; // YYYY-MM-DD
+  nombre?: string | null;
+  registrados?: number | null;
+  asistentes?: number | null;
+  source: Source;
+}
+
 export interface LogAgente {
   id: string;
   fecha: string;
@@ -223,6 +235,7 @@ export interface RawBundle {
   costos: Costo[];
   comisiones: Comision[];
   comisionesPlataformas: ComisionPlataforma[];
+  webinars: Webinar[];
   log: LogAgente[];
   actualizaciones: UltimaActualizacion[];
 }

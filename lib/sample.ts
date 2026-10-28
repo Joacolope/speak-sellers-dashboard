@@ -13,7 +13,7 @@ import type { Funnel } from './types';
 
 /** Funnel de ejemplo según la fuente (ilustrativo). */
 function funnelDe(fuente: Fuente, _r: number): Funnel {
-  return fuente === 'Webinar' ? 'Webinar' : 'Orgánico';
+  return fuente === 'Webinar' ? 'Webinar' : fuente === 'YouTube' ? 'YouTube' : 'Orgánico';
 }
 
 // Generador determinístico (misma data en cada render)
@@ -381,6 +381,11 @@ export function sampleBundle(): RawBundle {
       { id: 'com-1', closer: 'Marcos', porcentaje: 0, fecha_alta: '2026-08-01', source: 'manual' },
       { id: 'com-2', closer: 'Andrea', porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
       { id: 'com-3', closer: 'Gonzalo', porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
+    ],
+    // Webinar del 4/10: 975 registrados es real (spec); asistentes y el del 6/9 son de ejemplo
+    webinars: [
+      { id: 'web-1', fecha: '2026-09-06', nombre: 'Webinar 6/9', registrados: 320, asistentes: 95, source: 'manual' },
+      { id: 'web-2', fecha: '2026-10-04', nombre: 'Webinar 4/10', registrados: 975, asistentes: 240, source: 'manual' },
     ],
     // Tarifas reales (mismas que la carga inicial de la base)
     comisionesPlataformas: [

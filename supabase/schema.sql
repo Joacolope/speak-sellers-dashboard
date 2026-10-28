@@ -238,6 +238,23 @@ select v.closer::closer_t, v.pct, date '2026-08-01', 'Carga inicial', 'manual'
 from (values ('Marcos', 0), ('Andrea', 10), ('Gonzalo', 10)) as v(closer, pct)
 where not exists (select 1 from comisiones);
 
+-- Webinars: registrados y asistentes de cada uno (para el embudo de Webinar).
+create table if not exists webinars (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  source source_t not null default 'manual',
+  notas text,
+  fecha date not null unique,
+  nombre text,
+  registrados int check (registrados >= 0),
+  asistentes int check (asistentes >= 0),
+  editado_por text
+);
+-- Dato real conocido: webinar del 4/10 con 975 registrados (asistentes sin cargar).
+insert into webinars (fecha, nombre, registrados, source) values ('2026-10-04', 'Webinar 4/10', 975, 'migracion')
+on conflict (fecha) do nothing;
+
 -- Quién puede entrar. El login es con Google; si el email no está acá (o está
 -- inactivo) no ve nada. admin y editor cargan datos; lector solo mira.
 create table if not exists usuarios (
@@ -254,8 +271,10 @@ create table if not exists usuarios (
 insert into usuarios (email, nombre, rol) values
   ('joacolope609@gmail.com', 'Joaquín López', 'admin'),
   ('joaquin@salesspawn.com', 'Joaquín López', 'admin'),
-  ('marcoslanciventas@gmail.com', 'Marcos Lanci', 'lector')
+  ('marcoslanciventas@gmail.com', 'Marcos Lanci', 'editor')
 on conflict (email) do nothing;
+-- Marcos pasó de lector a editor (puede cargar datos)
+update usuarios set rol = 'editor' where email = 'marcoslanciventas@gmail.com' and rol = 'lector';
 
 -- Software y costos fijos. Cuenta desde fecha_alta hasta fecha_baja (incluida).
 -- Anual = monto/12 por mes. Único = entero en el mes de fecha_alta.
@@ -317,8 +336,10 @@ alter table leads add column if not exists editado_por text;
 -- Por dónde entró cada cobro
 alter table cobranzas add column if not exists plataforma text check (plataforma in ('Stripe','Wise','Cripto','Efectivo','Mercado Pago','DólarApp','Otro'));
 -- Funnel por el que entró el lead (para los embudos por fuente)
--- Orgánico (incluye Follow Me Ads) o Webinar. Valores viejos se leen como Orgánico.
-alter table leads add column if not exists funnel text check (funnel in ('Orgánico','Follow Me Ads','Webinar','Lead magnet'));
+-- Orgánico (incluye Follow Me Ads), Webinar o YouTube. Valores viejos se leen como Orgánico.
+alter table leads add column if not exists funnel text;
+alter table leads drop constraint if exists leads_funnel_check;
+alter table leads add constraint leads_funnel_check check (funnel in ('Orgánico','Webinar','YouTube','Follow Me Ads','Lead magnet'));
 -- Inbound (el lead escribió primero) u Outbound (salió de un mensaje en frío)
 alter table leads add column if not exists canal text not null default 'Inbound' check (canal in ('Inbound','Outbound'));
 alter table agendas add column if not exists editado_por text;
@@ -333,7 +354,7 @@ begin new.updated_at = now(); return new; end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','usuarios','log_agente'] loop
+  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','webinars','usuarios','log_agente'] loop
     execute format('drop trigger if exists %I_updated_at on %I', t, t);
     execute format('create trigger %I_updated_at before update on %I for each row execute function set_updated_at()', t, t);
   end loop;
@@ -515,7 +536,7 @@ $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','log_agente'] loop
+  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','webinars','log_agente'] loop
     execute format('alter table %I enable row level security', t);
     execute format('alter table %I force row level security', t);
     execute format('drop policy if exists %I_anon_lee on %I', t, t);           -- política vieja, insegura

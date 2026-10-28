@@ -10,9 +10,9 @@ const corto = (v: number | null) => (v === null ? '—' : v >= 1000 ? `$${(v / 1
 /* Embudo estilizado: cada nivel es un trapecio que encastra con el siguiente.
    El ancho es fijo y decreciente (se lee la forma); el número manda.
    Relleno: Ember mezclado con la superficie, de 100 % a 45 %. */
-const ANCHOS = [100, 89, 78, 67, 57, 48];
+const ANCHOS = [100, 90, 80, 70, 60, 51];
 
-export default function Funnel({ niveles }: { niveles: NivelFunnel[] }) {
+export default function Funnel({ niveles, sinAviso = false }: { niveles: NivelFunnel[]; sinAviso?: boolean }) {
   const [hover, setHover] = useState<number | null>(null);
 
   return (
@@ -67,8 +67,12 @@ export default function Funnel({ niveles }: { niveles: NivelFunnel[] }) {
           </div>
         );
       })}
-      {niveles[0].valor === null && (
-        <div className="mt-2 text-[13px] text-text-disabled">Conversaciones sin dato para esta fuente: se cargan desde el setter, Instagram o Meta.</div>
+      {!sinAviso && niveles.some((n) => n.valor === null) && (
+        <div className="mt-2 text-[13px] text-text-disabled">
+          {niveles[0].nombre === 'Registrados'
+            ? 'Registrados y asistentes de cada webinar se cargan en "Cargar" (o dictándoselos a Claude).'
+            : 'Conversaciones sin dato para esta fuente: se cargan desde el setter, Instagram o Meta.'}
+        </div>
       )}
     </div>
   );
@@ -78,9 +82,9 @@ export default function Funnel({ niveles }: { niveles: NivelFunnel[] }) {
 export function EmbudoPorFuente({ embudos }: { embudos: { clave: string; nombre: string; niveles: NivelFunnel[] }[] }) {
   const [activa, setActiva] = useState(embudos[0]?.clave ?? 'general');
   const actual = embudos.find((e) => e.clave === activa) ?? embudos[0];
-  const sinDatos = actual.niveles.slice(1).every((n) => !n.valor);
+  const sinDatos = actual.niveles.every((n) => !n.valor);
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" data-fuente={actual.clave}>
       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Fuente del embudo">
         {embudos.map((e) => (
           <button
@@ -101,7 +105,12 @@ export function EmbudoPorFuente({ embudos }: { embudos: { clave: string; nombre:
           Sin agendas de {actual.nombre} este período. Los leads se clasifican por funnel al cargarlos o desde el agente diario.
         </div>
       ) : (
-        <Funnel niveles={actual.niveles} />
+        <>
+          <Funnel niveles={actual.niveles} sinAviso={actual.clave === 'YouTube'} />
+          {actual.clave === 'YouTube' && (
+            <div className="-mt-2 text-[13px] text-text-disabled">YouTube todavía no tiene fuente de conversaciones: el embudo arranca en las agendas de leads que vinieron de YouTube.</div>
+          )}
+        </>
       )}
     </div>
   );

@@ -35,7 +35,7 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
         {searchParams.error && <div className="bad mt-3 text-[14px]">{searchParams.error}</div>}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
         <Bloque titulo="Venta" tipo="venta">
           <Campo label="Nombre del lead"><input className="input" name="nombre" required /></Campo>
           <Campo label="Compró">
@@ -86,6 +86,12 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
               <option value="">—</option>{CLOSERS.map((c) => <option key={c}>{c}</option>)}
             </select>
           </Campo>
+        </Bloque>
+        <Bloque titulo="Webinar" tipo="webinar">
+          <Campo label="Fecha del webinar"><input className="input" name="fecha" type="date" required /></Campo>
+          <Campo label="Nombre (opcional)"><input className="input" name="nombre_webinar" placeholder="Ej.: Webinar 4/10" /></Campo>
+          <Campo label="Registrados"><input className="input" name="registrados" type="number" min="0" /></Campo>
+          <Campo label="Asistentes"><input className="input" name="asistentes" type="number" min="0" /></Campo>
         </Bloque>
       </div>
     </>
