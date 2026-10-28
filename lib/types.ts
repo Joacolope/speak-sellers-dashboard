@@ -98,6 +98,10 @@ export interface SetterDiario {
   conv_frio?: number | null;
   mensajes_seguimiento?: number | null;
   respuestas?: number | null;
+  /** Outbound por WhatsApp (los tres de arriba son Instagram) */
+  frio_wa?: number | null;
+  seguimiento_wa?: number | null;
+  respuestas_wa?: number | null;
   seguimientos?: number | null;
   links_enviados?: number | null;
   agendas?: number | null;

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 
-const CAMPOS = ['conv_organicas', 'conv_pagadas', 'bienvenidas', 'conv_frio', 'mensajes_seguimiento', 'respuestas', 'seguimientos', 'links_enviados'] as const;
+const CAMPOS = ['conv_organicas', 'conv_pagadas', 'bienvenidas', 'conv_frio', 'mensajes_seguimiento', 'respuestas', 'frio_wa', 'seguimiento_wa', 'respuestas_wa', 'seguimientos', 'links_enviados'] as const;
 
 /**
  * Carga o corrige un día del setter. Form-data con sesión de editor, o JSON con

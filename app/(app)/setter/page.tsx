@@ -28,10 +28,12 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
   const sum = (k: keyof (typeof filas)[number]) => filas.reduce((acc, s) => acc + ((s[k] as number | null) ?? 0), 0);
   const totOrg = sum('conv_organicas');
   const totPag = sum('conv_pagadas');
-  const totOut = sum('respuestas');
+  const outIg = { frio: sum('conv_frio'), resp: sum('respuestas') };
+  const outWa = { frio: sum('frio_wa'), resp: sum('respuestas_wa') };
+  const totOut = outIg.resp + outWa.resp;
   const metaConv = bundle.ads.filter((a) => mesDe(a.fecha) === f.mes).reduce((acc, a) => acc + (a.conversaciones ?? 0), 0);
   const m = metricasMes(bundle, { ...f, closer: 'todos', fuente: 'todas' });
-  const chart = filas.map((s) => ({ x: s.fecha.slice(8), organicas: s.conv_organicas ?? 0, pagadas: s.conv_pagadas ?? 0, outbound: s.respuestas ?? 0 }));
+  const chart = filas.map((s) => ({ x: s.fecha.slice(8), organicas: s.conv_organicas ?? 0, pagadas: s.conv_pagadas ?? 0, outbound: (s.respuestas ?? 0) + (s.respuestas_wa ?? 0) }));
 
   return (
     <>
@@ -53,7 +55,7 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
         <div className="card flex flex-col gap-2"><div className="metric">{num(totOrg)}</div><div className="text-[14px] text-text-muted">Conv. orgánicas</div></div>
         <div className="card flex flex-col gap-2"><div className="metric">{num(totPag)}</div><div className="text-[14px] text-text-muted">Conv. pagadas</div></div>
         <div className="card flex flex-col gap-2"><div className="metric">{num(sum('links_enviados'))}</div><div className="text-[14px] text-text-muted">Links enviados</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric">{num(totOut)}</div><div className="text-[14px] text-text-muted">Conv. outbound (con respuesta)</div></div>
+        <div className="card flex flex-col gap-2"><div className="metric">{num(totOut)}</div><div className="text-[14px] text-text-muted">Conv. outbound (con respuesta)</div><div className="text-[13px] text-text-disabled">IG {num(outIg.resp)} · WA {num(outWa.resp)}</div></div>
       </section>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -61,6 +63,24 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
         <div className="card flex flex-col gap-2"><div className="metric" style={{ color: 'var(--blue-ink)' }}>{pct(m.pct_agenda_inbound)}</div><div className="text-[14px] text-text-muted">% Agenda inbound · {num(m.agendas_inbound)} / {num(m.conv_inbound)} conv. que escribieron</div></div>
         <div className="card flex flex-col gap-2"><div className="metric" style={{ color: 'var(--green-ink)' }}>{pct(m.pct_agenda_outbound)}</div><div className="text-[14px] text-text-muted">% Agenda outbound · {num(m.agendas_outbound)} / {num(m.conv_outbound)} respuestas en frío</div></div>
       </section>
+
+      <Seccion eyebrow="Outbound por canal">
+        <div className="grid gap-4 md:grid-cols-2">
+          {[
+            { canal: 'Instagram', o: outIg },
+            { canal: 'WhatsApp', o: outWa },
+          ].map(({ canal, o }) => (
+            <div key={canal} className="card flex flex-col gap-4">
+              <div className="card-title">{canal}</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div><div className="metric !text-[28px]">{num(o.frio)}</div><div className="text-[13px] text-text-muted">Mensajes en frío</div></div>
+                <div><div className="metric !text-[28px]">{num(o.resp)}</div><div className="text-[13px] text-text-muted">Respuestas</div></div>
+                <div><div className="metric !text-[28px]" style={{ color: 'var(--green-ink)' }}>{o.frio ? pct(o.resp / o.frio) : '—'}</div><div className="text-[13px] text-text-muted">% respuesta</div></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Seccion>
 
       <Seccion
         eyebrow="Comparar con Meta"
@@ -86,18 +106,24 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
             <div className="card-sub">Completá solo lo que tengas; lo vacío no se toca. Si el día ya estaba cargado, se corrige.</div>
           </div>
           <input type="hidden" name="mes" value={f.mes} />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Fecha<input className="input" name="fecha" type="date" required defaultValue={f.dia ?? new Date().toISOString().slice(0, 10)} /></label>
             <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Conv. orgánicas<input className="input" name="conv_organicas" type="number" min="0" /></label>
             <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Conv. pagadas<input className="input" name="conv_pagadas" type="number" min="0" /></label>
             <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Bienvenidas<input className="input" name="bienvenidas" type="number" min="0" /></label>
             <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Links enviados<input className="input" name="links_enviados" type="number" min="0" /></label>
-            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">En frío<input className="input" name="conv_frio" type="number" min="0" /></label>
-            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Msj. seguimiento<input className="input" name="mensajes_seguimiento" type="number" min="0" /></label>
-            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Respuestas<input className="input" name="respuestas" type="number" min="0" /></label>
             <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Seguimientos<input className="input" name="seguimientos" type="number" min="0" /></label>
-            <div className="flex items-end"><button className="btn-primary w-full" type="submit">Guardar día</button></div>
           </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            <div className="eyebrow sm:col-span-2 lg:col-span-6">Outbound</div>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Instagram · en frío<input className="input" name="conv_frio" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Instagram · seguimiento<input className="input" name="mensajes_seguimiento" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Instagram · respuestas<input className="input" name="respuestas" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">WhatsApp · en frío<input className="input" name="frio_wa" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">WhatsApp · seguimiento<input className="input" name="seguimiento_wa" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">WhatsApp · respuestas<input className="input" name="respuestas_wa" type="number" min="0" /></label>
+          </div>
+          <div className="flex justify-end"><button className="btn-primary" type="submit">Guardar día</button></div>
         </form>
       )}
 
@@ -109,7 +135,8 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
                 <tr className="group-head">
                   <th></th>
                   <th colSpan={3}>Inbound</th>
-                  <th colSpan={3}>Outbound</th>
+                  <th colSpan={3}>Outbound Instagram</th>
+                  <th colSpan={3}>Outbound WhatsApp</th>
                   <th colSpan={4}>Global</th>
                 </tr>
                 <tr>
@@ -117,6 +144,9 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
                   <th className="num">Conv. orgánicas</th>
                   <th className="num">Conv. pagadas</th>
                   <th className="num">Bienvenidas</th>
+                  <th className="num">En frío</th>
+                  <th className="num">Msj. seguimiento</th>
+                  <th className="num" title="Cuentan como conversación outbound">Respuestas</th>
                   <th className="num">En frío</th>
                   <th className="num">Msj. seguimiento</th>
                   <th className="num" title="Cuentan como conversación outbound">Respuestas</th>
@@ -136,6 +166,9 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
                     <td className="num">{num(s.conv_frio)}</td>
                     <td className="num">{num(s.mensajes_seguimiento)}</td>
                     <td className="num">{num(s.respuestas)}</td>
+                    <td className="num">{num(s.frio_wa)}</td>
+                    <td className="num">{num(s.seguimiento_wa)}</td>
+                    <td className="num">{num(s.respuestas_wa)}</td>
                     <td className="num">{num(s.seguimientos)}</td>
                     <td className="num">{num(s.links_enviados)}</td>
                     <td className="num">{num(s.agendas ?? agendasPorDia.get(s.fecha) ?? 0)}</td>

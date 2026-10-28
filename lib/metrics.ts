@@ -129,7 +129,8 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
 
   const convOrg = sumNullable(setter, (s) => s.conv_organicas);
   const convPag = sumNullable(setter, (s) => s.conv_pagadas);
-  const convOut = sumNullable(setter, (s) => s.respuestas);
+  // Outbound con respuesta: Instagram + WhatsApp
+  const convOut = sumNullable(setter, (s) => (s.respuestas == null && s.respuestas_wa == null ? null : (s.respuestas ?? 0) + (s.respuestas_wa ?? 0)));
   const conversaciones = convOrg === null && convPag === null && convOut === null ? null : (convOrg ?? 0) + (convPag ?? 0) + (convOut ?? 0);
   const convIn = convOrg === null && convPag === null ? null : (convOrg ?? 0) + (convPag ?? 0);
   // Sin clasificar cuenta como inbound (es lo que casi siempre pasa hoy)
@@ -223,7 +224,7 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
   const conversaciones =
     !funnel ? m.conversaciones
     // Orgánico = orgánicas + pagadas (Follow Me Ads lleva al perfil) + outbound con respuesta
-    : funnel === 'Orgánico' ? sumN(setter.map((x) => (x.conv_organicas ?? 0) + (x.conv_pagadas ?? 0) + (x.respuestas ?? 0)))
+    : funnel === 'Orgánico' ? sumN(setter.map((x) => (x.conv_organicas ?? 0) + (x.conv_pagadas ?? 0) + (x.respuestas ?? 0) + (x.respuestas_wa ?? 0)))
     : null; // YouTube: todavía sin fuente de conversaciones
   return [
     { nombre: 'Conversaciones', valor: conversaciones },

@@ -126,6 +126,10 @@ create table if not exists setter_diario (
   links_enviados int,
   agendas int
 );
+-- Outbound por canal: conv_frio / mensajes_seguimiento / respuestas son de Instagram; estas, de WhatsApp.
+alter table setter_diario add column if not exists frio_wa int;
+alter table setter_diario add column if not exists seguimiento_wa int;
+alter table setter_diario add column if not exists respuestas_wa int;
 
 create table if not exists ads_diario (
   id uuid primary key default gen_random_uuid(),
