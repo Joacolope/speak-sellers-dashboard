@@ -250,6 +250,13 @@ create table if not exists usuarios (
   ultimo_ingreso timestamptz
 );
 
+-- Usuarios autorizados (se agregan si no están; no se pisa un rol cambiado a mano).
+insert into usuarios (email, nombre, rol) values
+  ('joacolope609@gmail.com', 'Joaquín López', 'admin'),
+  ('joaquin@salesspawn.com', 'Joaquín López', 'admin'),
+  ('marcoslanciventas@gmail.com', 'Marcos Lanci', 'lector')
+on conflict (email) do nothing;
+
 -- Software y costos fijos. Cuenta desde fecha_alta hasta fecha_baja (incluida).
 -- Anual = monto/12 por mes. Único = entero en el mes de fecha_alta.
 -- Un cambio de precio cierra la fila vieja y abre una nueva (historial intacto).
