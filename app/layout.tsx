@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   title: 'Speak Sellers Dashboard',
   description: 'Métricas comerciales de Speak Sellers',
   robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
-  // Google Search Console: se carga GOOGLE_SITE_VERIFICATION en Vercel (el código de la etiqueta HTML)
-  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
+  // Google Search Console (etiqueta HTML). Código público; se puede pisar con GOOGLE_SITE_VERIFICATION.
+  verification: { google: process.env.GOOGLE_SITE_VERIFICATION || '5tjimK1VIxrBVCJ8_TyzgBsYMfDcqEK3U4fAcexjvAM' },
 };
 
 export const viewport: Viewport = {
