@@ -38,6 +38,12 @@ export interface Lead {
   funnel?: Funnel | null;
   /** Inbound: el lead escribió primero. Outbound: salió de un mensaje en frío. */
   canal?: 'Inbound' | 'Outbound' | null;
+  /** UTMs del link por el que agendó (vienen de la atribución de GoHighLevel) */
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  utm_content?: string | null;
+  utm_term?: string | null;
   tags?: string[] | null;
   cualificacion_economica?: number | null;
   primer_punto_contacto?: string | null;

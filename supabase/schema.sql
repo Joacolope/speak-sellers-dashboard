@@ -340,6 +340,13 @@ alter table cobranzas add column if not exists plataforma text check (plataforma
 alter table leads add column if not exists funnel text;
 alter table leads drop constraint if exists leads_funnel_check;
 alter table leads add constraint leads_funnel_check check (funnel in ('Orgánico','Webinar','YouTube','Follow Me Ads','Lead magnet'));
+-- UTMs del link por el que agendó (atribución de GoHighLevel)
+alter table leads add column if not exists utm_source text;
+alter table leads add column if not exists utm_medium text;
+alter table leads add column if not exists utm_campaign text;
+alter table leads add column if not exists utm_content text;
+alter table leads add column if not exists utm_term text;
+alter table setter_diario add column if not exists editado_por text;
 -- Inbound (el lead escribió primero) u Outbound (salió de un mensaje en frío)
 alter table leads add column if not exists canal text not null default 'Inbound' check (canal in ('Inbound','Outbound'));
 alter table agendas add column if not exists editado_por text;

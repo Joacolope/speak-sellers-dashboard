@@ -11,6 +11,16 @@ import type {
 import { diasDelMes } from './format';
 import type { Funnel } from './types';
 
+/** UTMs de ejemplo según la fuente (ilustrativos). */
+function utmsDe(fuente: Fuente, r: number) {
+  if (fuente === 'Webinar') return { utm_source: 'meta', utm_medium: 'paid', utm_campaign: 'webinar_4oct', utm_content: r < 0.5 ? 'anuncio_v1' : 'anuncio_v2' };
+  if (fuente === 'YouTube') return { utm_source: 'youtube', utm_medium: 'organico', utm_campaign: 'canal_youtube', utm_content: r < 0.5 ? 'video_cierre' : 'video_setter' };
+  if (fuente === 'WhatsApp') return { utm_source: 'whatsapp', utm_medium: 'directo', utm_campaign: 'difusion', utm_content: null };
+  if (r < 0.15) return { utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null };
+  if (r < 0.5) return { utm_source: 'instagram', utm_medium: 'paid', utm_campaign: 'follow_me_ads', utm_content: r < 0.32 ? 'reel_clase' : 'reel_miro' };
+  return { utm_source: 'instagram', utm_medium: r < 0.75 ? 'bio' : 'historias', utm_campaign: 'organico_ig', utm_content: r < 0.75 ? 'link_bio' : 'cta_historia' };
+}
+
 /** Funnel de ejemplo según la fuente (ilustrativo). */
 function funnelDe(fuente: Fuente, _r: number): Funnel {
   return fuente === 'Webinar' ? 'Webinar' : fuente === 'YouTube' ? 'YouTube' : 'Orgánico';
@@ -90,6 +100,7 @@ function construirAgendasOctubre(): { leads: Lead[]; agendas: Agenda[] } {
       fuente,
       funnel: funnelDe(fuente, rand()),
       canal: i % 9 === 4 ? 'Outbound' : 'Inbound',
+      ...utmsDe(fuente, rand()),
       cualificacion_economica: s.cualif ?? null,
       etapa_pipeline: s.compro === 'Si' ? 'Cliente' : s.compro === 'Reserva' ? 'Reserva $' : s.asistio === 'Asistió' ? 'Seguimiento' : 'Agendado',
       source: 'migracion',

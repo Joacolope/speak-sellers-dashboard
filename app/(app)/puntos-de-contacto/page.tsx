@@ -4,7 +4,10 @@ import { DemoBanner, Seccion, Vacio } from '@/components/ui';
 import TortaFuente from '@/components/TortaFuente';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
-import { esVenta, mesesDisponibles } from '@/lib/metrics';
+import { agendasPorUtm, esVenta, mesesDisponibles } from '@/lib/metrics';
+import TablaUtm from '@/components/TablaUtm';
+import { ChartCard } from '@/components/ui';
+import { Iconos } from '@/components/StatCard';
 import { fechaCorta, mesCorto, mesDe, num, usd } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +25,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
     porFuente.set(k, (porFuente.get(k) ?? 0) + 1);
   }
   const torta = Array.from(porFuente.entries()).map(([name, value]) => ({ name, value }));
+  const utms = Object.fromEntries((['utm_campaign', 'utm_source', 'utm_content', 'utm_medium'] as const).map((n) => [n, agendasPorUtm(bundle, f, n)]));
 
   return (
     <>
@@ -29,12 +33,16 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
       <div className="flex flex-col gap-6">
         <div>
           <div className="eyebrow">Puntos de contacto</div>
-          <h1 className="h1 mt-2">De dónde vienen los compradores</h1>
+          <h1 className="h1 mt-2">De dónde vienen las agendas y los compradores</h1>
         </div>
         <Suspense>
           <Filtros filtros={f} meses={meses} />
         </Suspense>
       </div>
+
+      <ChartCard titulo="Agendas por UTM" sub="Todas las agendas del período, agrupadas por el link con que agendaron" icono={Iconos.tendencia} color="blue">
+        <TablaUtm datos={utms} />
+      </ChartCard>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Seccion eyebrow="Compradores" titulo={`${num(compradores.length)} ventas`}>
@@ -51,6 +59,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                     <th>Primer punto de contacto</th>
                     <th>Último punto de contacto</th>
                     <th>Funnel / IG</th>
+                    <th>UTM (campaña · contenido)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -64,6 +73,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                       <td>{a.lead?.primer_punto_contacto ?? <span className="text-text-disabled">— (onboarding)</span>}</td>
                       <td>{a.lead?.ultimo_punto_contacto ?? <span className="text-text-disabled">— (onboarding)</span>}</td>
                       <td>{a.lead?.fuente === 'Webinar' ? 'Funnel' : 'Instagram'}</td>
+                      <td className="text-text-muted">{[a.lead?.utm_campaign, a.lead?.utm_content].filter(Boolean).join(' · ') || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

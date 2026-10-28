@@ -434,3 +434,39 @@ export function ventasPorPais(b: RawBundle, f: Filtros): { pais: string; ventas:
   }
   return Array.from(map.entries()).map(([pais, v]) => ({ pais, ...v })).sort((x, y) => y.ventas - x.ventas);
 }
+
+export type NivelUtm = 'utm_source' | 'utm_campaign' | 'utm_content' | 'utm_medium';
+
+export interface FilaUtm {
+  clave: string;
+  agendas: number;
+  presentadas: number;
+  ventas: number;
+  cash: number;
+  pctShow: number | null;
+  pctCierre: number | null; // ventas / presentadas
+}
+
+/** Agendas agrupadas por un parámetro UTM, con su resultado. "(sin UTM)" agrupa las que no traen. */
+export function agendasPorUtm(b: RawBundle, f: Filtros, nivel: NivelUtm): FilaUtm[] {
+  const mapa = new Map<string, Agenda[]>();
+  for (const a of agendasDelMes(b, f)) {
+    const k = (a.lead?.[nivel] ?? '').trim() || '(sin UTM)';
+    mapa.set(k, [...(mapa.get(k) ?? []), a]);
+  }
+  return Array.from(mapa.entries())
+    .map(([clave, ag]) => {
+      const presentadas = ag.filter((a) => a.asistio === 'Asistió').length;
+      const ventas = ag.filter(esVenta);
+      return {
+        clave,
+        agendas: ag.length,
+        presentadas,
+        ventas: ventas.length,
+        cash: ventas.reduce((s, a) => s + (a.cash_collected ?? 0), 0),
+        pctShow: ratio(presentadas, ag.length),
+        pctCierre: ratio(ventas.length, presentadas),
+      };
+    })
+    .sort((x, y) => (x.clave === '(sin UTM)' ? 1 : y.clave === '(sin UTM)' ? -1 : y.agendas - x.agendas));
+}

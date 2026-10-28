@@ -44,6 +44,31 @@ interface GhlContact {
   country?: string;
   tags?: string[];
   customFields?: { id: string; value: unknown }[];
+  /** Primera atribución (por dónde llegó) y última (por dónde convirtió) */
+  attributionSource?: Atribucion;
+  lastAttributionSource?: Atribucion;
+}
+
+interface Atribucion {
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
+  sessionSource?: string;
+}
+
+/** UTMs de la última atribución (la del link con que agendó); si no hay, de la primera. */
+function utms(c: GhlContact | null) {
+  const a = c?.lastAttributionSource?.utmSource || c?.lastAttributionSource?.utmCampaign ? c?.lastAttributionSource : c?.attributionSource;
+  const limpio = (v?: string) => (v ? String(v).trim().slice(0, 200) || null : null);
+  return {
+    utm_source: limpio(a?.utmSource) ?? limpio(a?.sessionSource),
+    utm_medium: limpio(a?.utmMedium),
+    utm_campaign: limpio(a?.utmCampaign),
+    utm_content: limpio(a?.utmContent),
+    utm_term: limpio(a?.utmTerm),
+  };
 }
 
 function paisPorPrefijo(tel?: string): string | null {
@@ -116,6 +141,7 @@ export async function syncGhl(sb: SupabaseClient, dry = false): Promise<string> 
           pais: paisPorPrefijo(contacto?.phone),
           tags: contacto?.tags ?? [],
           etapa_pipeline: etapas.get(ev.contactId) ?? null,
+          ...utms(contacto),
           source: 'ghl',
           updated_at: new Date().toISOString(),
         },

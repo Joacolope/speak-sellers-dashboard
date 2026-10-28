@@ -12,9 +12,10 @@ import { getBundle } from '@/lib/data';
 import { leerFiltros, queryDe, type SearchParams } from '@/lib/filtros';
 import {
   acumuladoAnual, adsVsCashSemanal, agendasPorDia, avisos, mesesDisponibles,
-  agendasDelMes, cobranzasDelMes, embudosPorFuente, esVenta, metricasConAnterior, resumenCloser, serieMeses, ventasPorPais,
+  agendasDelMes, agendasPorUtm, cobranzasDelMes, embudosPorFuente, esVenta, metricasConAnterior, resumenCloser, serieMeses, ventasPorPais,
 } from '@/lib/metrics';
 import ClosersDesplegable, { type DetalleCloser } from '@/components/ClosersDesplegable';
+import TablaUtm from '@/components/TablaUtm';
 import { comisionesDelMes } from '@/lib/comisiones';
 import { fechaLarga, mesActual, mesAnterior, nombreMes, num, pct, usd, variacion } from '@/lib/format';
 import { CLOSERS, NOMBRE_CLOSER } from '@/lib/types';
@@ -31,6 +32,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
   const meses = mesesDisponibles(bundle, f.mes);
   const { actual, anterior } = metricasConAnterior(bundle, f);
   const embudos = embudosPorFuente(bundle, f);
+  const utms = Object.fromEntries((['utm_campaign', 'utm_source', 'utm_content', 'utm_medium'] as const).map((n) => [n, agendasPorUtm(bundle, f, n)]));
   const serie = serieMeses(bundle, f, 6);
   const anual = acumuladoAnual(bundle, f);
   const paises = ventasPorPais(bundle, f);
@@ -157,6 +159,11 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           {paises.length ? <VentasPorPais data={paises} /> : <Vacio texto="Sin ventas este mes." />}
         </ChartCard>
       </section>
+
+      {/* UTM: de qué link vienen las agendas */}
+      <ChartCard titulo="Agendas por UTM" sub={`${periodo} · de qué campaña, fuente o contenido vienen las agendas y cuánto venden`} icono={Iconos.tendencia} color="blue">
+        <TablaUtm datos={utms} limite={8} />
+      </ChartCard>
 
       {/* Fila 6 · acumulados y closers */}
       <section className="grid gap-4 lg:grid-cols-3">

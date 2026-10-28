@@ -5,12 +5,16 @@ import { DemoBanner, Seccion, SourceDot, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { mesesDisponibles, metricasMes } from '@/lib/metrics';
+import { getSesion, puede } from '@/lib/auth';
 import { fechaCorta, mesDe, num, pct } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Setter({ searchParams }: { searchParams: SearchParams }) {
+export default async function Setter({ searchParams }: { searchParams: SearchParams & { ok?: string; error?: string } }) {
   const bundle = await getBundle();
+  const editor = puede(await getSesion(), 'editor');
+  const ok = typeof searchParams.ok === 'string' ? searchParams.ok : null;
+  const error = typeof searchParams.error === 'string' ? searchParams.error : null;
   const f = leerFiltros(searchParams);
   const meses = mesesDisponibles(bundle, f.mes);
   const filas = bundle.setter.filter((s) => mesDe(s.fecha) === f.mes).sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -36,6 +40,8 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
         <div>
           <div className="eyebrow">Setter</div>
           <h1 className="h1 mt-2">Conversaciones y seguimiento</h1>
+          {ok && <div className="ok mt-3 text-[14px]">Guardado: {ok}</div>}
+          {error && <div className="bad mt-3 text-[14px]">{error}</div>}
         </div>
         <Suspense>
           <Filtros filtros={f} meses={meses} mostrarCloser={false} mostrarFuente={false} />
@@ -72,6 +78,28 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
           ) : <Vacio texto="Sin datos de setter este mes." />}
         </div>
       </Seccion>
+
+      {editor && (
+        <form method="POST" action="/api/setter" className="card flex flex-col gap-4">
+          <div>
+            <h3 className="card-title">Cargar un día del setter</h3>
+            <div className="card-sub">Completá solo lo que tengas; lo vacío no se toca. Si el día ya estaba cargado, se corrige.</div>
+          </div>
+          <input type="hidden" name="mes" value={f.mes} />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Fecha<input className="input" name="fecha" type="date" required defaultValue={f.dia ?? new Date().toISOString().slice(0, 10)} /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Conv. orgánicas<input className="input" name="conv_organicas" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Conv. pagadas<input className="input" name="conv_pagadas" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Bienvenidas<input className="input" name="bienvenidas" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Links enviados<input className="input" name="links_enviados" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">En frío<input className="input" name="conv_frio" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Msj. seguimiento<input className="input" name="mensajes_seguimiento" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Respuestas<input className="input" name="respuestas" type="number" min="0" /></label>
+            <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Seguimientos<input className="input" name="seguimientos" type="number" min="0" /></label>
+            <div className="flex items-end"><button className="btn-primary w-full" type="submit">Guardar día</button></div>
+          </div>
+        </form>
+      )}
 
       <Seccion eyebrow="Setter 1" titulo="Tabla diaria">
         {filas.length ? (

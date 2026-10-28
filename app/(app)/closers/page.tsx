@@ -89,6 +89,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                   <th className="num">Cash Collected</th>
                   <th className="num">Revenue</th>
                   <th>Fuente</th>
+                  <th>UTM</th>
                   <th>Conf. WhatsApp</th>
                   <th>Estado GHL</th>
                   <th></th>
@@ -121,6 +122,9 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                     <td className="num editable"><EditableCell agendaId={a.id} campo="cash_collected" valor={a.cash_collected} tipo="number" demo={bundle.demo} editable={editor} mostrar={a.cash_collected !== null && a.cash_collected !== undefined ? usd(a.cash_collected) : undefined} /></td>
                     <td className="num editable"><EditableCell agendaId={a.id} campo="revenue" valor={a.revenue} tipo="number" demo={bundle.demo} editable={editor} mostrar={a.revenue !== null && a.revenue !== undefined ? usd(a.revenue) : undefined} /></td>
                     <td>{a.lead?.fuente ?? '—'}</td>
+                    <td className="max-w-[200px] truncate text-[13px] text-text-muted" title={[a.lead?.utm_source, a.lead?.utm_medium, a.lead?.utm_campaign, a.lead?.utm_content, a.lead?.utm_term].filter(Boolean).join(' / ')}>
+                      {[a.lead?.utm_campaign, a.lead?.utm_content].filter(Boolean).join(' · ') || '—'}
+                    </td>
                     <td><SiNo v={a.confirmada_whatsapp} /></td>
                     <td>{a.estado_ghl ? <span className={`tag ${a.estado_ghl === 'showed' ? 'tag-green' : a.estado_ghl === 'noshow' ? 'tag-red' : a.estado_ghl === 'cancelled' ? 'tag-gray' : 'tag-blue'}`}>{a.estado_ghl}</span> : '—'}</td>
                     <td><SourceDot source={a.source} /></td>
