@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { cuentaInstagram } from './cuentaIg';
 
 const GRAPH = 'https://graph.facebook.com/v21.0';
 /** Una respuesta que sale antes de esto se toma como automática (ManyChat) y no cuenta. */
@@ -81,10 +82,9 @@ export function calcularRespuesta(conversaciones: Conversacion[], igUser: string
 export async function syncTiempoRespuesta(sb: SupabaseClient, dry = false): Promise<string> {
   const token = process.env.META_TOKEN;
   const page = process.env.META_PAGE_ID;
-  const igUser = process.env.IG_USER_ID;
   if (!token) throw new Error('Falta META_TOKEN');
   if (!page) throw new Error('Falta META_PAGE_ID');
-  if (!igUser) throw new Error('Falta IG_USER_ID');
+  const igUser = await cuentaInstagram();
   const ayer = diaAR(new Date(Date.now() - 86400000).toISOString());
   const desde = Date.now() - 3 * 86400000;
 

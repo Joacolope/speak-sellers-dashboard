@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { cuentaInstagram } from './cuentaIg';
 
 const GRAPH = 'https://graph.facebook.com/v21.0';
 
@@ -42,8 +43,7 @@ export function palabraClave(caption?: string): string | null {
 
 /** Historias de las últimas 24 h, reels de los últimos 7 días y mensajería de ayer. */
 export async function syncIgOrganico(sb: SupabaseClient, dry = false): Promise<string> {
-  const igUser = process.env.IG_USER_ID;
-  if (!igUser) throw new Error('Falta IG_USER_ID');
+  const igUser = await cuentaInstagram();
   const ayer = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   const hace7 = new Date(Date.now() - 7 * 86400000).toISOString();
 

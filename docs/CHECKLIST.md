@@ -29,7 +29,7 @@ Necesita un token de **usuario del sistema** (no vence; uno personal vence a los
    `ads_read`, `instagram_basic`, `instagram_manage_insights`, `pages_read_engagement`, `pages_show_list`, `business_management`.
 - [ ] `META_TOKEN` = ese token
 - [ ] `META_AD_ACCOUNT` = `act_1431751731204204`
-- [ ] `IG_USER_ID` = `1696198744016068` (Claude lo verifica con el token)
+- [ ] `IG_USER_ID`: no hace falta, se saca solo de `META_PAGE_ID` (1696198744016068 era el catálogo, no Instagram)
 
 ## 4. Que Claude pueda verificar y cargar datos
 En Claude Code → menú del entorno (barra de título de la sesión) → **Edit → Network access** → **Allowed domains**, agregar:
