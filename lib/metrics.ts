@@ -358,6 +358,9 @@ export function avisos(b: RawBundle, f: Filtros, hoy: string): Pendiente[] {
   if (!platFaltan.sinConfigurar) for (const p of platFaltan.faltan) out.push({ tipo: 'agente', texto: p === 'Sin indicar' ? 'Hay cobros sin plataforma de pago indicada' : `Falta la comisión de ${p} (sección Costos)` });
   const ultimoLog = b.log.filter((l) => l.source === 'agente').sort((a, b2) => b2.fecha.localeCompare(a.fecha))[0];
   for (const p of ultimoLog?.pendientes ?? []) out.push({ tipo: 'agente', texto: p });
+  // Avisos del último cron que no son errores de una fuente (ej.: token por vencer)
+  const ultimoCron = b.log.filter((l) => l.resumen.startsWith('cron')).sort((a, b2) => b2.fecha.localeCompare(a.fecha))[0];
+  for (const p of ultimoCron?.pendientes ?? []) if (p.includes('vence')) out.push({ tipo: 'agente', texto: p });
   for (const u of b.actualizaciones) {
     if (!u.ok) out.push({ tipo: 'fuente', texto: `${u.fuente} no actualizó hoy${u.detalle ? `: ${u.detalle}` : ''}` });
   }

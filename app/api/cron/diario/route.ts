@@ -5,6 +5,7 @@ import { syncGhl } from '@/lib/sync/ghl';
 import { syncMetaAds, syncMetaCampanas } from '@/lib/sync/meta';
 import { syncIgOrganico } from '@/lib/sync/ig';
 import { syncTiempoRespuesta } from '@/lib/sync/respuesta';
+import { vencimientoMeta } from '@/lib/sync/vencimiento';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -41,6 +42,13 @@ export async function GET(req: NextRequest) {
   await correr('Campañas', () => syncMetaCampanas(sb, dry));
   await correr('IG', () => syncIgOrganico(sb, dry));
   await correr('Respuesta', () => syncTiempoRespuesta(sb, dry));
+
+  // El token de Meta de 60 días vence: avisar 10 días antes (queda en Avisos del Inicio)
+  const vence = await vencimientoMeta().catch(() => null);
+  const dias = vence ? Math.ceil((vence.getTime() - Date.now()) / 86400000) : null;
+  if (dias !== null && dias <= 10) {
+    errores.push(`El token de Meta vence ${dias <= 0 ? 'hoy' : `en ${dias} días`} (${vence!.toISOString().slice(0, 10)}): renovarlo en developers.facebook.com/tools/explorer y actualizar META_TOKEN en Vercel`);
+  }
 
   const resumen = `cron ${errores.length ? 'con errores' : 'ok'}: ${Object.entries(resultados).map(([k, v]) => `${k} ${v}`).join(', ')}`;
   if (!dry) {
