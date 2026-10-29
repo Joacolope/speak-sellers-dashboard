@@ -1,5 +1,4 @@
 import { cache } from 'react';
-import { cookies } from 'next/headers';
 import type { Agenda, Lead, RawBundle, UltimaActualizacion } from './types';
 import { sampleBundle } from './sample';
 import { supabase, supabaseConfigurado } from './supabase';
@@ -13,8 +12,8 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
   // Segunda barrera: aunque el middleware falle, sin sesión válida no se lee nada.
   const sesion = await getSesion();
   if (!sesion) throw new Error('No autorizado');
-  // Vista de ejemplo: la activa el usuario desde la barra (cookie). Nunca mezcla datos reales.
-  if (!supabaseConfigurado() || cookies().get('ss_demo')?.value === '1') return sampleBundle();
+  // Datos de ejemplo solo en desarrollo local sin Supabase; publicado, siempre datos reales.
+  if (!supabaseConfigurado()) return sampleBundle();
   return cargarBundle();
 });
 
