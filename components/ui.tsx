@@ -71,13 +71,13 @@ export function EstadoCompro({ v }: { v: string | null | undefined }) {
   return <Tag color={COLOR_COMPRO[v] ?? 'gray'}>{v === 'Si' ? 'Sí' : v}</Tag>;
 }
 
-export function Variacion({ v, invertir = false }: { v: number | null; invertir?: boolean }) {
-  if (v === null) return <span className="text-[13px] text-text-disabled">sin mes anterior</span>;
+export function Variacion({ v, invertir = false, contra = 'mes anterior' }: { v: number | null; invertir?: boolean; contra?: string }) {
+  if (v === null) return <span className="text-[13px] text-text-disabled">sin datos de {contra}</span>;
   const sign = v > 0 ? '+' : '';
   return (
     <span className="text-[13px]">
       <span className={(v >= 0) !== invertir ? 'ok' : 'bad'}>{v >= 0 ? '▲' : '▼'} {sign}{(v * 100).toFixed(1).replace('.', ',')}%</span>{' '}
-      <span className="text-text-disabled">vs. mes anterior</span>
+      <span className="text-text-disabled">vs. {contra}</span>
     </span>
   );
 }

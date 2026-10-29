@@ -4,7 +4,7 @@ import { DemoBanner, Seccion, Vacio } from '@/components/ui';
 import TortaFuente from '@/components/TortaFuente';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
-import { agendasPorUtm, esVenta, mesesDisponibles } from '@/lib/metrics';
+import { agendasPorUtm, esVenta, mesesDisponibles, enPeriodo } from '@/lib/metrics';
 import TablaUtm from '@/components/TablaUtm';
 import { ChartCard } from '@/components/ui';
 import { Iconos } from '@/components/StatCard';
@@ -17,7 +17,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
   const f = leerFiltros(searchParams);
   const meses = mesesDisponibles(bundle, f.mes);
   const compradores = bundle.agendas
-    .filter((a) => esVenta(a) && mesDe(a.fecha_llamada) === f.mes && (f.closer === 'todos' || a.closer === f.closer) && (f.fuente === 'todas' || a.lead?.fuente === f.fuente))
+    .filter((a) => esVenta(a) && enPeriodo(f, a.fecha_llamada) && (f.closer === 'todos' || a.closer === f.closer) && (f.fuente === 'todas' || a.lead?.fuente === f.fuente))
     .sort((a, b) => b.fecha_llamada.localeCompare(a.fecha_llamada));
   const porFuente = new Map<string, number>();
   for (const c of compradores) {

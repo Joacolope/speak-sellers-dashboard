@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { Variacion } from './ui';
 
 interface Props {
+  /** Contra qué se compara (\"mes anterior\", \"1–29 sep\", \"día anterior\") */
+  contra?: string;
   label: string;
   valor: string;
   variacion: number | null;
@@ -12,7 +14,7 @@ interface Props {
   color?: 'blue' | 'green' | 'red' | 'yellow';
 }
 
-export default function StatCard({ label, valor, variacion, icono, nota, invertir, color = 'blue' }: Props) {
+export default function StatCard({ label, valor, variacion, icono, nota, invertir, color = 'blue', contra }: Props) {
   return (
     <div className="card flex flex-col gap-3 !p-5">
       <div className="flex items-start justify-between gap-2">
@@ -20,7 +22,7 @@ export default function StatCard({ label, valor, variacion, icono, nota, inverti
         <span className={`icon-badge icon-${color} !h-8 !w-8`} aria-hidden>{icono}</span>
       </div>
       <div className="metric">{valor}</div>
-      {nota ? <div className="text-[13px] text-text-disabled">{nota}</div> : <Variacion v={variacion} invertir={invertir} />}
+      {nota ? <div className="text-[13px] text-text-disabled">{nota}</div> : <Variacion v={variacion} invertir={invertir} contra={contra} />}
     </div>
   );
 }

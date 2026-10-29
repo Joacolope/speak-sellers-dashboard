@@ -290,6 +290,11 @@ export interface Filtros {
   mes: string; // YYYY-MM
   /** Día puntual (YYYY-MM-DD). Si está, todo se filtra a ese día. */
   dia?: string | null;
+  /** Rango dentro del mes (YYYY-MM-DD). Por defecto, en el mes en curso: del 1 a hoy. */
+  desde?: string | null;
+  hasta?: string | null;
+  /** true si el rango es el automático (1 → hoy) y no lo eligió el usuario */
+  rangoAuto?: boolean;
   closer: Closer | 'todos';
   fuente: Fuente | 'todas';
 }

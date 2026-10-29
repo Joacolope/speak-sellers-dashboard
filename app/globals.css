@@ -78,7 +78,7 @@
   --spacing-40: 40px;
   --spacing-60: 60px;
   --spacing-140: 140px;
-  --radius-buttons: 0px;
+  --radius-buttons: 10px;
   --radius-tags: 20px;
   --radius-data-card: 12px;
   --radius-nav-pills: 200px;
@@ -259,7 +259,9 @@ button:not(:disabled):active, a:active, .chip:active { transform: scale(.97); }
   padding: 10px 20px;
   border-radius: var(--radius-buttons);
   white-space: nowrap;
+  cursor: pointer;
 }
+.btn-primary:disabled, .btn-secondary:disabled { opacity: .45; cursor: not-allowed; }
 .btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-text); border: 1px solid var(--btn-primary-bg); }
 .btn-primary:hover { opacity: .88; }
 .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border-outline); }
@@ -281,13 +283,18 @@ button:not(:disabled):active, a:active, .chip:active { transform: scale(.97); }
 .input {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 10px;
+  min-height: 40px;
   padding: 9px 12px;
   color: var(--text);
   font-size: 14px;
   width: 100%;
 }
-.input:focus { outline: none; border-color: var(--accent); }
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.input::placeholder { color: var(--text-disabled); }
+/* Sin flechitas en los campos numéricos: se escribe el número y listo */
+.input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
+.input[type='number']::-webkit-outer-spin-button, .input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .link-ember { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
 

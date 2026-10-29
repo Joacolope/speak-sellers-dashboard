@@ -4,7 +4,7 @@ import { BarrasSimples } from '@/components/Charts';
 import { DemoBanner, Seccion, SourceDot, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
-import { mesesDisponibles, metricasMes } from '@/lib/metrics';
+import { mesesDisponibles, metricasMes, enPeriodo } from '@/lib/metrics';
 import { getSesion, puede } from '@/lib/auth';
 import { fechaCorta, fechaHora, mesDe, num, pct } from '@/lib/format';
 import { OBJETIVO_RESPUESTA_MIN, colorRespuesta, formatoEspera, resumenRespuesta } from '@/lib/respuesta';
@@ -18,10 +18,10 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
   const error = typeof searchParams.error === 'string' ? searchParams.error : null;
   const f = leerFiltros(searchParams);
   const meses = mesesDisponibles(bundle, f.mes);
-  const filas = bundle.setter.filter((s) => mesDe(s.fecha) === f.mes).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const filas = bundle.setter.filter((s) => enPeriodo(f, s.fecha)).sort((a, b) => a.fecha.localeCompare(b.fecha));
   const agendasPorDia = new Map<string, number>();
   for (const a of bundle.agendas) {
-    if (mesDe(a.fecha_agendada ?? a.fecha_llamada) === f.mes) {
+    if (enPeriodo(f, a.fecha_agendada ?? a.fecha_llamada)) {
       const d = (a.fecha_agendada ?? a.fecha_llamada).slice(0, 10);
       agendasPorDia.set(d, (agendasPorDia.get(d) ?? 0) + 1);
     }
@@ -32,7 +32,7 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
   const outIg = { frio: sum('conv_frio'), resp: sum('respuestas') };
   const outWa = { frio: sum('frio_wa'), resp: sum('respuestas_wa') };
   const totOut = outIg.resp + outWa.resp;
-  const metaConv = bundle.ads.filter((a) => mesDe(a.fecha) === f.mes).reduce((acc, a) => acc + (a.conversaciones ?? 0), 0);
+  const metaConv = bundle.ads.filter((a) => enPeriodo(f, a.fecha)).reduce((acc, a) => acc + (a.conversaciones ?? 0), 0);
   const m = metricasMes(bundle, { ...f, closer: 'todos', fuente: 'todas' });
   const rr = resumenRespuesta(filas);
   const convApi = filas.reduce((acc, s) => acc + (s.conv_api ?? 0), 0);

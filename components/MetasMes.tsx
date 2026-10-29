@@ -50,15 +50,20 @@ export default function MetasMes({
       {editable && (
         <details className="group" open={!conMeta.length}>
           <summary className="cursor-pointer text-[14px] text-text-muted">{conMeta.length ? 'Cambiar metas' : 'Cargar metas'}</summary>
-          <form method="POST" action="/api/metas" className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <form method="POST" action="/api/metas" className="mt-4 flex flex-col gap-4">
             <input type="hidden" name="mes" value={mes} />
-            {items.map((i) => (
-              <label key={i.clave} className="flex flex-col gap-1.5 text-[13px] text-text-muted">
-                {i.label}{i.esUsd ? ' (USD)' : ''}
-                <input className="input" name={`meta_${i.clave}`} type="number" min="0" step={i.esUsd ? '1' : '1'} defaultValue={i.meta ?? ''} />
-              </label>
-            ))}
-            <div className="flex items-end"><button className="btn-primary w-full" type="submit">Guardar metas</button></div>
+            <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {items.map((i) => (
+                <label key={i.clave} className="flex flex-col gap-1.5 text-[13px] text-text-muted">
+                  <span className="truncate">{i.label}</span>
+                  <input className="input" name={`meta_${i.clave}`} type="number" min="0" step="1" inputMode="numeric" placeholder={i.esUsd ? 'USD, ej. 25000' : 'ej. 20'} defaultValue={i.meta ?? ''} />
+                </label>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[13px] text-text-disabled">Dejá vacío lo que no quieras medir.</span>
+              <button className="btn-primary" type="submit">Guardar metas</button>
+            </div>
           </form>
         </details>
       )}

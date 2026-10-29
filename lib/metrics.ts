@@ -1,5 +1,6 @@
 import type { Agenda, Closer, Cobranza, Filtros, Funnel, RawBundle } from './types';
 import { CLOSERS, FUNNELS, funnelDeLead } from './types';
+import { periodoAnterior } from './filtros';
 import { costosDelMes } from './costos';
 import { comisionesDelMes } from './comisiones';
 import { comisionesPlataformasDelMes } from './plataformas';
@@ -54,7 +55,13 @@ export interface MetricasMes {
 /** ¿La fecha cae en el período del filtro? (día puntual o mes) */
 export function enPeriodo(f: Filtros, fecha: string | null | undefined): boolean {
   if (!fecha) return false;
-  return f.dia ? fecha.slice(0, 10) === f.dia : mesDe(fecha) === f.mes;
+  const d = fecha.slice(0, 10);
+  if (f.dia) return d === f.dia;
+  if (mesDe(d) !== f.mes) return false;
+  // El rango solo aplica si es de este mes (las vistas mes a mes reusan el filtro con otro mes)
+  if (f.desde && mesDe(f.desde) === f.mes && d < f.desde) return false;
+  if (f.hasta && mesDe(f.hasta) === f.mes && d > f.hasta) return false;
+  return true;
 }
 
 export function agendasDelMes(b: RawBundle, f: Filtros): Agenda[] {
@@ -252,7 +259,7 @@ export interface SemanaAdsCash {
 
 export function adsVsCashSemanal(b: RawBundle, f: Filtros): SemanaAdsCash[] {
   const dias = diasDelMes(f.mes);
-  const ads = b.ads.filter((a) => mesDe(a.fecha) === f.mes);
+  const ads = b.ads.filter((a) => enPeriodo(f, a.fecha));
   const cob = cobranzasDelMes(b, f);
   const semanas: SemanaAdsCash[] = [];
   for (let i = 0; i < dias.length; i += 7) {
@@ -334,13 +341,8 @@ export function mesesDisponibles(b: RawBundle, mesActual: string): string[] {
 }
 
 export function metricasConAnterior(b: RawBundle, f: Filtros) {
-  if (f.dia) {
-    const d = new Date(`${f.dia}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() - 1);
-    const ayer = d.toISOString().slice(0, 10);
-    return { actual: metricasMes(b, f), anterior: metricasMes(b, { ...f, dia: ayer, mes: ayer.slice(0, 7) }) };
-  }
-  return { actual: metricasMes(b, f), anterior: metricasMes(b, { ...f, dia: null, mes: mesAnterior(f.mes) }) };
+  // Mismo tramo del mes anterior (1 al 29 contra 1 al 29), o el día anterior si es un día
+  return { actual: metricasMes(b, f), anterior: metricasMes(b, periodoAnterior(f)) };
 }
 
 export interface Pendiente {

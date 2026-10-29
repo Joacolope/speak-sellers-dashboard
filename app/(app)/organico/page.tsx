@@ -3,7 +3,7 @@ import Filtros from '@/components/Filtros';
 import { DemoBanner, Seccion, SourceDot, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
-import { mesesDisponibles } from '@/lib/metrics';
+import { mesesDisponibles, enPeriodo } from '@/lib/metrics';
 import { fechaCorta, mesDe, num, pct } from '@/lib/format';
 import type { OrganicoPieza } from '@/lib/types';
 
@@ -39,11 +39,11 @@ export default async function Organico({ searchParams }: { searchParams: SearchP
   const bundle = await getBundle();
   const f = leerFiltros(searchParams);
   const meses = mesesDisponibles(bundle, f.mes);
-  const filas = bundle.organico.filter((o) => mesDe(o.fecha) === f.mes).sort((a, b) => a.fecha.localeCompare(b.fecha));
-  const piezasMes = bundle.piezas.filter((p) => mesDe(p.fecha) === f.mes && !p.promocionado);
+  const filas = bundle.organico.filter((o) => enPeriodo(f, o.fecha)).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const piezasMes = bundle.piezas.filter((p) => enPeriodo(f, p.fecha) && !p.promocionado);
   const top = (tipo: 'reel' | 'historia', campo: 'respuestas' | 'comentarios' | 'views') =>
     piezasMes.filter((p) => p.tipo === tipo).sort((a, b) => (b[campo] ?? 0) - (a[campo] ?? 0)).slice(0, 3);
-  const promocionadas = bundle.piezas.filter((p) => mesDe(p.fecha) === f.mes && p.promocionado).length;
+  const promocionadas = bundle.piezas.filter((p) => enPeriodo(f, p.fecha) && p.promocionado).length;
 
   return (
     <>

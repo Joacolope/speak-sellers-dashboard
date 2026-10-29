@@ -9,7 +9,7 @@ import {
 } from '@/components/Charts';
 import { ChartCard, DemoBanner, Semaforo, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
-import { leerFiltros, queryDe, type SearchParams } from '@/lib/filtros';
+import { etiquetaComparacion, etiquetaPeriodo, leerFiltros, queryDe, type SearchParams } from '@/lib/filtros';
 import {
   acumuladoAnual, adsVsCashSemanal, agendasPorDia, avisos, mesesDisponibles,
   agendasDelMes, agendasPorUtm, cobranzasDelMes, embudosPorFuente, esVenta, metricasConAnterior, resumenCloser, serieMeses, ventasPorPais,
@@ -50,7 +50,8 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
   const dias = agendasPorDia(bundle, f);
   const closers = CLOSERS.map((c) => resumenCloser(bundle, f, c));
   const comision = new Map(comisionesDelMes(bundle.comisiones, cobranzasDelMes(bundle, { ...f, closer: 'todos' }), f.mes).porCloser.map((c) => [c.closer, c]));
-  const periodo = f.dia ? fechaLarga(f.dia) : nombreMes(f.mes);
+  const periodo = etiquetaPeriodo(f);
+  const contra = etiquetaComparacion(f);
   const detalleClosers: DetalleCloser[] = closers.map((r) => {
     const ag = agendasDelMes(bundle, { ...f, closer: r.closer });
     const com = comision.get(r.closer);
@@ -92,7 +93,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       <div className="flex flex-col gap-5">
         <div>
           <div className="eyebrow">Inicio</div>
-          <h1 className="h1 mt-2">{f.dia ? fechaLarga(f.dia) : nombreMes(f.mes)}</h1>
+          <h1 className="h1 mt-2">{periodo}</h1>
         </div>
         <Suspense>
           <Filtros filtros={f} meses={meses} />
@@ -118,8 +119,8 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
 
       {/* Fila 1 · números grandes */}
       <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Facturación" valor={usd(actual.revenue)} variacion={variacion(actual.revenue, anterior.revenue)} icono={Iconos.revenue} color="blue" />
-        <StatCard
+        <StatCard contra={contra} label="Facturación" valor={usd(actual.revenue)} variacion={variacion(actual.revenue, anterior.revenue)} icono={Iconos.revenue} color="blue" />
+        <StatCard contra={contra}
           label="Cash Collected"
           valor={usd(actual.cash_collected)}
           variacion={variacion(actual.cash_collected, anterior.cash_collected)}
@@ -127,10 +128,10 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           color="green"
           nota={actual.costo_software === null ? 'Después de ads · falta software' : undefined}
         />
-        <StatCard label="Ventas" valor={num(actual.ventas)} variacion={variacion(actual.ventas, anterior.ventas)} icono={Iconos.ventas} color="green" />
-        <StatCard label="Agendas" valor={num(actual.agendas)} variacion={variacion(actual.agendas, anterior.agendas)} icono={Iconos.agendas} color="blue" />
-        <StatCard label="% Asistencia" valor={pct(actual.pct_asistencia)} variacion={variacion(actual.pct_asistencia, anterior.pct_asistencia)} icono={Iconos.asistencia} color={semaforo(actual.pct_asistencia, 0.6)} />
-        <StatCard label="% Cierre / llamadas" valor={pct(actual.pct_cierre_asistencia)} variacion={variacion(actual.pct_cierre_asistencia, anterior.pct_cierre_asistencia)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_asistencia, 0.3)} />
+        <StatCard contra={contra} label="Ventas" valor={num(actual.ventas)} variacion={variacion(actual.ventas, anterior.ventas)} icono={Iconos.ventas} color="green" />
+        <StatCard contra={contra} label="Agendas" valor={num(actual.agendas)} variacion={variacion(actual.agendas, anterior.agendas)} icono={Iconos.agendas} color="blue" />
+        <StatCard contra={contra} label="% Asistencia" valor={pct(actual.pct_asistencia)} variacion={variacion(actual.pct_asistencia, anterior.pct_asistencia)} icono={Iconos.asistencia} color={semaforo(actual.pct_asistencia, 0.6)} />
+        <StatCard contra={contra} label="% Cierre / llamadas" valor={pct(actual.pct_cierre_asistencia)} variacion={variacion(actual.pct_cierre_asistencia, anterior.pct_cierre_asistencia)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_asistencia, 0.3)} />
       </section>
 
       {/* Metas del mes y lo que falta cobrar */}
