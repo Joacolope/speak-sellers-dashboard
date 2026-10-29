@@ -1,7 +1,7 @@
 /**
  * ID de la cuenta de Instagram del negocio para la Graph API (empieza con 1784…).
  * Se saca de la página de Facebook conectada (META_PAGE_ID), así no hay que buscarlo a mano.
- * IG_USER_ID queda como respaldo si no hay página configurada.
+ * IG_USER_ID queda como respaldo si no hay página configurada (tiene que ser el 1784…, no el ID de la página).
  */
 let cache: string | null = null;
 
