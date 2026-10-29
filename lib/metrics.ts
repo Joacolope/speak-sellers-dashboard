@@ -27,6 +27,9 @@ export interface MetricasMes {
   ventas: number;
   ofertas: number;
   pct_cierre_total: number | null;
+  /** Ventas / (agendas − no-shows): cierre sin castigar por los que no se presentaron */
+  pct_cierre_sin_noshow: number | null;
+  /** Ventas / llamadas presentadas */
   pct_cierre_asistencia: number | null;
   pct_cierre_oferta: number | null;
   revenue: number;
@@ -162,6 +165,7 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
     ventas: ventasAg.length,
     ofertas,
     pct_cierre_total: ratio(ventasAg.length, ag.length),
+    pct_cierre_sin_noshow: ratio(ventasAg.length, ag.length - noShow),
     pct_cierre_asistencia: ratio(ventasAg.length, asistencias),
     pct_cierre_oferta: ratio(ventasAg.length, ofertas),
     revenue,
@@ -305,7 +309,10 @@ export interface ResumenCloser {
   cierres: number;
   /** Ventas con seña (compro = Reserva) */
   senas: number;
+  /** cierres / llamadas presentadas */
   pct_cierre: number | null;
+  /** cierres / (agendas − no-shows) */
+  pct_cierre_sin_noshow: number | null;
   cash: number;
   revenue: number;
 }
@@ -315,11 +322,12 @@ export function resumenCloser(b: RawBundle, f: Filtros, closer: Closer | 'todos'
   const asistencias = ag.filter((a) => a.asistio === 'Asistió').length;
   const ofertas = ag.filter((a) => a.oferta_hecha).length;
   const cierres = ag.filter(esVenta).length;
+  const noShow = ag.filter((a) => a.asistio === 'No show').length;
   return {
     closer: closer === 'todos' ? 'Marcos' : closer,
     agendas: ag.length,
     asistencias,
-    no_show: ag.filter((a) => a.asistio === 'No show').length,
+    no_show: noShow,
     canceladas: ag.filter((a) => a.asistio === 'Canceló').length,
     pendientes: ag.filter((a) => a.asistio === 'Pendiente').length,
     pct_show: ratio(asistencias, ag.length),
@@ -327,6 +335,7 @@ export function resumenCloser(b: RawBundle, f: Filtros, closer: Closer | 'todos'
     cierres,
     senas: ag.filter((a) => a.compro === 'Reserva').length,
     pct_cierre: ratio(cierres, asistencias), // cierres sobre llamadas presentadas
+    pct_cierre_sin_noshow: ratio(cierres, ag.length - noShow),
     cash: sum(ag.filter(esVenta), (a) => a.cash_collected),
     revenue: sum(ag.filter(esVenta), (a) => a.revenue),
   };
@@ -453,6 +462,7 @@ export interface FilaUtm {
   cash: number;
   pctShow: number | null;
   pctCierre: number | null; // ventas / presentadas
+  pctCierreSinNoShow: number | null; // ventas / (agendas − no-shows)
 }
 
 /** Agendas agrupadas por un parámetro UTM, con su resultado. "(sin UTM)" agrupa las que no traen. */
@@ -465,6 +475,7 @@ export function agendasPorUtm(b: RawBundle, f: Filtros, nivel: NivelUtm): FilaUt
   return Array.from(mapa.entries())
     .map(([clave, ag]) => {
       const presentadas = ag.filter((a) => a.asistio === 'Asistió').length;
+      const noShow = ag.filter((a) => a.asistio === 'No show').length;
       const ventas = ag.filter(esVenta);
       return {
         clave,
@@ -474,6 +485,7 @@ export function agendasPorUtm(b: RawBundle, f: Filtros, nivel: NivelUtm): FilaUt
         cash: ventas.reduce((s, a) => s + (a.cash_collected ?? 0), 0),
         pctShow: ratio(presentadas, ag.length),
         pctCierre: ratio(ventas.length, presentadas),
+        pctCierreSinNoShow: ratio(ventas.length, ag.length - noShow),
       };
     })
     .sort((x, y) => (x.clave === '(sin UTM)' ? 1 : y.clave === '(sin UTM)' ? -1 : y.agendas - x.agendas));

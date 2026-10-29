@@ -12,6 +12,7 @@ export interface DetalleCloser {
   pctShow: number | null;
   cierres: number;
   pctCierre: number | null;
+  pctCierreSinNoShow: number | null;
   cash: number;
   comision: number | null;
   porcentaje: number | null;
@@ -36,7 +37,8 @@ export default function ClosersDesplegable({ filas }: { filas: DetalleCloser[] }
             <th className="num">Agendas</th>
             <th className="num">% Show</th>
             <th className="num">Cierres</th>
-            <th className="num">% Cierre</th>
+            <th className="num" title="Cierres / (agendas − no-shows)">% Cierre s/ no-show</th>
+            <th className="num" title="Cierres / llamadas presentadas">% Cierre / presentadas</th>
             <th className="num">Cash</th>
             <th className="num">Comisión</th>
             <th></th>
@@ -56,6 +58,7 @@ export default function ClosersDesplegable({ filas }: { filas: DetalleCloser[] }
                   <td className="num">{num(c.agendas)}</td>
                   <td className="num"><span className={`tag ${claseSemaforo(c.pctShow, 0.6)}`}>{pct(c.pctShow)}</span></td>
                   <td className="num">{num(c.cierres)}</td>
+                  <td className="num"><span className={`tag ${claseSemaforo(c.pctCierreSinNoShow, 0.3)}`}>{pct(c.pctCierreSinNoShow)}</span></td>
                   <td className="num"><span className={`tag ${claseSemaforo(c.pctCierre, 0.3)}`}>{pct(c.pctCierre)}</span></td>
                   <td className="num ok">{usd(c.cash)}</td>
                   <td className="num">{c.comision === null ? <span className="text-text-disabled">—</span> : <span className={c.comision > 0 ? "bad" : "text-text-muted"}>{usd(c.comision)}</span>}</td>

@@ -15,6 +15,7 @@ export interface Semana {
   presentadas: number;
   pctShow: number | null;
   pctCierre: number | null;
+  pctCierreSinNoShow: number | null;
   inversion: number;
   conversaciones: number;
 }
@@ -25,6 +26,7 @@ function semana(b: RawBundle, desde: string, hasta: string): Semana & { listaVen
   const ventas = ag.filter(esVenta);
   const presentadas = ag.filter((a) => a.asistio === 'Asistió').length;
   const resueltas = ag.filter((a) => a.asistio !== 'Pendiente').length;
+  const noShow = ag.filter((a) => a.asistio === 'No show').length;
   const cob = b.cobranzas.filter((c) => enRango(c.fecha_cobro));
   const setter = b.setter.filter((s) => enRango(s.fecha));
   return {
@@ -35,6 +37,7 @@ function semana(b: RawBundle, desde: string, hasta: string): Semana & { listaVen
     presentadas,
     pctShow: resueltas ? presentadas / resueltas : null,
     pctCierre: presentadas ? ventas.length / presentadas : null,
+    pctCierreSinNoShow: ag.length - noShow ? ventas.length / (ag.length - noShow) : null,
     inversion: b.ads.filter((a) => enRango(a.fecha)).reduce((s, a) => s + a.inversion, 0),
     conversaciones: setter.reduce((s, x) => s + (x.conv_organicas ?? 0) + (x.conv_pagadas ?? 0) + (x.respuestas ?? 0) + (x.respuestas_wa ?? 0), 0),
     listaVentas: ventas.map((a) => ({ nombre: a.lead?.nombre ?? 'Sin nombre', closer: a.closer, monto: a.cash_collected ?? 0 })).sort((x, y) => y.monto - x.monto),
@@ -112,7 +115,7 @@ export function htmlResumen(d: DatosResumen, appUrl: string): string {
   const filas = [
     [kpi('Cash cobrado', usd(a.cobrado), delta(a.cobrado, p.cobrado)), kpi('Ventas nuevas (cobrado)', usd(a.facturacion), delta(a.facturacion, p.facturacion))],
     [kpi('Ventas', num(a.ventas), delta(a.ventas, p.ventas)), kpi('Agendas', num(a.agendas), delta(a.agendas, p.agendas))],
-    [kpi('Llamadas presentadas', `${num(a.presentadas)} <span style="font-size:14px;color:${C.gris}">· ${pct(a.pctShow)} show</span>`, delta(a.presentadas, p.presentadas)), kpi('% cierre / llamadas', pct(a.pctCierre), delta(a.pctCierre, p.pctCierre))],
+    [kpi('Llamadas presentadas', `${num(a.presentadas)} <span style="font-size:14px;color:${C.gris}">· ${pct(a.pctShow)} show</span>`, delta(a.presentadas, p.presentadas)), kpi('% cierre / presentadas', `${pct(a.pctCierre)} <span style="font-size:14px;color:${C.gris}">· s/ no-show ${pct(a.pctCierreSinNoShow)}</span>`, delta(a.pctCierre, p.pctCierre))],
     [kpi('Inversión en ads', usd(a.inversion, 2), delta(a.inversion, p.inversion, true)), kpi('Conversaciones', num(a.conversaciones), delta(a.conversaciones, p.conversaciones))],
   ].map((f) => `<tr>${f.join('')}</tr>`).join('');
 

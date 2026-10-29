@@ -37,7 +37,8 @@ export default function TablaUtm({ datos, limite }: { datos: Record<string, Fila
                 <th className="num">Presentadas</th>
                 <th className="num">% Show</th>
                 <th className="num">Ventas</th>
-                <th className="num">% Cierre</th>
+                <th className="num" title="Ventas / (agendas − no-shows)">% Cierre s/ no-show</th>
+                <th className="num" title="Ventas / llamadas presentadas">% Cierre / presentadas</th>
                 <th className="num">Cash</th>
               </tr>
             </thead>
@@ -54,6 +55,7 @@ export default function TablaUtm({ datos, limite }: { datos: Record<string, Fila
                   <td className="num">{num(f.presentadas)}</td>
                   <td className="num"><span className={`tag ${tag(f.pctShow, 0.6)}`}>{pct(f.pctShow)}</span></td>
                   <td className="num">{num(f.ventas)}</td>
+                  <td className="num"><span className={`tag ${tag(f.pctCierreSinNoShow, 0.3)}`}>{pct(f.pctCierreSinNoShow)}</span></td>
                   <td className="num"><span className={`tag ${tag(f.pctCierre, 0.3)}`}>{pct(f.pctCierre)}</span></td>
                   <td className="num ok">{usd(f.cash)}</td>
                 </tr>

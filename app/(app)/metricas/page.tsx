@@ -42,7 +42,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
               <tr className="group-head">
                 <th></th>
                 <th colSpan={8}>Setter</th>
-                <th colSpan={12 + FUNNELS.length}>Closer</th>
+                <th colSpan={13 + FUNNELS.length}>Closer</th>
                 <th colSpan={4}>Costos</th>
                 <th colSpan={4}>Conversión</th>
               </tr>
@@ -63,8 +63,9 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num">% No show</th>
                 <th className="num">Reservas</th>
                 <th className="num">Ventas</th>
-                <th className="num">% cierre total</th>
-                <th className="num">% cierre / llamadas</th>
+                <th className="num" title="Ventas / agendas">% cierre total</th>
+                <th className="num" title="Ventas / (agendas − no-shows)">% cierre s/ no-show</th>
+                <th className="num" title="Ventas / llamadas presentadas">% cierre / presentadas</th>
                 <th className="num" title="Facturación − ads − software − comisiones">Cash Collected</th>
                 <th className="num" title="Lo que entró en el mes: ventas nuevas + cuotas cobradas − reembolsos">Facturación</th>
                 <th className="num" title="Cobrado de ventas cerradas en el mes">Ventas nuevas</th>
@@ -99,6 +100,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                   <td className="num">{num(m.reservas)}</td>
                   <td className="num">{num(m.ventas)}</td>
                   <td className="num">{pct(m.pct_cierre_total)}</td>
+                  <td className="num"><Semaforo valor={m.pct_cierre_sin_noshow} objetivo={aj?.objetivo_cierre_oferta ?? 0.3} /></td>
                   <td className="num"><Semaforo valor={m.pct_cierre_asistencia} objetivo={aj?.objetivo_cierre_oferta ?? 0.3} /></td>
                   <td className="num" title={m.costo_software === null ? 'Falta costo de software' : undefined}>{usd(m.cash_collected)}{m.costo_software === null && <span className="text-text-disabled">*</span>}</td>
                   <td className="num">{usd(m.revenue)}</td>
@@ -119,7 +121,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
         </div>
         <div className="text-[14px] text-text-muted">
           Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Facturación = lo que entró en el mes (ventas nuevas + cuotas cobradas) − reembolsos; las cuotas pendientes no cuentan hasta que se cobran. Cash Collected = Facturación − inversión en ads − software − comisiones de closers − comisiones de plataformas de pago (todo se carga en Costos). <span className="text-text-disabled">*</span> sin software cargado.
-          Semáforo: % Asistencia ≥ {pct(0.6)} y % cierre / llamadas ≥ {pct(0.3)}. % Agenda inbound = agendas de gente que escribió / conversaciones inbound; outbound = agendas de mensajes en frío / respuestas outbound (configurable en <code className="mono text-[12px]">ajustes_mensuales</code>).
+          % cierre total = ventas / agendas; s/ no-show = ventas / (agendas − no-shows); / presentadas = ventas / llamadas presentadas. Semáforo: % Asistencia ≥ {pct(0.6)} y % cierre ≥ {pct(0.3)}. % Agenda inbound = agendas de gente que escribió / conversaciones inbound; outbound = agendas de mensajes en frío / respuestas outbound (configurable en <code className="mono text-[12px]">ajustes_mensuales</code>).
         </div>
       </Seccion>
     </>

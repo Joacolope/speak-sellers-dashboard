@@ -79,12 +79,13 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
         </div>
       </div>
 
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
         <Dato valor={num(resumen.agendas)} label="Agendas" sub={resumen.pendientes ? `${num(resumen.pendientes)} por venir` : undefined} />
         <Dato valor={num(resumen.asistencias)} label="Llamadas presentadas" sub={`${num(resumen.no_show)} no show · ${num(resumen.canceladas)} canceladas`} />
         <Dato valor={pct(resumen.pct_show)} clase={claseSemaforo(resumen.pct_show, 0.6)} label="% Show" sub={`Objetivo ${pct(0.6)}`} />
         <Dato valor={num(resumen.cierres)} label="Ventas" sub={resumen.senas ? `${num(resumen.senas)} con seña` : undefined} />
-        <Dato valor={pct(resumen.pct_cierre)} clase={claseSemaforo(resumen.pct_cierre, 0.3)} label="% Cierre / llamadas" sub={`Objetivo ${pct(0.3)}`} />
+        <Dato valor={pct(resumen.pct_cierre_sin_noshow)} clase={claseSemaforo(resumen.pct_cierre_sin_noshow, 0.3)} label="% Cierre s/ no-show" sub="Ventas / (agendas − no-shows)" />
+        <Dato valor={pct(resumen.pct_cierre)} clase={claseSemaforo(resumen.pct_cierre, 0.3)} label="% Cierre / presentadas" sub={`Ventas / presentadas · objetivo ${pct(0.3)}`} />
         <Dato valor={usd(resumen.cash)} clase="ok" label="Cobrado en las llamadas" />
         <Dato valor={usd(pendiente)} clase={pendiente ? 'warn' : ''} label="Pendiente de cobrar" sub="Cuotas que faltan de sus ventas" />
         <Dato valor={resumen.asistencias ? usd(resumen.cash / resumen.asistencias) : '—'} label="Cash por llamada" sub="Cobrado / presentadas" />
@@ -104,7 +105,8 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                   <th className="num">% Show</th>
                   <th className="num">Ventas</th>
                   <th className="num">Con seña</th>
-                  <th className="num">% Cierre</th>
+                  <th className="num" title="Ventas / (agendas − no-shows)">% Cierre s/ no-show</th>
+                  <th className="num" title="Ventas / presentadas">% Cierre / presentadas</th>
                   <th className="num">Cobrado</th>
                   <th className="num">Cash por llamada</th>
                 </tr>
@@ -120,6 +122,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                     <td className={`num ${claseSemaforo(r.pct_show, 0.6)}`}>{pct(r.pct_show)}</td>
                     <td className="num">{num(r.cierres)}</td>
                     <td className="num">{num(r.senas)}</td>
+                    <td className={`num ${claseSemaforo(r.pct_cierre_sin_noshow, 0.3)}`}>{pct(r.pct_cierre_sin_noshow)}</td>
                     <td className={`num ${claseSemaforo(r.pct_cierre, 0.3)}`}>{pct(r.pct_cierre)}</td>
                     <td className="num ok">{usd(r.cash)}</td>
                     <td className="num">{r.asistencias ? usd(r.cash / r.asistencias) : '—'}</td>

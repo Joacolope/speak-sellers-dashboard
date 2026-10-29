@@ -63,6 +63,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       pctShow: r.pct_show,
       cierres: r.cierres,
       pctCierre: r.pct_cierre,
+      pctCierreSinNoShow: r.pct_cierre_sin_noshow,
       cash: r.cash,
       comision: com?.monto ?? null,
       porcentaje: com?.porcentaje ?? null,
@@ -118,7 +119,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       )}
 
       {/* Fila 1 · números grandes */}
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <section className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
         <StatCard contra={contra} label="Facturación" valor={usd(actual.revenue)} variacion={variacion(actual.revenue, anterior.revenue)} icono={Iconos.revenue} color="blue" />
         <StatCard contra={contra}
           label="Cash Collected"
@@ -131,7 +132,8 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <StatCard contra={contra} label="Ventas" valor={num(actual.ventas)} variacion={variacion(actual.ventas, anterior.ventas)} icono={Iconos.ventas} color="green" />
         <StatCard contra={contra} label="Agendas" valor={num(actual.agendas)} variacion={variacion(actual.agendas, anterior.agendas)} icono={Iconos.agendas} color="blue" />
         <StatCard contra={contra} label="% Asistencia" valor={pct(actual.pct_asistencia)} variacion={variacion(actual.pct_asistencia, anterior.pct_asistencia)} icono={Iconos.asistencia} color={semaforo(actual.pct_asistencia, 0.6)} />
-        <StatCard contra={contra} label="% Cierre / llamadas" valor={pct(actual.pct_cierre_asistencia)} variacion={variacion(actual.pct_cierre_asistencia, anterior.pct_cierre_asistencia)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_asistencia, 0.3)} />
+        <StatCard contra={contra} label="% Cierre s/ no-show" valor={pct(actual.pct_cierre_sin_noshow)} variacion={variacion(actual.pct_cierre_sin_noshow, anterior.pct_cierre_sin_noshow)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_sin_noshow, 0.3)} />
+        <StatCard contra={contra} label="% Cierre / presentadas" valor={pct(actual.pct_cierre_asistencia)} variacion={variacion(actual.pct_cierre_asistencia, anterior.pct_cierre_asistencia)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_asistencia, 0.3)} />
       </section>
 
       {/* Metas del mes y lo que falta cobrar */}
