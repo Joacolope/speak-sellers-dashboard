@@ -130,7 +130,7 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {activas.map((c) => <TarjetaCampana key={c.id} c={c} />)}
           </div>
-        ) : <Vacio texto={bundle.campanas.length ? 'No hay campañas corriendo ahora.' : 'Las campañas aparecen cuando se conecte Meta (META_TOKEN).'} />}
+        ) : <Vacio texto={bundle.campanas.length ? 'No hay campañas corriendo ahora.' : process.env.META_TOKEN ? 'Meta está conectado pero la actualización todavía no trajo campañas. Corre sola a las 6:00 (Argentina); para forzarla: Vercel → Settings → Cron Jobs → Run en /api/cron/diario. Si falló, el motivo aparece en Avisos, al final de Inicio.' : 'Las campañas aparecen cuando se conecte Meta (META_TOKEN).'} />}
         {pausadasMes.length > 0 && (
           <details className="group">
             <summary className="cursor-pointer text-[14px] text-text-muted">Pausadas que gastaron este mes ({pausadasMes.length})</summary>
