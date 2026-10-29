@@ -9,6 +9,9 @@ export type PlataformaPago = 'Stripe' | 'Wise' | 'Cripto' | 'Efectivo' | 'Mercad
 export const PLATAFORMAS: PlataformaPago[] = ['Stripe', 'Wise', 'Cripto', 'Efectivo', 'Mercado Pago', 'DólarApp', 'Otro'];
 
 export const CLOSERS: Closer[] = ['Marcos', 'Andrea', 'Gonzalo'];
+/** Quién toma llamadas hoy. Los inactivos conservan su historial pero no se les asignan agendas nuevas. */
+export const CLOSER_ACTIVO: Record<Closer, boolean> = { Marcos: true, Andrea: false, Gonzalo: true };
+export const CLOSERS_ACTIVOS: Closer[] = CLOSERS.filter((c) => CLOSER_ACTIVO[c]);
 /** Nombre completo para mostrar */
 export const NOMBRE_CLOSER: Record<Closer, string> = {
   Marcos: 'Marcos Lanci',

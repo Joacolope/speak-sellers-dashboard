@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Filtros as F } from '@/lib/types';
-import { CLOSERS, NOMBRE_CLOSER } from '@/lib/types';
+import { CLOSERS, CLOSER_ACTIVO, NOMBRE_CLOSER } from '@/lib/types';
 import { diasDelMes, nombreMes } from '@/lib/format';
 
 const FUENTES_FILTRO = ['Instagram', 'Webinar', 'WhatsApp', 'YouTube'] as const;
@@ -76,7 +76,7 @@ export default function Filtros({ filtros, meses, mostrarCloser = true, mostrarF
           <span className="eyebrow mr-1 shrink-0">Closer</span>
           <button type="button" className="chip" data-active={filtros.closer === 'todos'} onClick={() => set('closer', null)}>Todos</button>
           {CLOSERS.map((c) => (
-            <button key={c} type="button" className="chip" data-active={filtros.closer === c} onClick={() => set('closer', c)}>{NOMBRE_CLOSER[c]}</button>
+            <button key={c} type="button" className={`chip ${CLOSER_ACTIVO[c] ? '' : 'opacity-60'}`} data-active={filtros.closer === c} onClick={() => set('closer', c)} title={CLOSER_ACTIVO[c] ? undefined : 'Ya no toma llamadas; se conserva su historial'}>{NOMBRE_CLOSER[c]}</button>
           ))}
         </div>
       )}

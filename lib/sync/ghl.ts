@@ -128,6 +128,12 @@ export async function syncGhl(sb: SupabaseClient, dry = false): Promise<string> 
     console.warn('GHL opportunities:', e);
   }
 
+  // Leads que entraron por la migración del spreadsheet y todavía no están atados a GHL:
+  // si llega el mismo nombre desde GHL, se adopta ese lead (y su agenda) en vez de duplicarlo.
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  const { data: migrados } = await sb.from('leads').select('id, nombre').is('ghl_contact_id', null).eq('source', 'migracion');
+  const migradoPorNombre = new Map((migrados ?? []).map((l) => [norm(l.nombre), l.id as string]));
+
   let n = 0;
   for (const ev of eventos) {
     const contacto = await ghl<{ contact: GhlContact }>(`/contacts/${ev.contactId}`).then((r) => r.contact).catch(() => null);
@@ -135,6 +141,12 @@ export async function syncGhl(sb: SupabaseClient, dry = false): Promise<string> 
     const closer: Closer = CLOSER_POR_CALENDARIO[ev.calendarId] ?? (ev.assignedUserId ? CLOSER_POR_USER[ev.assignedUserId] : undefined) ?? 'Marcos';
 
     if (dry) { n++; continue; }
+
+    const idMigrado = migradoPorNombre.get(norm(nombre));
+    if (idMigrado) {
+      await sb.from('leads').update({ ghl_contact_id: ev.contactId }).eq('id', idMigrado).is('ghl_contact_id', null);
+      migradoPorNombre.delete(norm(nombre));
+    }
 
     const { data: lead, error: eLead } = await sb
       .from('leads')
@@ -164,7 +176,16 @@ export async function syncGhl(sb: SupabaseClient, dry = false): Promise<string> 
     if (primero) await sb.from('leads').update({ primer_punto_contacto: primero }).eq('id', lead.id).is('primer_punto_contacto', null);
     if (ultimo) await sb.from('leads').update({ ultimo_punto_contacto: ultimo }).eq('id', lead.id).is('ultimo_punto_contacto', null);
 
-    const { data: existente } = await sb.from('agendas').select('id, source, asistio').eq('ghl_event_id', ev.id).maybeSingle();
+    let { data: existente } = await sb.from('agendas').select('id, source, asistio').eq('ghl_event_id', ev.id).maybeSingle();
+    if (!existente) {
+      // Agenda migrada del mismo lead a ±3 días, sin evento de GHL todavía: es esta misma llamada
+      const t = Date.parse(ev.startTime);
+      const { data: cerca } = await sb
+        .from('agendas').select('id, source, asistio').eq('lead_id', lead.id).is('ghl_event_id', null)
+        .gte('fecha_llamada', new Date(t - 3 * 86400000).toISOString()).lte('fecha_llamada', new Date(t + 3 * 86400000).toISOString())
+        .order('fecha_llamada').limit(1).maybeSingle();
+      if (cerca) existente = cerca;
+    }
     const campos: Record<string, unknown> = {
       ghl_event_id: ev.id,
       lead_id: lead.id,

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { CLOSERS, NOMBRE_CLOSER, PLATAFORMAS } from '@/lib/types';
+import { CLOSERS_ACTIVOS, NOMBRE_CLOSER, PLATAFORMAS } from '@/lib/types';
 import { hoyAR } from '@/lib/format';
 import { getSesion, puede } from '@/lib/auth';
 
@@ -86,7 +86,7 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
           </Campo>
           <Campo label="Closer" ayuda="Solo si quedó asignado al closer equivocado.">
             <select className="input" name="closer" defaultValue="">
-              <option value="">Dejar como está</option>{CLOSERS.map((c) => <option key={c} value={c}>{NOMBRE_CLOSER[c]}</option>)}
+              <option value="">Dejar como está</option>{CLOSERS_ACTIVOS.map((c) => <option key={c} value={c}>{NOMBRE_CLOSER[c]}</option>)}
             </select>
           </Campo>
         </Bloque>

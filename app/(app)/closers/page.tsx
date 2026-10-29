@@ -8,7 +8,7 @@ import { leerFiltros, queryDe, type SearchParams } from '@/lib/filtros';
 import { agendasDelMes, mesesDisponibles, resumenCloser } from '@/lib/metrics';
 import { fechaCorta, hoyAR, num, pct, usd } from '@/lib/format';
 import { cuotasPorCobrar, totalCuotas } from '@/lib/cuotas';
-import { CLOSERS, NOMBRE_CLOSER } from '@/lib/types';
+import { CLOSERS, CLOSER_ACTIVO, NOMBRE_CLOSER } from '@/lib/types';
 import { getSesion, puede } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +33,9 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
   const meses = mesesDisponibles(bundle, f.mes);
   const agendas = agendasDelMes(bundle, f).sort((a, b) => b.fecha_llamada.localeCompare(a.fecha_llamada));
   const resumen = resumenCloser(bundle, f, f.closer);
-  const porCloser = CLOSERS.map((c) => resumenCloser(bundle, f, c));
+  // Los closers que ya no están se muestran solo si tienen llamadas en el período (historial)
+  const closersVisibles = CLOSERS.filter((c) => CLOSER_ACTIVO[c] || f.closer === c || resumenCloser(bundle, f, c).agendas > 0);
+  const porCloser = closersVisibles.map((c) => resumenCloser(bundle, f, c));
   const cuotas = cuotasPorCobrar(bundle, hoyAR());
   const pendiente = totalCuotas([...cuotas.vencidas, ...cuotas.semana, ...cuotas.proximas].filter((c) => f.closer === 'todos' || c.closer === f.closer));
 
@@ -49,7 +51,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
           <Filtros filtros={f} meses={meses} />
         </Suspense>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {(['todos', ...CLOSERS] as const).map((c) => {
+          {(['todos', ...closersVisibles] as const).map((c) => {
             const r = resumenCloser(bundle, f, c);
             const activo = f.closer === c;
             return (
@@ -64,6 +66,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                     {c === 'todos' ? '∑' : NOMBRE_CLOSER[c].split(' ').map((p) => p[0]).join('')}
                   </span>
                   <span className="text-[14px] font-medium">{c === 'todos' ? 'Todos' : NOMBRE_CLOSER[c]}</span>
+                  {c !== 'todos' && !CLOSER_ACTIVO[c] && <span className="tag tag-gray">Ya no closea</span>}
                 </div>
                 <div className="flex gap-4 text-[12px] text-text-muted">
                   <span>{num(r.agendas)} agendas</span>

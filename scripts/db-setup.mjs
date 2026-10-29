@@ -6,7 +6,7 @@
  * Si no hay URL de Postgres (desarrollo local o demo), no hace nada.
  * La integración Supabase de Vercel crea POSTGRES_URL_NON_POOLING sola.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
@@ -32,12 +32,19 @@ url.searchParams.delete('supa');
 const client = new pg.Client({ connectionString: url.toString(), ssl: sinSsl ? false : { rejectUnauthorized: false } });
 
 const schema = readFileSync(fileURLToPath(new URL('../supabase/schema.sql', import.meta.url)), 'utf8');
+// Cargas de datos históricos (spreadsheet). Idempotentes: se aplican en cada build, en orden.
+const dirMig = fileURLToPath(new URL('../supabase/migraciones/', import.meta.url));
+const migraciones = existsSync(dirMig) ? readdirSync(dirMig).filter((f) => f.endsWith('.sql')).sort().map((f) => [f, readFileSync(dirMig + f, 'utf8')]) : [];
 
 try {
   await client.connect();
   await client.query('begin');
   await client.query('select pg_advisory_xact_lock(424242)'); // dos builds a la vez no se pisan
   await client.query(schema);
+  for (const [nombre, sql] of migraciones) {
+    await client.query(sql);
+    console.log(`[db-setup] Migración aplicada: ${nombre}`);
+  }
   for (const u of usuarios) {
     // Alta o sube de rol; nunca baja (admin > editor > lector)
     await client.query(
