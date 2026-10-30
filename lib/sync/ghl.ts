@@ -123,7 +123,7 @@ function estadoAAsistio(estado: string): 'Asistió' | 'No show' | 'Canceló' | '
  * Trae agendas de los últimos 45 días + próximos 30 y las upserta por ghl_event_id.
  * Nunca pisa asistio / compro / cash_collected si la fila ya es manual o del agente.
  */
-export async function syncGhl(sb: SupabaseClient, dry = false): Promise<string> {
+export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { eventoId?: string } = {}): Promise<string> {
   const locationId = process.env.GHL_LOCATION_ID;
   if (!locationId) throw new Error('Falta GHL_LOCATION_ID');
   const ahora = Date.now();
@@ -131,9 +131,17 @@ export async function syncGhl(sb: SupabaseClient, dry = false): Promise<string> 
   const hasta = ahora + 30 * 86400000;
 
   const eventos: GhlEvent[] = [];
-  for (const calendarId of CALENDARIOS) {
-    const r = await ghl<{ events: GhlEvent[] }>('/calendars/events', { locationId, calendarId, startTime: String(desde), endTime: String(hasta) });
-    eventos.push(...(r.events ?? []));
+  if (opciones.eventoId) {
+    // Webhook: una sola cita (recién agendada, confirmada, cancelada o marcada)
+    const r = await ghl<{ appointment?: GhlEvent; event?: GhlEvent }>(`/calendars/events/appointments/${encodeURIComponent(opciones.eventoId)}`);
+    const ev = r.appointment ?? r.event;
+    if (!ev) throw new Error(`GHL: cita ${opciones.eventoId} no encontrada`);
+    eventos.push(ev);
+  } else {
+    for (const calendarId of CALENDARIOS) {
+      const r = await ghl<{ events: GhlEvent[] }>('/calendars/events', { locationId, calendarId, startTime: String(desde), endTime: String(hasta) });
+      eventos.push(...(r.events ?? []));
+    }
   }
 
   // Etapas del pipeline por contacto
@@ -233,8 +241,8 @@ export async function syncGhl(sb: SupabaseClient, dry = false): Promise<string> 
       const { error } = await sb.from('agendas').insert(campos);
       if (error) throw new Error(`agendas insert: ${error.message}`);
     } else {
-      // Solo GHL puede actualizar asistio si nadie lo tocó a mano
-      if (existente.source === 'ghl' && existente.asistio === 'Pendiente') campos.asistio = estadoAAsistio(ev.appointmentStatus);
+      // GHL actualiza la asistencia solo mientras nadie la haya cargado a mano
+      if (existente.asistio === 'Pendiente') campos.asistio = estadoAAsistio(ev.appointmentStatus);
       const { error } = await sb.from('agendas').update(campos).eq('id', existente.id);
       if (error) throw new Error(`agendas update: ${error.message}`);
     }

@@ -38,6 +38,11 @@ En Claude Code → menú del entorno (barra de título de la sesión) → **Edit
 
 (Dejar tildado "Allow package managers".) Con eso Claude prueba el sitio, corre el cron a mano y carga la migración.
 
+## 3b. Agendas al instante (webhook de GoHighLevel)
+- [ ] En Vercel: `GHL_WEBHOOK_SECRET` = un texto largo al azar (40+ caracteres). Redeploy.
+- [ ] En GoHighLevel: Automatizaciones → Crear workflow → Disparador **Cita** (estado: cualquiera) → Acción **Webhook** → método POST → URL `https://speak-sellers-dashboard.vercel.app/api/webhooks/ghl?token=<el mismo texto>` → Publicar.
+- [ ] Probar agendando una cita de prueba: tiene que aparecer en Closers en menos de un minuto.
+
 ## 4a. Tiempo de respuesta del setter (DMs de Instagram)
 - [ ] `META_PAGE_ID` en Vercel = ID de la página de Facebook conectada al Instagram (Meta Business Suite → Configuración → Páginas)
 - [ ] El `META_TOKEN` (usuario de sistema) necesita los permisos `instagram_manage_messages`, `instagram_basic`, `pages_show_list`, `pages_read_engagement`, `pages_manage_metadata` y `business_management`, con la página y la cuenta de Instagram asignadas como activos

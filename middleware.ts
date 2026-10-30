@@ -51,7 +51,8 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const metodo = req.method.toUpperCase();
   const tieneBearer = /^Bearer\s+/i.test(req.headers.get('authorization') ?? '');
-  const esMaquina = MAQUINA.some((p) => pathname.startsWith(p)) && tieneBearer;
+  // Los webhooks entrantes (GHL) validan su propio secreto en la URL o en el header
+  const esMaquina = (MAQUINA.some((p) => pathname.startsWith(p)) && tieneBearer) || pathname.startsWith('/api/webhooks/');
 
   // 1. CSRF: todo lo que no es lectura tiene que venir de este mismo sitio (o traer token de máquina)
   if (!['GET', 'HEAD', 'OPTIONS'].includes(metodo) && !esMaquina && !mismoOrigen(req)) {
