@@ -1,4 +1,4 @@
-import { enPeriodo, esVenta } from './metrics';
+import { enPeriodo, esPago, esVenta } from './metrics';
 import { funnelDeLead, type Filtros, type RawBundle } from './types';
 
 export interface FilaWebinar {
@@ -48,7 +48,7 @@ export function resumenWebinars(b: RawBundle, f: Filtros): FilaWebinar[] {
         agendas: ag.length,
         presentadas: ag.filter((a) => a.asistio === 'Asistió').length,
         ventas: ventas.length,
-        cash: ventas.reduce((s, a) => s + (a.cash_collected ?? 0), 0),
+        cash: ag.filter(esPago).reduce((s, a) => s + (a.cash_collected ?? 0), 0),
       };
     })
     .filter((w) => enPeriodo(f, w.fecha));

@@ -61,7 +61,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num">% Asistencia</th>
                 <th className="num">No show</th>
                 <th className="num">% No show</th>
-                <th className="num">Reservas</th>
+                <th className="num" title="Señas: no cuentan como venta">Señas</th>
                 <th className="num">Ventas</th>
                 <th className="num" title="Ventas / agendas">% cierre total</th>
                 <th className="num" title="Ventas / (agendas − no-shows)">% cierre s/ no-show</th>
@@ -121,7 +121,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
         </div>
         <div className="text-[14px] text-text-muted">
           Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Facturación = lo que entró en el mes (ventas nuevas + cuotas cobradas) − reembolsos; las cuotas pendientes no cuentan hasta que se cobran. Cash Collected = Facturación − inversión en ads − software − comisiones de closers − comisiones de plataformas de pago (todo se carga en Costos). <span className="text-text-disabled">*</span> sin software cargado.
-          % cierre total = ventas / agendas; s/ no-show = ventas / (agendas − no-shows); / presentadas = ventas / llamadas presentadas. Semáforo: % Asistencia ≥ {pct(0.6)} y % cierre ≥ {pct(0.3)}. % Agenda inbound = agendas de gente que escribió / conversaciones inbound; outbound = agendas de mensajes en frío / respuestas outbound (configurable en <code className="mono text-[12px]">ajustes_mensuales</code>).
+          Venta = compró (las señas no cuentan como venta, pero su plata sí cuenta como cobrada). % cierre total = ventas / agendas; s/ no-show = ventas / (agendas − no-shows); / presentadas = ventas / llamadas presentadas. Semáforo: % Asistencia ≥ {pct(0.6)} y % cierre ≥ {pct(0.3)}. % Agenda inbound = agendas de gente que escribió / conversaciones inbound; outbound = agendas de mensajes en frío / respuestas outbound (configurable en <code className="mono text-[12px]">ajustes_mensuales</code>).
         </div>
       </Seccion>
     </>

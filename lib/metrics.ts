@@ -97,7 +97,13 @@ function sumNullable<T>(arr: T[], fn: (t: T) => number | null | undefined): numb
   return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
 }
 
+/** Venta = compró. Una reserva (seña) no cuenta como cierre; su plata sí cuenta como cobrada. */
 export function esVenta(a: Agenda): boolean {
+  return a.compro === 'Si';
+}
+
+/** Dejó plata en la llamada: venta o seña. Se usa para lo cobrado, no para contar cierres. */
+export function esPago(a: Agenda): boolean {
   return a.compro === 'Si' || a.compro === 'Reserva';
 }
 
@@ -113,14 +119,16 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const ofertas = ag.filter((a) => a.oferta_hecha).length;
   const ventasAg = ag.filter(esVenta);
   const reservas = ag.filter((a) => a.compro === 'Reserva').length;
-  const idsVentas = new Set(ventasAg.map((a) => a.id));
+  // La plata se atribuye a quien pagó en el período (ventas y señas); los cierres solo cuentan ventas
+  const pagaron = ag.filter(esPago);
+  const idsVentas = new Set(pagaron.map((a) => a.id));
   const reembolsos = Math.abs(sum(cob.filter((c) => c.es_reembolso), (c) => c.monto_cobrado));
   // Ventas nuevas = cobrado este período de ventas cerradas en el período; cuotas = cobrado de ventas anteriores.
   // Si una venta tiene cash_collected pero ningún cobro registrado (se editó a mano), cuenta igual.
   const conCobro = new Set(b.cobranzas.map((c) => c.agenda_id));
   const newCash =
     sum(cob.filter((c) => !c.es_reembolso && idsVentas.has(c.agenda_id)), (c) => c.monto_cobrado) +
-    sum(ventasAg.filter((a) => !conCobro.has(a.id)), (a) => a.cash_collected);
+    sum(pagaron.filter((a) => !conCobro.has(a.id)), (a) => a.cash_collected);
   const oldCash = sum(cob.filter((c) => !c.es_reembolso && !idsVentas.has(c.agenda_id)), (c) => c.monto_cobrado);
   // Facturación = lo que entró de verdad (las cuotas pendientes no cuentan hasta cobrarse) − reembolsos
   const revenue = newCash + oldCash - reembolsos;
@@ -210,7 +218,7 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
   };
   const ventas = ag.filter(esVenta);
   // Lo cobrado de las ventas del período (sin cuotas pendientes)
-  const usdVentas = funnel ? ventas.reduce((acc, a) => acc + (a.cash_collected ?? 0), 0) : m.new_cash;
+  const usdVentas = funnel ? ag.filter(esPago).reduce((acc, a) => acc + (a.cash_collected ?? 0), 0) : m.new_cash;
   const nivelesFinales: NivelFunnel[] = [
     { nombre: 'Agendas', valor: ag.length, porCloser: porCloser(() => true) },
   ];
@@ -226,7 +234,7 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
       ...nivelesFinales,
       { nombre: 'Llamadas presentadas', valor: ag.filter((a) => a.asistio === 'Asistió').length, porCloser: porCloser((a) => a.asistio === 'Asistió') },
       { nombre: 'Ventas', valor: ventas.length, porCloser: porCloser(esVenta) },
-      { nombre: 'Cobrado USD', valor: usdVentas, esUsd: true, porCloser: porCloser((a) => (esVenta(a) ? a.cash_collected ?? 0 : 0)) },
+      { nombre: 'Cobrado USD', valor: usdVentas, esUsd: true, porCloser: porCloser((a) => (esPago(a) ? a.cash_collected ?? 0 : 0)) },
     ];
   }
 
@@ -243,7 +251,7 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
     ...nivelesFinales,
     { nombre: 'Llamadas presentadas', valor: ag.filter((a) => a.asistio === 'Asistió').length, porCloser: porCloser((a) => a.asistio === 'Asistió') },
     { nombre: 'Cierres', valor: ventas.length, porCloser: porCloser(esVenta) },
-    { nombre: 'Cobrado USD', valor: usdVentas, esUsd: true, porCloser: porCloser((a) => (esVenta(a) ? a.cash_collected ?? 0 : 0)) },
+    { nombre: 'Cobrado USD', valor: usdVentas, esUsd: true, porCloser: porCloser((a) => (esPago(a) ? a.cash_collected ?? 0 : 0)) },
   ];
 }
 
@@ -336,8 +344,8 @@ export function resumenCloser(b: RawBundle, f: Filtros, closer: Closer | 'todos'
     senas: ag.filter((a) => a.compro === 'Reserva').length,
     pct_cierre: ratio(cierres, asistencias), // cierres sobre llamadas presentadas
     pct_cierre_sin_noshow: ratio(cierres, ag.length - noShow),
-    cash: sum(ag.filter(esVenta), (a) => a.cash_collected),
-    revenue: sum(ag.filter(esVenta), (a) => a.revenue),
+    cash: sum(ag.filter(esPago), (a) => a.cash_collected),
+    revenue: sum(ag.filter(esPago), (a) => a.revenue),
   };
 }
 
@@ -482,7 +490,7 @@ export function agendasPorUtm(b: RawBundle, f: Filtros, nivel: NivelUtm): FilaUt
         agendas: ag.length,
         presentadas,
         ventas: ventas.length,
-        cash: ventas.reduce((s, a) => s + (a.cash_collected ?? 0), 0),
+        cash: ag.filter(esPago).reduce((s, a) => s + (a.cash_collected ?? 0), 0),
         pctShow: ratio(presentadas, ag.length),
         pctCierre: ratio(ventas.length, presentadas),
         pctCierreSinNoShow: ratio(ventas.length, ag.length - noShow),

@@ -1,6 +1,6 @@
 import type { Closer, RawBundle } from './types';
 import { CLOSERS, NOMBRE_CLOSER } from './types';
-import { esVenta } from './metrics';
+import { esPago, esVenta } from './metrics';
 import { progresoMetas, type ProgresoMeta } from './metas';
 import { cuotasPorCobrar, totalCuotas, type CuotaPendiente } from './cuotas';
 import { alertas, type Alerta } from './alertas';
@@ -30,7 +30,7 @@ function semana(b: RawBundle, desde: string, hasta: string): Semana & { listaVen
   const cob = b.cobranzas.filter((c) => enRango(c.fecha_cobro));
   const setter = b.setter.filter((s) => enRango(s.fecha));
   return {
-    facturacion: ventas.reduce((s, a) => s + (a.cash_collected ?? 0), 0),
+    facturacion: ag.filter(esPago).reduce((s, a) => s + (a.cash_collected ?? 0), 0),
     cobrado: cob.reduce((s, c) => s + c.monto_cobrado, 0),
     ventas: ventas.length,
     agendas: ag.length,
