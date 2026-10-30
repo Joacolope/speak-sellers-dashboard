@@ -8,11 +8,27 @@ export function Eyebrow({ children }: { children: ReactNode }) {
 
 export function Seccion({ eyebrow, titulo, children, aside }: { eyebrow: string; titulo?: string; children: ReactNode; aside?: ReactNode }) {
   return (
-    <section className="flex min-w-0 flex-col gap-4">
+    <section className="flex min-w-0 flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Eyebrow>{eyebrow}</Eyebrow>
           {titulo && <h2 className="h2 mt-2">{titulo}</h2>}
+        </div>
+        {aside}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Bloque de la página: título chico a la izquierda, una línea de contexto, y el contenido con aire. */
+export function Bloque({ titulo, sub, children, aside }: { titulo: string; sub?: string; children: ReactNode; aside?: ReactNode }) {
+  return (
+    <section className="flex min-w-0 flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-3">
+        <div className="min-w-0">
+          <h2 className="h3">{titulo}</h2>
+          {sub && <div className="mt-0.5 text-[13px] text-text-disabled">{sub}</div>}
         </div>
         {aside}
       </div>
@@ -91,11 +107,7 @@ export function DemoBanner() {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--yellow-soft)] px-5 py-3 text-[14px] text-text-muted">
       <Tag color="yellow">Datos de ejemplo</Tag>
-      <span>Estás viendo números inventados para revisar el diseño. Nada de esto es real.</span>
-      <form method="POST" action="/demo" className="ml-auto">
-        <input type="hidden" name="activar" value="0" />
-        <button type="submit" className="btn-secondary !py-1.5 !text-[13px]">Volver a datos reales</button>
-      </form>
+      <span>Estás viendo números inventados porque Supabase no está configurado en este entorno. Nada de esto es real.</span>
     </div>
   );
 }
@@ -119,7 +131,7 @@ export function ChartCard({
   className?: string;
 }) {
   return (
-    <div className={`card flex flex-col gap-4 ${className}`}>
+    <div className={`card flex flex-col gap-5 ${className}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="card-title">{titulo}</h3>

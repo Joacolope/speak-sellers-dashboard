@@ -48,7 +48,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
           <div className="eyebrow">Costos</div>
           <h1 className="h1 mt-2">Software y costos fijos</h1>
           <p className="mt-2 max-w-2xl text-[14px] text-text-muted">
-            Lo que pagamos por mes en herramientas, editores, comisiones de closers y comisiones de las plataformas de cobro. Todo se descuenta de la facturación, junto con los anuncios, para calcular el Cash Collected.
+            Lo que pagamos por mes en herramientas, editores y comisiones de closers. Las plataformas de cobro hoy están en 0 (no se paga comisión); cuando empiecen a cobrar, se carga la tarifa abajo. Todo se descuenta de la facturación, junto con los anuncios, para calcular el Cash Collected.
           </p>
           {ok && <div className="ok mt-3 text-[14px]">Guardado: {ok}</div>}
           {error && <div className="bad mt-3 text-[14px]">{error}</div>}
@@ -58,19 +58,19 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
         </Suspense>
       </div>
 
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      <section className="grid grid-cols-2 gap-5 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Software del mes" valor={usd(cm.total, cm.total % 1 ? 2 : 0)} variacion={variacion(cm.total, anterior.costo_software)} icono={Iconos.margen} invertir color="yellow" />
         <StatCard label="Inversión en ads" valor={usd(actual.inversion_ads)} variacion={variacion(actual.inversion_ads, anterior.inversion_ads)} icono={Iconos.ads} invertir color="red" />
         <StatCard label="Comisiones closers" valor={actual.comisiones === null ? '—' : usd(actual.comisiones)} variacion={variacion(actual.comisiones, anterior.comisiones)} icono={Iconos.asistencia} invertir color="yellow"
           nota={actual.comisiones === null ? 'Falta cargar el % de cada closer' : undefined} />
         <StatCard label="Comisiones plataformas" valor={actual.comisiones_plataformas === null ? '—' : usd(actual.comisiones_plataformas)} variacion={variacion(actual.comisiones_plataformas, anterior.comisiones_plataformas)} icono={Iconos.cash} invertir color="yellow"
-          nota={actual.comisiones_plataformas === null ? 'Falta cargar la tarifa de cada plataforma' : undefined} />
+          nota={actual.comisiones_plataformas === null ? 'Falta cargar la tarifa de cada plataforma' : actual.comisiones_plataformas === 0 ? 'Por ahora no se paga comisión' : undefined} />
         <StatCard label="Costos totales" valor={usd(costosTotales)} variacion={variacion(costosTotales, anteriorTotales)} icono={Iconos.cash} invertir color="red" />
         <StatCard label="Cash Collected" valor={usd(actual.cash_collected)} variacion={variacion(actual.cash_collected, anterior.cash_collected)} icono={Iconos.revenue} color="green"
           nota={margen === null ? undefined : `Margen ${pct(margen)} sobre facturación`} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-5 lg:grid-cols-3">
         <ChartCard titulo="Costos vs. Cash Collected" sub="Ads, software, comisiones y plataformas vs. lo que queda (cash, verde)" icono={Iconos.tendencia} color="red" className="lg:col-span-2">
           <CostosMes data={serie} />
         </ChartCard>
@@ -79,7 +79,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
         </ChartCard>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-5 lg:grid-cols-3">
         <ChartCard titulo="Herramientas activas" sub={`${num(cm.items.length)} en ${nombreMes(f.mes).toLowerCase()}`} icono={Iconos.margen} color="yellow" className="lg:col-span-2">
           {cm.items.length ? (
             <div className="-mx-6 overflow-x-auto">
@@ -211,7 +211,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
         </div>
       </ChartCard>
 
-      {editor && (<section className="grid gap-4 lg:grid-cols-2">
+      {editor && (<section className="grid gap-5 lg:grid-cols-2">
         <form method="POST" action="/api/costos" className="card flex flex-col gap-4">
           <div>
             <h3 className="card-title">Agregar herramienta</h3>

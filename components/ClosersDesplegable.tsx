@@ -69,7 +69,7 @@ export default function ClosersDesplegable({ filas }: { filas: DetalleCloser[] }
                 {open && (
                   <tr className="hover:!bg-transparent">
                     <td colSpan={8} className="!h-auto !whitespace-normal !bg-[var(--surface-2)] !py-4">
-                      <div className="grid gap-4 md:grid-cols-3">
+                      <div className="grid gap-5 md:grid-cols-3">
                         <div className="flex flex-col gap-1.5 text-[13px]">
                           <div className="font-medium text-text">Resumen</div>
                           <div className="flex justify-between"><span className="text-text-muted">Llamadas presentadas</span><span>{num(c.llamadas)}</span></div>

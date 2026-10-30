@@ -13,7 +13,7 @@ function Bloque({ titulo, cuando, boton, tipo, children }: { titulo: string; cua
         <p className="card-sub mt-1">{cuando}</p>
       </div>
       <input type="hidden" name="tipo" value={tipo} />
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+      <div className="grid gap-5 sm:grid-cols-2">{children}</div>
       <div className="mt-auto flex justify-end pt-1">
         <button className="btn-primary" type="submit">{boton}</button>
       </div>
@@ -48,7 +48,7 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
         {searchParams.error && <div className="bad mt-3 text-[14px]">{searchParams.error}</div>}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         <Bloque titulo="Nueva venta" cuando="Cuando alguien compra o deja una seña en la llamada." boton="Guardar venta" tipo="venta">
           <Campo label="Nombre del lead" ancho><input className="input" name="nombre" required placeholder="Ej.: Juan Pérez" /></Campo>
           <Campo label="¿Qué pasó?">

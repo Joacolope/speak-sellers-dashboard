@@ -361,13 +361,12 @@ from (values
 where not exists (select 1 from costos c where c.nombre = v.nombre);
 
 -- Tarifas de plataformas de cobro (se cargan una sola vez, si la tabla está vacía).
--- Stripe, cuenta de EE. UU. (LLC Wyoming), tarjetas de afuera: 2,9 % + 1,5 % internacional = 4,4 % + 0,30 USD.
---   (+1 % si se cobra en una moneda que no es USD). Wise: recibir USD por ACH no tiene costo
---   (un wire entrante cuesta ~6,11 USD fijo). Mercado Pago por transferencia, DólarApp, efectivo y cripto: 0.
+-- Por ahora no se paga comisión en ninguna plataforma: todo arranca en 0 y se cambia desde Costos
+-- cuando empiecen a cobrar (referencia Stripe cuenta US con tarjeta internacional: 4,4 % + 0,30 USD).
 insert into comisiones_plataformas (plataforma, porcentaje, fijo, fecha_alta, notas, source)
 select v.plataforma, v.pct, v.fijo, date '2026-08-01', v.notas, 'manual'
 from (values
-  ('Stripe', 4.4::numeric, 0.30::numeric, 'Cuenta US: 2,9 % + 1,5 % por tarjeta internacional + 0,30 USD'),
+  ('Stripe', 0::numeric, 0::numeric, 'Por ahora sin comisión. Cuando empiecen a cobrar: 2,9 % + 1,5 % internacional + 0,30 USD'),
   ('Wise', 0, 0, 'Recibir USD por ACH: sin costo. Wire entrante: ~6,11 USD'),
   ('Mercado Pago', 0, 0, 'Transferencia: sin comisión'),
   ('DólarApp', 0, 0, 'Sin comisión'),

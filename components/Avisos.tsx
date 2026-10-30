@@ -7,7 +7,7 @@ export default function Avisos({ pendientes, actualizaciones }: { pendientes: Pe
   const fuentes = pendientes.filter((p) => p.tipo === 'fuente');
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-5 md:grid-cols-2">
       <div className="card">
         <div className="h3 mb-3">Pendientes del agente</div>
         {agente.length ? (

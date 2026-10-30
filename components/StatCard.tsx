@@ -16,9 +16,9 @@ interface Props {
 
 export default function StatCard({ label, valor, variacion, icono, nota, invertir, color = 'blue', contra }: Props) {
   return (
-    <div className="card flex flex-col gap-3 !p-5">
-      <div className="flex items-start justify-between gap-2">
-        <span className="card-title !text-[14px]">{label}</span>
+    <div className="card flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-3">
+        <span className="card-title !text-[14px] text-text-muted">{label}</span>
         <span className={`icon-badge icon-${color} !h-8 !w-8`} aria-hidden>{icono}</span>
       </div>
       <div className="metric">{valor}</div>

@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import Filtros from '@/components/Filtros';
 import { BarrasSimples } from '@/components/Charts';
-import { DemoBanner, Seccion, SourceDot, Vacio } from '@/components/ui';
+import { Bloque, DemoBanner, Seccion, SourceDot, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { mesesDisponibles, metricasMes, enPeriodo } from '@/lib/metrics';
@@ -35,6 +35,10 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
   const metaConv = bundle.ads.filter((a) => enPeriodo(f, a.fecha)).reduce((acc, a) => acc + (a.conversaciones ?? 0), 0);
   const m = metricasMes(bundle, { ...f, closer: 'todos', fuente: 'todas' });
   const rr = resumenRespuesta(filas);
+  // Qué pasó la última vez que el cron intentó medir el tiempo de respuesta (para explicar un vacío)
+  const ultimoCron = bundle.log.filter((l) => l.resumen.startsWith('cron')).sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+  const intentoRespuesta = ultimoCron && ultimoCron.cambios && typeof ultimoCron.cambios === 'object' ? String((ultimoCron.cambios as Record<string, unknown>).Respuesta ?? '') : '';
+  const origenConv = (o: 'setter' | 'meta' | 'ig' | null) => (o === 'meta' ? 'según Meta Ads (el setter no las cargó)' : o === 'ig' ? 'estimadas con la API de Instagram' : o === 'setter' ? 'planilla del setter' : 'sin cargar');
   const convApi = filas.reduce((acc, s) => acc + (s.conv_api ?? 0), 0);
   const chartResp = filas.filter((s) => s.tr_mediana_min != null).map((s) => ({ x: s.fecha.slice(8), mediana: s.tr_mediana_min ?? 0 }));
   const chart = filas.map((s) => ({ x: s.fecha.slice(8), organicas: s.conv_organicas ?? 0, pagadas: s.conv_pagadas ?? 0, outbound: (s.respuestas ?? 0) + (s.respuestas_wa ?? 0) }));
@@ -54,19 +58,23 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
         </Suspense>
       </div>
 
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-5">
-        <div className="card flex flex-col gap-2"><div className="metric">{num(totOrg + totPag + totOut)}</div><div className="text-[14px] text-text-muted">Conversaciones (ida y vuelta)</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric">{num(totOrg)}</div><div className="text-[14px] text-text-muted">Conv. orgánicas</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric">{num(totPag)}</div><div className="text-[14px] text-text-muted">Conv. pagadas</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric">{num(sum('links_enviados'))}</div><div className="text-[14px] text-text-muted">Links enviados</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric">{num(totOut)}</div><div className="text-[14px] text-text-muted">Conv. outbound (con respuesta)</div><div className="text-[13px] text-text-disabled">IG {num(outIg.resp)} · WA {num(outWa.resp)}</div></div>
+      <Bloque titulo="Conversaciones" sub="Cuántas charlas con ida y vuelta hubo y de dónde vinieron">
+      <section className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-5">
+        <div className="card flex flex-col gap-3"><div className="metric">{num(m.conversaciones)}</div><div className="text-[14px] text-text-muted">Conversaciones (ida y vuelta)</div><div className="text-[13px] text-text-disabled">Orgánicas + pagadas + outbound</div></div>
+        <div className="card flex flex-col gap-3"><div className="metric">{m.conv_organicas === null ? '—' : num(m.conv_organicas)}</div><div className="text-[14px] text-text-muted">Conv. orgánicas</div><div className="text-[13px] text-text-disabled">{origenConv(m.conv_organicas_origen)}</div></div>
+        <div className="card flex flex-col gap-3"><div className="metric">{m.conv_pagadas === null ? '—' : num(m.conv_pagadas)}</div><div className="text-[14px] text-text-muted">Conv. pagadas</div><div className="text-[13px] text-text-disabled">{origenConv(m.conv_pagadas_origen)}</div></div>
+        <div className="card flex flex-col gap-3"><div className="metric">{num(sum('links_enviados'))}</div><div className="text-[14px] text-text-muted">Links enviados</div><div className="text-[13px] text-text-disabled">Links de agenda mandados</div></div>
+        <div className="card flex flex-col gap-3"><div className="metric">{num(totOut)}</div><div className="text-[14px] text-text-muted">Conv. outbound con respuesta</div><div className="text-[13px] text-text-disabled">IG {num(outIg.resp)} · WA {num(outWa.resp)}</div></div>
       </section>
+      </Bloque>
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="card flex flex-col gap-2"><div className="metric">{pct(m.pct_agenda_conversacion)}</div><div className="text-[14px] text-text-muted">% Agenda total · {num(m.agendas)} agendas / {num(m.conversaciones)} conv.</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric" style={{ color: 'var(--blue-ink)' }}>{pct(m.pct_agenda_inbound)}</div><div className="text-[14px] text-text-muted">% Agenda inbound · {num(m.agendas_inbound)} / {num(m.conv_inbound)} conv. que escribieron</div></div>
-        <div className="card flex flex-col gap-2"><div className="metric" style={{ color: 'var(--green-ink)' }}>{pct(m.pct_agenda_outbound)}</div><div className="text-[14px] text-text-muted">% Agenda outbound · {num(m.agendas_outbound)} / {num(m.conv_outbound)} respuestas en frío</div></div>
+      <Bloque titulo="De conversación a agenda" sub="Qué porcentaje de las charlas termina en una llamada agendada">
+      <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        <div className="card flex flex-col gap-3"><div className="metric">{pct(m.pct_agenda_conversacion)}</div><div className="text-[14px] text-text-muted">% Agenda total</div><div className="text-[13px] text-text-disabled">{num(m.agendas)} agendas / {num(m.conversaciones)} conversaciones</div></div>
+        <div className="card flex flex-col gap-3"><div className="metric" style={{ color: 'var(--blue-ink)' }}>{pct(m.pct_agenda_inbound)}</div><div className="text-[14px] text-text-muted">% Agenda inbound</div><div className="text-[13px] text-text-disabled">{num(m.agendas_inbound)} agendas / {m.conv_inbound === null ? 'sin datos de' : num(m.conv_inbound)} conversaciones que escribieron</div></div>
+        <div className="card flex flex-col gap-3"><div className="metric" style={{ color: 'var(--green-ink)' }}>{pct(m.pct_agenda_outbound)}</div><div className="text-[14px] text-text-muted">% Agenda outbound</div><div className="text-[13px] text-text-disabled">{num(m.agendas_outbound)} agendas / {num(m.conv_outbound)} respuestas en frío</div></div>
       </section>
+      </Bloque>
 
       <Seccion
         eyebrow="Velocidad de respuesta · DMs de Instagram"
@@ -75,7 +83,7 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
       >
         {rr.ultimo ? (
           <>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
               <div className="card flex flex-col gap-2" title="La mitad de los mensajes se contestó en menos de este tiempo">
                 <div className={`metric ${colorRespuesta(rr.ultimo.tr_mediana_min ?? null)}`}>{formatoEspera(rr.ultimo.tr_mediana_min)}</div>
                 <div className="text-[14px] text-text-muted">Tiempo de respuesta · {fechaCorta(rr.ultimo.fecha)}</div>
@@ -97,7 +105,7 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
                 <div className="text-[13px] text-text-disabled">{num(rr.sinRespuestaPeriodo)} en el mes</div>
               </div>
             </div>
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-5 lg:grid-cols-2">
               <div className="card">
                 <div className="eyebrow mb-4">Tiempo de respuesta por día (mediana, minutos)</div>
                 <BarrasSimples data={chartResp} series={[{ key: 'mediana', nombre: 'Minutos', color: 'main' }]} />
@@ -123,11 +131,26 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
               Se mide desde que el lead escribe hasta la primera respuesta humana: las respuestas automáticas de ManyChat (menos de 15 segundos) no cuentan. Es la mediana: la mitad de los mensajes se contestó más rápido que eso.
             </p>
           </>
-        ) : <Vacio texto="Todavía sin datos. Se llena solo cuando esté conectada la API de mensajes de Instagram (META_TOKEN + META_PAGE_ID)." />}
+        ) : (
+          <div className="panel flex flex-col gap-2 !p-6 text-[14px] text-text-muted">
+            <div className="text-text">Todavía no hay ningún día medido.</div>
+            {intentoRespuesta.startsWith('error') ? (
+              <>
+                <div>El último intento ({fechaHora(ultimoCron!.fecha)}) falló con este mensaje:</div>
+                <code className="block overflow-x-auto rounded-lg bg-surface px-3 py-2 text-[13px] text-[var(--red-ink)]">{intentoRespuesta.replace(/^error:\s*/, '')}</code>
+                <div>Casi siempre es un permiso de Instagram: en la app de Instagram, Configuración → Mensajes → Herramientas conectadas → <strong>Permitir acceso a los mensajes</strong>. Mañana a las 6:00 se vuelve a intentar solo.</div>
+              </>
+            ) : intentoRespuesta ? (
+              <div>El último intento ({fechaHora(ultimoCron!.fecha)}) terminó así: {intentoRespuesta}. Se mide el día anterior, así que el primer dato aparece a la mañana siguiente de activar el permiso de mensajes.</div>
+            ) : (
+              <div>Se carga solo todas las mañanas a las 6:00 (hora Argentina) desde los DMs de Instagram, con lo que pasó el día anterior. Si mañana sigue vacío, mirá Avisos en Inicio.</div>
+            )}
+          </div>
+        )}
       </Seccion>
 
       <Seccion eyebrow="Outbound por canal">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2">
           {[
             { canal: 'Instagram', o: outIg },
             { canal: 'WhatsApp', o: outWa },

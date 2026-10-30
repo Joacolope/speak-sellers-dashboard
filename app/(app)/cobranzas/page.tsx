@@ -43,14 +43,14 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
         </Suspense>
       </div>
 
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <section className="grid grid-cols-2 gap-5 md:grid-cols-4">
         <div className="card flex flex-col gap-2"><div className="metric ok">{usd(cobrado)}</div><div className="text-[14px] text-text-muted">Monto cobrado</div><div className="text-[13px] text-text-disabled">en el período</div></div>
         <div className="card flex flex-col gap-2"><div className="metric warn">{usd(pendienteTotal)}</div><div className="text-[14px] text-text-muted">Pendiente de cobrar</div><div className="text-[13px] text-text-disabled">de todas las ventas en cuotas</div></div>
         <div className="card flex flex-col gap-2"><div className={`metric ${cuotas.vencidas.length ? 'bad' : ''}`}>{usd(totalCuotas(cuotas.vencidas))}</div><div className="text-[14px] text-text-muted">Vencido</div><div className="text-[13px] text-text-disabled">{num(cuotas.vencidas.length)} {cuotas.vencidas.length === 1 ? 'cuota' : 'cuotas'} sin pagar</div></div>
         <div className="card flex flex-col gap-2"><div className={`metric ${reembolsos ? 'bad' : ''}`}>{usd(reembolsos)}</div><div className="text-[14px] text-text-muted">Reembolsos</div><div className="text-[13px] text-text-disabled">en el período</div></div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section className="grid gap-5 lg:grid-cols-2">
         <ChartCard titulo="Quién debe y cuándo" sub="Cuotas pendientes, de la más urgente a la más lejana" icono={Iconos.cash} color="yellow">
           <CuotasPorCobrar {...cuotas} limite={8} />
         </ChartCard>

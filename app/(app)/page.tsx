@@ -7,7 +7,7 @@ import {
   AdsVsCash, AgendasPorDia, AgendasVentasMes, AnilloRentabilidad, BarrasMes, InversionMes,
   TendenciaMes, VentasPorPais,
 } from '@/components/Charts';
-import { ChartCard, DemoBanner, Semaforo, Vacio } from '@/components/ui';
+import { Bloque, ChartCard, DemoBanner, Semaforo, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { etiquetaComparacion, etiquetaPeriodo, leerFiltros, queryDe, type SearchParams } from '@/lib/filtros';
 import {
@@ -118,8 +118,9 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         </section>
       )}
 
-      {/* Fila 1 · números grandes */}
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
+      {/* Fila 1 · números grandes: plata y volumen arriba, tasas abajo */}
+      <Bloque titulo="Resultados" sub={periodo}>
+      <section className="grid grid-cols-2 gap-5 md:grid-cols-4">
         <StatCard contra={contra} label="Facturación" valor={usd(actual.revenue)} variacion={variacion(actual.revenue, anterior.revenue)} icono={Iconos.revenue} color="blue" />
         <StatCard contra={contra}
           label="Cash Collected"
@@ -131,13 +132,17 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         />
         <StatCard contra={contra} label="Ventas" valor={num(actual.ventas)} variacion={variacion(actual.ventas, anterior.ventas)} icono={Iconos.ventas} color="green" />
         <StatCard contra={contra} label="Agendas" valor={num(actual.agendas)} variacion={variacion(actual.agendas, anterior.agendas)} icono={Iconos.agendas} color="blue" />
+      </section>
+      <section className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <StatCard contra={contra} label="% Asistencia" valor={pct(actual.pct_asistencia)} variacion={variacion(actual.pct_asistencia, anterior.pct_asistencia)} icono={Iconos.asistencia} color={semaforo(actual.pct_asistencia, 0.6)} />
         <StatCard contra={contra} label="% Cierre s/ no-show" valor={pct(actual.pct_cierre_sin_noshow)} variacion={variacion(actual.pct_cierre_sin_noshow, anterior.pct_cierre_sin_noshow)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_sin_noshow, 0.3)} />
         <StatCard contra={contra} label="% Cierre / presentadas" valor={pct(actual.pct_cierre_asistencia)} variacion={variacion(actual.pct_cierre_asistencia, anterior.pct_cierre_asistencia)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_asistencia, 0.3)} />
       </section>
+      </Bloque>
 
       {/* Metas del mes y lo que falta cobrar */}
-      <section id="metas" className="grid scroll-mt-6 gap-4 lg:grid-cols-3">
+      <Bloque titulo="Metas y cobros" sub="A dónde queremos llegar y qué falta entrar">
+      <section id="metas" className="grid scroll-mt-6 gap-5 lg:grid-cols-3">
         <ChartCard titulo="Meta del mes" sub={`${nombreMes(f.mes)} · avance y proyección a fin de mes`} icono={Iconos.tendencia} color="green" className="lg:col-span-2">
           {ok && <div className="ok text-[14px]">{ok}</div>}
           {error && <div className="bad text-[14px]">{error}</div>}
@@ -147,9 +152,11 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           <CuotasPorCobrar {...cuotas} />
         </ChartCard>
       </section>
+      </Bloque>
 
       {/* Fila 2 · rentabilidad, revenue y cash */}
-      <section className="grid gap-4 lg:grid-cols-3">
+      <Bloque titulo="Plata" sub="Lo que entra, lo que cuesta y lo que queda">
+      <section className="grid gap-5 lg:grid-cols-3">
         <ChartCard titulo="Rentabilidad" sub="Cuánto queda de cada dólar vendido" icono={Iconos.margen} color="green">
           <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} cash={actual.cash_collected} />
         </ChartCard>
@@ -166,7 +173,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <ChartCard
           titulo="Cash Collected"
           color="green"
-          sub="Facturación − ads − software − comisiones (closers y plataformas)"
+          sub={`Facturación − ads − software − comisiones de closers${actual.comisiones_plataformas ? ' − comisiones de plataformas' : ''}`}
           icono={Iconos.cash}
           valor={usd(actual.cash_collected)}
           comparacion={vsAnterior(anterior.cash_collected)}
@@ -174,9 +181,11 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           <TendenciaMes data={serie} campo="cash" enCurso={enCurso} nombre="Cash" />
         </ChartCard>
       </section>
+      </Bloque>
 
       {/* Fila 3 · embudo, agendas y anuncios */}
-      <section className="grid gap-4 lg:grid-cols-3">
+      <Bloque titulo="Embudo y anuncios" sub="De la conversación a la venta, y cuánto vuelve de cada dólar en ads">
+      <section className="grid gap-5 lg:grid-cols-3">
         <ChartCard titulo="Embudo" sub={`${periodo} · elegí la fuente · pasá el mouse para ver por closer`} icono={Iconos.embudo} color="blue">
           <EmbudoPorFuente embudos={embudos} />
         </ChartCard>
@@ -196,7 +205,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       </section>
 
       {/* Fila 4 · ROAS, ventas nuevas vs cuotas, país */}
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-5 lg:grid-cols-3">
         <ChartCard titulo="ROAS" sub="Veces que vuelve lo invertido en ads" icono={Iconos.tendencia} color="green">
           <BarrasMes data={serie} a={{ key: 'roas_cash', nombre: 'ROAS cash', color: 'green' }} b={{ key: 'roas_revenue', nombre: 'ROAS facturación', color: 'blue' }} formato="x" />
         </ChartCard>
@@ -212,10 +221,12 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       <ChartCard titulo="Agendas por UTM" sub={`${periodo} · de qué campaña, fuente o contenido vienen las agendas y cuánto venden`} icono={Iconos.tendencia} color="blue">
         <TablaUtm datos={utms} limite={8} />
       </ChartCard>
+      </Bloque>
 
       {/* Fila 6 · acumulados y closers */}
-      <section className="grid gap-4 lg:grid-cols-3">
-        <div className="flex flex-col gap-4">
+      <Bloque titulo="Equipo y acumulado" sub={`Cómo viene cada closer y cuánto llevamos en ${anual.year}`}>
+      <section className="grid gap-5 lg:grid-cols-3">
+        <div className="flex flex-col gap-5">
           <div className="card-feature flex flex-1 flex-col justify-center gap-3 !bg-[var(--blue-soft)]">
             <div className="eyebrow !text-[var(--blue-ink)]">Acumulado {anual.year} · Facturación</div>
             <div className="metric-xl">{usd(anual.revenue)}</div>
@@ -229,9 +240,11 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           <ClosersDesplegable filas={detalleClosers} />
         </ChartCard>
       </section>
+      </Bloque>
 
       {/* Fila 7 · el mes por dentro */}
-      <section className="grid gap-4 lg:grid-cols-2">
+      <Bloque titulo="El mes por dentro" sub="Semana a semana y día a día">
+      <section className="grid gap-5 lg:grid-cols-2">
         <ChartCard titulo="Inversión en ads vs. Cash cobrado" sub="Ads (rojo) vs. cash cobrado (verde) por semana" icono={Iconos.ads} color="red">
           <AdsVsCash data={semanas} />
         </ChartCard>
@@ -239,11 +252,11 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           <AgendasPorDia data={dias} />
         </ChartCard>
       </section>
+      </Bloque>
 
-      <section className="flex flex-col gap-4">
-        <div className="eyebrow">Avisos</div>
+      <Bloque titulo="Avisos" sub="Qué falta cargar y cuándo se actualizó cada fuente">
         <Avisos pendientes={pendientes} actualizaciones={bundle.actualizaciones} />
-      </section>
+      </Bloque>
     </>
   );
 }

@@ -79,7 +79,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
         </div>
       </div>
 
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+      <section className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-5">
         <Dato valor={num(resumen.agendas)} label="Agendas" sub={resumen.pendientes ? `${num(resumen.pendientes)} por venir` : undefined} />
         <Dato valor={num(resumen.asistencias)} label="Llamadas presentadas" sub={`${num(resumen.no_show)} no show · ${num(resumen.canceladas)} canceladas`} />
         <Dato valor={pct(resumen.pct_show)} clase={claseSemaforo(resumen.pct_show, 0.6)} label="% Show" sub={`Objetivo ${pct(0.6)}`} />

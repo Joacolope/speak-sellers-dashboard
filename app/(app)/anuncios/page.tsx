@@ -114,7 +114,7 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
       </div>
 
       <Seccion eyebrow="Inversión del mes por funnel">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           <Dato valor={usd(fmInv + webTotalMes, 2)} label="Total invertido" />
           <Dato valor={usd(fmInv, 2)} label="Orgánico · Follow Me Ads" sub={fmInv + webTotalMes ? `${pct(fmInv / (fmInv + webTotalMes))} del total` : undefined} />
           <Dato valor={usd(webTotalMes, 2)} label="Webinar" sub={fmInv + webTotalMes ? `${pct(webTotalMes / (fmInv + webTotalMes))} del total` : undefined} />
@@ -127,14 +127,14 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
         aside={actualizadoCamp ? <span className="text-[13px] text-text-disabled">Actualizado {fechaHora(actualizadoCamp)}</span> : undefined}
       >
         {activas.length ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {activas.map((c) => <TarjetaCampana key={c.id} c={c} />)}
           </div>
         ) : <Vacio texto={bundle.campanas.length ? 'No hay campañas corriendo ahora.' : process.env.META_TOKEN ? 'Meta está conectado pero la actualización todavía no trajo campañas. Corre sola a las 6:00 (Argentina); para forzarla: Vercel → Settings → Cron Jobs → Run en /api/cron/diario. Si falló, el motivo aparece en Avisos, al final de Inicio.' : 'Las campañas aparecen cuando se conecte Meta (META_TOKEN).'} />}
         {pausadasMes.length > 0 && (
           <details className="group">
             <summary className="cursor-pointer text-[14px] text-text-muted">Pausadas que gastaron este mes ({pausadasMes.length})</summary>
-            <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {pausadasMes.map((c) => <TarjetaCampana key={c.id} c={c} />)}
             </div>
           </details>
@@ -142,7 +142,7 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
       </Seccion>
 
       <Seccion eyebrow="Follow Me Ads · funnel orgánico" titulo="Cuánto cuesta cada resultado">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-5">
           <Dato valor={usd(t.inv, 2)} label="Inversión" sub={<Delta actual={t.inv} antes={tp.inv} mes={mp} neutro />} />
           <Dato valor={u2(t.cSeg)} label="Costo por seguidor" ayuda="Inversión / seguidores nuevos" sub={<>{num(t.seg)} seguidores · <Delta actual={t.cSeg} antes={tp.cSeg} mes={mp} menosEsMejor /></>} />
           <Dato valor={u2(t.cConv)} label="Costo por conversación" ayuda="Inversión / conversaciones iniciadas por mensaje" sub={<>{num(t.conv)} conversaciones · <Delta actual={t.cConv} antes={tp.cConv} mes={mp} menosEsMejor /></>} />
@@ -158,7 +158,7 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
       <Seccion eyebrow={`Webinars · ${webinars.length === 1 ? webinars[0].nombre : `${webinars.length} webinars en el mes`}`}>
         {webinars.length ? (
           <>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
               <Dato valor={usd(w.inversion, 2)} label="Inversión" sub="Anuncios hasta el día del vivo" />
               <Dato valor={costo(w.inversion, w.registrados)} label="Costo por registro" ayuda="Inversión / registrados" sub={`${num(w.registrados)} registrados`} />
               <Dato valor={costo(w.inversion, w.calificados)} label="Costo por registro calificado" ayuda="Inversión / registrados que cumplen el perfil" sub={`${num(w.calificados)} calificados${w.calificados !== null && w.registrados ? ` · ${pct(w.calificados / w.registrados)}` : ''}`} />

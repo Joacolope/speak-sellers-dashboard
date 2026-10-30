@@ -29,7 +29,7 @@ export default function Funnel({ niveles, sinAviso = false }: { niveles: NivelFu
         return (
           <div
             key={n.nombre}
-            className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] items-center gap-4"
+            className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] items-center gap-5"
             onMouseEnter={() => setHover(i)}
             onMouseLeave={() => setHover(null)}
           >

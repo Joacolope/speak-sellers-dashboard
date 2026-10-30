@@ -224,6 +224,7 @@ button:not(:disabled):active, a:active, .chip:active { transform: scale(.97); }
   border-radius: var(--radius-data-card);
   padding: 24px;
 }
+@media (max-width: 640px) { .card { padding: 18px; } }
 /* Encabezado de tarjeta estilo referencia: título en tinta ember, ícono en círculo */
 .card-title {
   font-family: var(--font-polysans);
@@ -232,7 +233,7 @@ button:not(:disabled):active, a:active, .chip:active { transform: scale(.97); }
   letter-spacing: -0.01em;
   color: var(--text);
 }
-.card-sub { font-size: 12px; color: var(--text-disabled); margin-top: 2px; }
+.card-sub { font-size: 13px; line-height: 1.4; color: var(--text-disabled); margin-top: 3px; }
 .icon-badge {
   display: inline-flex; align-items: center; justify-content: center;
   width: 36px; height: 36px; border-radius: 9999px; flex-shrink: 0;

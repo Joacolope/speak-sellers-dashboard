@@ -24,7 +24,7 @@ export default function TopNav({ email, rol, puedeCargar }: { email: string; rol
 
   return (
     <header className="bg-bg">
-      <div className="mx-auto flex h-20 max-w-[1200px] items-center justify-between gap-6 px-4 md:px-6">
+      <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between gap-6 px-4 md:px-8">
         <Link href={`/${query}`} className="shrink-0 leading-tight">
           <div className="eyebrow">Speak Sellers · Métricas</div>
           <div className="h3">Speak Sellers Dashboard</div>
@@ -62,7 +62,7 @@ export default function TopNav({ email, rol, puedeCargar }: { email: string; rol
           </form>
         </div>
       </div>
-      <nav className="mx-auto flex max-w-[1200px] gap-1 overflow-x-auto px-4 pb-3 xl:hidden">
+      <nav className="mx-auto flex max-w-[1280px] gap-1 overflow-x-auto px-4 pb-3 xl:hidden">
         {SECCIONES.map((s) => (
           <Link
             key={s.href}

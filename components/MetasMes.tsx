@@ -48,7 +48,7 @@ export default function MetasMes({
         <div className="text-[13px] text-text-disabled">Día {transcurridos} de {dias}. La proyección supone que el resto del mes sigue al mismo ritmo.</div>
       )}
       {editable && (
-        <details className="group" open={!conMeta.length}>
+        <details className="group border-t border-border pt-4" open={!conMeta.length}>
           <summary className="cursor-pointer text-[14px] text-text-muted">{conMeta.length ? 'Cambiar metas' : 'Cargar metas'}</summary>
           <form method="POST" action="/api/metas" className="mt-4 flex flex-col gap-4">
             <input type="hidden" name="mes" value={mes} />

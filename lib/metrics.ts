@@ -11,6 +11,9 @@ export interface MetricasMes {
   // Setter
   conv_organicas: number | null;
   conv_pagadas: number | null;
+  /** De dónde salió el número: planilla del setter, Meta Ads o estimado con la API de Instagram */
+  conv_pagadas_origen: 'setter' | 'meta' | null;
+  conv_organicas_origen: 'setter' | 'ig' | null;
   /** Outbound con ida y vuelta: mensajes en frío/seguimiento que tuvieron respuesta. */
   conv_outbound: number | null;
   /** Conversaciones con ida y vuelta = inbound (orgánicas + pagadas) + outbound con respuesta. */
@@ -145,14 +148,22 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const cash = revenue - inversion - (software ?? 0) - (comisiones ?? 0) - (comisionesPlataformas ?? 0);
 
 
-  const convOrg = sumNullable(setter, (s) => s.conv_organicas);
-  const convPag = sumNullable(setter, (s) => s.conv_pagadas);
+  const convOrgSetter = sumNullable(setter, (s) => s.conv_organicas);
+  const convPagSetter = sumNullable(setter, (s) => s.conv_pagadas);
+  // Si el setter no cargó las pagadas, se toman las conversaciones iniciadas desde Meta Ads (llegan solas)
+  const convPagMeta = sumNullable(b.ads.filter((a) => enPeriodo(f, a.fecha)), (a) => a.conversaciones);
+  const convPag = convPagSetter ?? convPagMeta;
+  // Si no cargó las orgánicas, se estiman con las conversaciones con ida y vuelta de Instagram (API) menos las pagadas
+  const convApi = sumNullable(setter, (s) => s.conv_api);
+  const convOrg = convOrgSetter ?? (convApi === null ? null : Math.max(0, convApi - (convPag ?? 0)));
   // Outbound con respuesta: Instagram + WhatsApp
   const convOut = sumNullable(setter, (s) => (s.respuestas == null && s.respuestas_wa == null ? null : (s.respuestas ?? 0) + (s.respuestas_wa ?? 0)));
   const conversaciones = convOrg === null && convPag === null && convOut === null ? null : (convOrg ?? 0) + (convPag ?? 0) + (convOut ?? 0);
   const convIn = convOrg === null && convPag === null ? null : (convOrg ?? 0) + (convPag ?? 0);
-  // Sin clasificar cuenta como inbound (es lo que casi siempre pasa hoy)
-  const agOutbound = ag.filter((a) => a.lead?.canal === 'Outbound').length;
+  // Agendas outbound: leads marcados como Outbound; si no hay ninguno marcado, las que reportó el setter en su planilla.
+  // El resto cuenta como inbound.
+  const agOutMarcadas = ag.filter((a) => a.lead?.canal === 'Outbound').length;
+  const agOutbound = agOutMarcadas || Math.min(ag.length, sumNullable(setter, (s) => s.agendas) ?? 0);
   const agInbound = ag.length - agOutbound;
   const links = sumNullable(setter, (s) => s.links_enviados);
 
@@ -160,6 +171,8 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
     mes: f.mes,
     conv_organicas: convOrg,
     conv_pagadas: convPag,
+    conv_pagadas_origen: convPagSetter !== null ? 'setter' : convPagMeta !== null ? 'meta' : null,
+    conv_organicas_origen: convOrgSetter !== null ? 'setter' : convOrg !== null ? 'ig' : null,
     conv_outbound: convOut,
     conversaciones,
     seguimientos: sumNullable(setter, (s) => s.seguimientos),
