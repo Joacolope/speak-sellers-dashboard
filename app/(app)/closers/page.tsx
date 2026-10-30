@@ -163,7 +163,10 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                     <td title={a.reprogramada_desde ? `Reprogramada desde ${fechaCorta(a.reprogramada_desde)}` : undefined}>
                       {fechaCorta(a.fecha_llamada)}{a.reprogramada_desde && <span className="mono ml-1 text-[12px] text-text-muted">↻</span>}
                     </td>
-                    <td className="font-medium" title={a.notas ?? undefined}>{a.lead?.nombre ?? '—'}</td>
+                    <td className="font-medium" title={[a.lead?.closer_en_actividad && `Closer: ${a.lead.closer_en_actividad}`, a.lead?.rango_comisiones && `Comisiones: ${a.lead.rango_comisiones}`, a.lead?.nicho && `Nicho: ${a.lead.nicho}`, a.lead?.dato_previo && `Dato: ${a.lead.dato_previo}`, a.notas].filter(Boolean).join('\n') || undefined}>
+                      {a.lead?.nombre ?? '—'}
+                      {(a.lead?.rango_comisiones || a.lead?.nicho) && <div className="text-[12px] font-normal text-text-disabled">{[a.lead?.rango_comisiones, a.lead?.nicho].filter(Boolean).join(' · ')}</div>}
+                    </td>
                     <td className="text-text-muted">{a.lead?.telefono ?? '—'}</td>
                     <td>{a.lead?.pais ?? '—'}</td>
                     <td>{NOMBRE_CLOSER[a.closer]}</td>

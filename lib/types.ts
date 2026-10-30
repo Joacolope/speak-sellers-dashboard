@@ -49,6 +49,11 @@ export interface Lead {
   utm_term?: string | null;
   tags?: string[] | null;
   cualificacion_economica?: number | null;
+  /** Respuestas del formulario de agenda (vienen de GoHighLevel) */
+  closer_en_actividad?: string | null;
+  rango_comisiones?: string | null;
+  nicho?: string | null;
+  dato_previo?: string | null;
   primer_punto_contacto?: string | null;
   ultimo_punto_contacto?: string | null;
   etapa_pipeline?: string | null;

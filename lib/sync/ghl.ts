@@ -77,6 +77,25 @@ function toque(a?: Atribucion): string | null {
   return t.length ? t.join(' · ').slice(0, 200) : null;
 }
 
+/** Respuestas del formulario de agenda: se buscan los campos personalizados por nombre, no por id. */
+const CAMPOS_FORM: [RegExp, 'closer_en_actividad' | 'rango_comisiones' | 'nicho' | 'dato_previo'][] = [
+  [/closer.*actividad|sos closer|en actividad/i, 'closer_en_actividad'],
+  [/comision/i, 'rango_comisiones'],
+  [/nicho/i, 'nicho'],
+  [/dato|mencionar|antes de la sesi/i, 'dato_previo'],
+];
+function formulario(c: GhlContact | null, nombres: Map<string, string>) {
+  const out: Partial<Record<(typeof CAMPOS_FORM)[number][1], string>> = {};
+  for (const cf of c?.customFields ?? []) {
+    const nombre = nombres.get(cf.id);
+    const valor = Array.isArray(cf.value) ? cf.value.join(', ') : cf.value == null ? '' : String(cf.value).trim();
+    if (!nombre || !valor) continue;
+    const col = CAMPOS_FORM.find(([re]) => re.test(nombre))?.[1];
+    if (col && !out[col]) out[col] = valor.slice(0, 500);
+  }
+  return out;
+}
+
 function paisPorPrefijo(tel?: string): string | null {
   if (!tel) return null;
   const t = tel.replace(/\s|-/g, '');
@@ -128,6 +147,15 @@ export async function syncGhl(sb: SupabaseClient, dry = false): Promise<string> 
     console.warn('GHL opportunities:', e);
   }
 
+  // Nombres de los campos personalizados (para leer las respuestas del formulario)
+  const nombresCampos = new Map<string, string>();
+  try {
+    const cf = await ghl<{ customFields: { id: string; name: string }[] }>(`/locations/${locationId}/customFields`);
+    for (const c of cf.customFields ?? []) nombresCampos.set(c.id, c.name);
+  } catch (e) {
+    console.warn('GHL customFields:', e);
+  }
+
   // Leads que entraron por la migración del spreadsheet y todavía no están atados a GHL:
   // si llega el mismo nombre desde GHL, se adopta ese lead (y su agenda) en vez de duplicarlo.
   const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
@@ -159,6 +187,7 @@ export async function syncGhl(sb: SupabaseClient, dry = false): Promise<string> 
           pais: paisPorPrefijo(contacto?.phone),
           tags: contacto?.tags ?? [],
           etapa_pipeline: etapas.get(ev.contactId) ?? null,
+          ...formulario(contacto, nombresCampos),
           ...utms(contacto),
           source: 'ghl',
           updated_at: new Date().toISOString(),
@@ -195,6 +224,8 @@ export async function syncGhl(sb: SupabaseClient, dry = false): Promise<string> 
       estado_ghl: ev.appointmentStatus,
       reprogramada_desde: ev.rescheduledAt ?? null,
       updated_at: new Date().toISOString(),
+      // Etapa "Confirmado" del pipeline = el setter confirmó por WhatsApp
+      ...(/confirm/i.test(etapas.get(ev.contactId) ?? '') ? { confirmada_whatsapp: true } : {}),
     };
     if (!existente) {
       campos.asistio = estadoAAsistio(ev.appointmentStatus);
