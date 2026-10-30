@@ -37,48 +37,114 @@ function campana(nombre: string): 'follow_me' | 'webinar' | null {
   return null; // Lookalike, Tráfico al perfil, etc. se excluyen
 }
 
-/** ads_diario de ayer y anteayer (Meta corrige datos hasta 48 h después). */
+/** Todas las páginas de un pedido a la Graph API (sigue paging.next). */
+async function todas<T>(path: string, params: Record<string, string>): Promise<T[]> {
+  const out: T[] = [];
+  let r = await graph<{ data: T[]; paging?: { next?: string } }>(path, { ...params, limit: '500' });
+  out.push(...(r.data ?? []));
+  for (let i = 0; r.paging?.next && i < 20; i++) {
+    const res = await fetch(r.paging.next, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Meta ${path} (página ${i + 2}) → ${res.status} ${await res.text()}`);
+    r = await res.json();
+    out.push(...(r.data ?? []));
+  }
+  return out;
+}
+
+const suma = (a: number | null, b: number | null) => (a === null && b === null ? null : (a ?? 0) + (b ?? 0));
+
+/**
+ * ads_diario por día y funnel.
+ * Follow Me: desde el 1 del mes anterior hasta ayer (rellena conversaciones, comentarios y seguidores
+ * de días que se cargaron desde la planilla sin esos datos; Meta además corrige hasta 48 h después).
+ * Webinar: solo ayer y anteayer, porque los webinars viejos quedaron cargados como un total por webinar
+ * y traer sus días sueltos los contaría dos veces.
+ * Si hay varias campañas del mismo funnel el mismo día, se suman en una sola fila.
+ */
 export async function syncMetaAds(sb: SupabaseClient, dry = false): Promise<string> {
   const cuenta = process.env.META_AD_ACCOUNT;
   if (!cuenta) throw new Error('Falta META_AD_ACCOUNT');
   const hoy = new Date();
   const d = (n: number) => new Date(hoy.getTime() - n * 86400000).toISOString().slice(0, 10);
-  const r = await graph<{ data: Insight[] }>(`${cuenta}/insights`, {
+  const ayer = d(1);
+  const desdeWebinar = d(2);
+  const [y, m] = ayer.split('-').map(Number);
+  const desde = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 10); // 1 del mes anterior
+  const datos = await todas<Insight>(`${cuenta}/insights`, {
     level: 'campaign',
     time_increment: '1',
-    time_range: JSON.stringify({ since: d(2), until: d(1) }),
+    time_range: JSON.stringify({ since: desde, until: ayer }),
     fields: 'campaign_name,spend,impressions,reach,frequency,cpm,ctr,actions',
   });
-  let n = 0;
-  for (const ins of r.data ?? []) {
+
+  type Fila = {
+    fecha: string; campana: 'follow_me' | 'webinar'; inversion: number; impresiones: number; alcance: number; clics: number;
+    visitas_perfil: number | null; seguidores: number | null; conversaciones: number | null; comentarios: number | null; registros: number | null;
+  };
+  const filas = new Map<string, Fila>();
+  for (const ins of datos) {
     const c = campana(ins.campaign_name);
     if (!c) continue;
-    const fila = {
+    if (c === 'webinar' && ins.date_start < desdeWebinar) continue;
+    const k = `${ins.date_start}|${c}`;
+    const imp = Number(ins.impressions) || 0;
+    const nueva: Fila = {
       fecha: ins.date_start,
       campana: c,
-      inversion: Number(ins.spend),
-      impresiones: Number(ins.impressions),
-      alcance: Number(ins.reach),
-      frecuencia: Number(ins.frequency),
-      cpm: Number(ins.cpm),
-      ctr: Number(ins.ctr) / 100,
+      inversion: Number(ins.spend) || 0,
+      impresiones: imp,
+      alcance: Number(ins.reach) || 0,
+      clics: (Number(ins.ctr) || 0) / 100 * imp,
       visitas_perfil: accion(ins, ['onsite_conversion.ig_profile_visit', 'link_click']),
       seguidores: accion(ins, ['onsite_conversion.follow', 'ig_follow']),
       // Webinar no busca conversaciones: mide registros
       conversaciones: c === 'webinar' ? null : accion(ins, ['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.total_messaging_connection']),
       comentarios: c === 'follow_me' ? accion(ins, ['comment']) : null,
       registros: c === 'webinar' ? accion(ins, ['complete_registration', 'offsite_conversion.fb_pixel_complete_registration', 'lead', 'onsite_conversion.lead_grouped']) : null,
+    };
+    const prev = filas.get(k);
+    filas.set(k, prev ? {
+      ...prev,
+      inversion: prev.inversion + nueva.inversion,
+      impresiones: prev.impresiones + nueva.impresiones,
+      alcance: prev.alcance + nueva.alcance, // aproximado: el alcance de dos campañas puede solaparse
+      clics: prev.clics + nueva.clics,
+      visitas_perfil: suma(prev.visitas_perfil, nueva.visitas_perfil),
+      seguidores: suma(prev.seguidores, nueva.seguidores),
+      conversaciones: suma(prev.conversaciones, nueva.conversaciones),
+      comentarios: suma(prev.comentarios, nueva.comentarios),
+      registros: suma(prev.registros, nueva.registros),
+    } : nueva);
+  }
+
+  let n = 0;
+  for (const f of Array.from(filas.values())) {
+    const fila = {
+      fecha: f.fecha,
+      campana: f.campana,
+      inversion: Math.round(f.inversion * 100) / 100,
+      impresiones: f.impresiones,
+      alcance: f.alcance,
+      frecuencia: f.alcance ? Math.round((f.impresiones / f.alcance) * 100) / 100 : null,
+      cpm: f.impresiones ? Math.round((f.inversion / f.impresiones) * 100000) / 100 : null,
+      ctr: f.impresiones ? f.clics / f.impresiones : null,
+      visitas_perfil: f.visitas_perfil,
+      seguidores: f.seguidores,
+      conversaciones: f.conversaciones,
+      comentarios: f.comentarios,
+      registros: f.registros,
       source: 'meta',
       updated_at: new Date().toISOString(),
     };
     if (!dry) {
-      // No pisar la bitácora manual
+      // Solo se mandan estas columnas: la bitácora manual no se pisa
       const { error } = await sb.from('ads_diario').upsert(fila, { onConflict: 'fecha,campana', ignoreDuplicates: false });
       if (error) throw new Error(`ads_diario: ${error.message}`);
     }
     n++;
   }
-  return `${n} días ads`;
+  const conv = Array.from(filas.values()).reduce((a, f) => a + (f.conversaciones ?? 0), 0);
+  return `${n} días ads (desde ${desde}, ${conv} conversaciones)`;
 }
 
 interface CampanaApi {
