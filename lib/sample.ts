@@ -424,11 +424,7 @@ export function sampleBundle(): RawBundle {
     ],
     // Tiempo de respuesta semanal de ejemplo (en la real se copia de Meta Business Suite)
     respuestaSemanal: [
-      { semana: '2026-09-28', tr_promedio_min: 165, pct_respuesta: 0.86, conversaciones: 210 },
-      { semana: '2026-10-05', tr_promedio_min: 140, pct_respuesta: 0.88, conversaciones: 236 },
-      { semana: '2026-10-12', tr_promedio_min: 128, pct_respuesta: 0.9, conversaciones: 251 },
-      { semana: '2026-10-19', tr_promedio_min: 95, pct_respuesta: 0.92, conversaciones: 244 },
-      { semana: '2026-10-26', tr_promedio_min: 120, pct_respuesta: 0.9, conversaciones: 198 },
+      { semana: '2026-10-04', hasta: '2026-10-31', contactos: 756, contactos_nuevos: 553, conversaciones: 917, conv_organicas: 355, conv_pagadas: 401, pct_respuesta: 0.879, tr_promedio_min: 131 },
     ],
     // Tarifas reales (mismas que la carga inicial de la base)
     comisionesPlataformas: [

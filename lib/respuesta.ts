@@ -48,46 +48,51 @@ export function aMinutos(txt: string | null | undefined): number | null {
   return null;
 }
 
-/** Días de la semana (lunes a domingo) que caen dentro del período del filtro. */
-function diasEnPeriodo(semana: string, f: Filtros): number {
-  const desde = f.dia ?? f.desde ?? `${f.mes}-01`;
+const finDe = (s: RespuestaSemanal) => s.hasta ?? new Date(Date.parse(`${s.semana}T12:00:00Z`) + 6 * 86400000).toISOString().slice(0, 10);
+const diasEntre = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86400000) + 1;
+
+/** Días del período cargado que caen dentro del filtro, y su largo total. */
+function solape(s: RespuestaSemanal, f: Filtros): { dias: number; largo: number } {
   const [y, mm] = f.mes.split('-').map(Number);
-  const fin = new Date(Date.UTC(y, mm, 0)).toISOString().slice(0, 10);
-  const hasta = f.dia ?? f.hasta ?? fin;
-  let n = 0;
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(Date.parse(`${semana}T12:00:00Z`) + i * 86400000).toISOString().slice(0, 10);
-    if (d >= desde && d <= hasta) n++;
-  }
-  return n;
+  const desde = f.dia ?? f.desde ?? `${f.mes}-01`;
+  const hasta = f.dia ?? f.hasta ?? new Date(Date.UTC(y, mm, 0)).toISOString().slice(0, 10);
+  const ini = s.semana > desde ? s.semana : desde;
+  const fin = finDe(s) < hasta ? finDe(s) : hasta;
+  return { dias: fin >= ini ? diasEntre(ini, fin) : 0, largo: diasEntre(s.semana, finDe(s)) };
 }
 
 /**
- * Resumen de las semanas cargadas desde Business Suite que tocan el período.
- * Fórmula: promedio del período = Σ(tiempo × conversaciones × días de la semana dentro del período) / Σ(conversaciones × días),
- * así una semana con más mensajes pesa más y una semana que cae mitad en otro mes pesa la mitad.
+ * Resumen de los períodos cargados desde Business Suite que tocan el filtro.
+ * Promedios ponderados por conversaciones × parte del período que cae en el filtro;
+ * los totales (conversaciones, contactos) se prorratean por días.
  */
 export function resumenSemanal(semanas: RespuestaSemanal[], f: Filtros) {
   const dentro = semanas
-    .map((s) => ({ ...s, dias: diasEnPeriodo(s.semana, f) }))
+    .map((s) => ({ ...s, hasta: finDe(s), ...solape(s, f) }))
     .filter((s) => s.dias > 0)
     .sort((a, b) => a.semana.localeCompare(b.semana));
-  const pond = (k: 'tr_promedio_min' | 'tr_horario_min' | 'pct_respuesta') => {
+  const frac = (s: (typeof dentro)[number]) => s.dias / s.largo;
+  const pond = (k: 'tr_promedio_min' | 'pct_respuesta') => {
     const con = dentro.filter((s) => s[k] != null);
-    const peso = (s: (typeof con)[number]) => (s.conversaciones ?? 1) * s.dias;
+    const peso = (s: (typeof con)[number]) => (s.conversaciones ?? 1) * frac(s);
     const total = con.reduce((a, s) => a + peso(s), 0);
     return total ? con.reduce((a, s) => a + (s[k] as number) * peso(s), 0) / total : null;
   };
+  const suma = (k: 'conversaciones' | 'contactos' | 'contactos_nuevos' | 'conv_organicas' | 'conv_pagadas') =>
+    dentro.some((s) => s[k] != null) ? Math.round(dentro.reduce((a, s) => a + (s[k] ?? 0) * frac(s), 0)) : null;
   const ultima = dentro[dentro.length - 1] ?? null;
   const anterior = dentro.length > 1 ? dentro[dentro.length - 2] : null;
   return {
     semanas: dentro,
     promedio: pond('tr_promedio_min'),
-    horario: pond('tr_horario_min'),
     pctRespuesta: pond('pct_respuesta'),
-    conversaciones: dentro.reduce((a, s) => a + Math.round(((s.conversaciones ?? 0) * s.dias) / 7), 0),
+    conversaciones: suma('conversaciones') ?? 0,
+    contactos: suma('contactos'),
+    contactosNuevos: suma('contactos_nuevos'),
+    convOrganicas: suma('conv_organicas'),
+    convPagadas: suma('conv_pagadas'),
     ultima,
-    /** Cambio de la última semana contra la anterior (negativo = respondió más rápido) */
+    /** Cambio del último período contra el anterior (negativo = respondió más rápido) */
     cambio: ultima?.tr_promedio_min != null && anterior?.tr_promedio_min ? ultima.tr_promedio_min / anterior.tr_promedio_min - 1 : null,
   };
 }

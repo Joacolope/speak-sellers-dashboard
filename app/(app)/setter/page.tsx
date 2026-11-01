@@ -38,7 +38,6 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
   const rs = resumenSemanal(bundle.respuestaSemanal, f);
   // La semana que terminó más recientemente (el lunes de ayer: un lunes sugiere la semana anterior completa)
   const semanaSugerida = lunesDe(new Date(Date.now() - 3 * 3600000 - 86400000).toISOString().slice(0, 10));
-  const chartSemanas = rs.semanas.filter((w) => w.tr_promedio_min != null).map((w) => ({ x: `${w.semana.slice(8, 10)}/${w.semana.slice(5, 7)}`, minutos: Math.round(w.tr_promedio_min ?? 0) }));
   // Qué pasó la última vez que el cron intentó medir el tiempo de respuesta (para explicar un vacío)
   const ultimoCron = bundle.log.filter((l) => l.resumen.startsWith('cron')).sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
   const intentoRespuesta = ultimoCron && ultimoCron.cambios && typeof ultimoCron.cambios === 'object' ? String((ultimoCron.cambios as Record<string, unknown>).Respuesta ?? '') : '';
@@ -142,7 +141,7 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
               <>
                 <div>El último intento ({fechaHora(ultimoCron!.fecha)}) falló con este mensaje:</div>
                 <code className="block overflow-x-auto rounded-lg bg-surface px-3 py-2 text-[13px] text-[var(--red-ink)]">{intentoRespuesta.replace(/^error:\s*/, '')}</code>
-                <div>Mientras Meta no habilite la lectura de los DMs, el tiempo de respuesta se carga por semana con los números de Meta Business Suite (más abajo) y el dashboard calcula el resto.</div>
+                <div>Mientras Meta no habilite la lectura de los DMs, el tiempo de respuesta sale de Business Suite (sección de abajo).</div>
               </>
             ) : intentoRespuesta ? (
               <div>El último intento ({fechaHora(ultimoCron!.fecha)}) terminó así: {intentoRespuesta}. Se mide el día anterior, así que el primer dato aparece a la mañana siguiente de activar el permiso de mensajes.</div>
@@ -154,80 +153,96 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
       </Seccion>
 
       <Bloque
-        titulo="Tiempo de respuesta semanal"
-        sub="Copiado de Meta Business Suite · el promedio del mes se calcula solo, ponderado por conversaciones"
+        titulo="Mensajes de Instagram · Business Suite"
+        sub="Los mismos números de Meta Business Suite (Bandeja de entrada → Estadísticas) · el mes se calcula solo"
       >
         {rs.semanas.length ? (
           <>
-            <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-              <div className="card flex flex-col gap-3" title="Promedio de las semanas del período, ponderado por la cantidad de conversaciones de cada una">
-                <div className={`metric ${colorRespuesta(rs.promedio)}`}>{formatoEspera(rs.promedio)}</div>
-                <div className="text-[14px] text-text-muted">Promedio del período (24/7)</div>
-                <div className="text-[13px] text-text-disabled">{rs.horario != null ? `En horario: ${formatoEspera(rs.horario)} · ` : ''}objetivo {OBJETIVO_RESPUESTA_MIN} min</div>
-              </div>
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
               <div className="card flex flex-col gap-3">
-                <div className={`metric ${colorRespuesta(rs.ultima?.tr_promedio_min ?? null)}`}>{formatoEspera(rs.ultima?.tr_promedio_min)}</div>
-                <div className="text-[14px] text-text-muted">Última semana · {rs.ultima ? fechaCorta(rs.ultima.semana) : '—'}</div>
-                <div className="text-[13px]">
-                  {rs.cambio === null ? <span className="text-text-disabled">sin semana anterior</span> : (
-                    <span className={rs.cambio <= 0 ? 'ok' : 'bad'}>{rs.cambio <= 0 ? '▼' : '▲'} {pct(Math.abs(rs.cambio))} {rs.cambio <= 0 ? 'más rápido' : 'más lento'}</span>
-                  )}
-                </div>
-              </div>
-              <div className="card flex flex-col gap-3">
-                <div className="metric">{pct(rs.pctRespuesta)}</div>
-                <div className="text-[14px] text-text-muted">% de respuesta</div>
-                <div className="text-[13px] text-text-disabled">Conversaciones respondidas</div>
+                <div className="metric">{rs.contactos === null ? '—' : num(rs.contactos)}</div>
+                <div className="text-[14px] text-text-muted">Contactos totales</div>
+                <div className="text-[13px] text-text-disabled">{rs.contactosNuevos === null ? 'Personas que escribieron' : `${num(rs.contactosNuevos)} nuevos`}</div>
               </div>
               <div className="card flex flex-col gap-3">
                 <div className="metric">{num(rs.conversaciones)}</div>
-                <div className="text-[14px] text-text-muted">Conversaciones nuevas</div>
-                <div className="text-[13px] text-text-disabled">Según Business Suite, en el período</div>
+                <div className="text-[14px] text-text-muted">Conversaciones iniciadas</div>
+                <div className="text-[13px] text-text-disabled">Con mensajes</div>
+              </div>
+              <div className="card flex flex-col gap-3">
+                <div className="metric" style={{ color: 'var(--ig)' }}>{rs.convOrganicas === null ? '—' : num(rs.convOrganicas)}</div>
+                <div className="text-[14px] text-text-muted">Orgánicos</div>
+                <div className="text-[13px] text-text-disabled">Contactos sin anuncio</div>
+              </div>
+              <div className="card flex flex-col gap-3">
+                <div className="metric" style={{ color: 'var(--blue-ink)' }}>{rs.convPagadas === null ? '—' : num(rs.convPagadas)}</div>
+                <div className="text-[14px] text-text-muted">Pagados</div>
+                <div className="text-[13px] text-text-disabled">Contactos desde anuncios</div>
+              </div>
+              <div className="card flex flex-col gap-3">
+                <div className="metric">{pct(rs.pctRespuesta)}</div>
+                <div className="text-[14px] text-text-muted">Índice de respuesta</div>
+                <div className="text-[13px] text-text-disabled">Conversaciones respondidas</div>
+              </div>
+              <div className="card flex flex-col gap-3">
+                <div className={`metric ${colorRespuesta(rs.promedio)}`}>{formatoEspera(rs.promedio)}</div>
+                <div className="text-[14px] text-text-muted">Tiempo de respuesta</div>
+                <div className="text-[13px]">
+                  {rs.cambio === null ? <span className="text-text-disabled">Promedio 24/7</span> : (
+                    <span className={rs.cambio <= 0 ? 'ok' : 'bad'}>{rs.cambio <= 0 ? '▼' : '▲'} {pct(Math.abs(rs.cambio))} vs. período anterior</span>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="grid gap-5 lg:grid-cols-2">
-              <div className="card">
-                <div className="eyebrow mb-4">Tiempo de respuesta por semana (minutos, 24/7)</div>
-                <BarrasSimples data={chartSemanas} series={[{ key: 'minutos', nombre: 'Minutos', color: 'main' }]} />
-              </div>
-              <div className="card overflow-x-auto !p-0">
-                <table className="table">
-                  <thead><tr><th className="!pl-6">Semana</th><th className="num">24/7</th><th className="num">En horario</th><th className="num">% resp.</th><th className="num !pr-6">Conv. nuevas</th></tr></thead>
-                  <tbody>
-                    {[...rs.semanas].reverse().map((w) => (
-                      <tr key={w.semana}>
-                        <td className="!pl-6">{fechaCorta(w.semana)}{w.dias < 7 && <span className="ml-1 text-[12px] text-text-disabled">({w.dias} días en el período)</span>}</td>
-                        <td className={`num ${colorRespuesta(w.tr_promedio_min)}`}>{formatoEspera(w.tr_promedio_min)}</td>
-                        <td className="num">{formatoEspera(w.tr_horario_min)}</td>
-                        <td className="num">{pct(w.pct_respuesta ?? null)}</td>
-                        <td className="num !pr-6">{num(w.conversaciones ?? null)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="card overflow-x-auto !p-0">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th className="!pl-6">Período</th><th className="num">Contactos</th><th className="num">Nuevos</th><th className="num">Conv. iniciadas</th>
+                    <th className="num">Orgánicos</th><th className="num">Pagados</th><th className="num">Índice resp.</th><th className="num !pr-6">Tiempo resp.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...rs.semanas].reverse().map((w) => (
+                    <tr key={w.semana}>
+                      <td className="!pl-6">{fechaCorta(w.semana)} – {fechaCorta(w.hasta)}{w.dias < w.largo && <span className="ml-1 text-[12px] text-text-disabled">({w.dias} de {w.largo} días en el período)</span>}</td>
+                      <td className="num">{num(w.contactos ?? null)}</td>
+                      <td className="num">{num(w.contactos_nuevos ?? null)}</td>
+                      <td className="num">{num(w.conversaciones ?? null)}</td>
+                      <td className="num">{num(w.conv_organicas ?? null)}</td>
+                      <td className="num">{num(w.conv_pagadas ?? null)}</td>
+                      <td className="num">{pct(w.pct_respuesta ?? null)}</td>
+                      <td className={`num !pr-6 ${colorRespuesta(w.tr_promedio_min)}`}>{formatoEspera(w.tr_promedio_min)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </>
-        ) : <Vacio texto="Todavía no hay semanas cargadas. Cargá la primera abajo con los números de Meta Business Suite." />}
+        ) : <Vacio texto="Todavía no hay datos de Business Suite. Cargá el primer período abajo, o mandale la captura a Claude." />}
         {editor && (
           <form method="POST" action="/api/setter" className="card flex flex-col gap-4">
             <input type="hidden" name="tipo" value="respuesta_semanal" />
             <input type="hidden" name="mes" value={f.mes} />
             <div>
-              <h3 className="card-title">Cargar una semana</h3>
+              <h3 className="card-title">Cargar un período de Business Suite</h3>
               <div className="card-sub">
-                En Meta Business Suite: Bandeja de entrada → Estadísticas, elegí la semana (lunes a domingo) y copiá los números.
-                El tiempo se escribe como quieras: "2 h", "2:15", "1,5 h" o "45 min". Si la semana ya estaba, se corrige.
+                Meta Business Suite → Bandeja de entrada → Estadísticas. Elegí las fechas (una semana o el mes) y copiá los números tal cual.
+                El tiempo se escribe como aparece: "2 h 11 min". Si ese período ya estaba, se corrige.
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Semana (cualquier día)<input className="input" name="semana" type="date" required defaultValue={semanaSugerida} /></label>
-              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Tiempo de respuesta 24/7<input className="input" name="tr_promedio" placeholder="ej.: 2 h" required /></label>
-              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">En horario de atención<input className="input" name="tr_horario" placeholder="opcional" /></label>
-              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">% de respuesta<input className="input" name="pct_respuesta" inputMode="decimal" placeholder="ej.: 92" /></label>
-              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Conversaciones nuevas<input className="input" name="conversaciones" type="number" min="0" placeholder="ej.: 240" /></label>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Desde<input className="input" name="semana" type="date" required defaultValue={semanaSugerida} /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Hasta<input className="input" name="hasta" type="date" /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Contactos totales<input className="input" name="contactos" type="number" min="0" placeholder="ej.: 756" /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Conversaciones iniciadas<input className="input" name="conversaciones" type="number" min="0" placeholder="ej.: 917" /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Orgánicos<input className="input" name="conv_organicas" type="number" min="0" placeholder="ej.: 355" /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Pagados<input className="input" name="conv_pagadas" type="number" min="0" placeholder="ej.: 401" /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Contactos nuevos<input className="input" name="contactos_nuevos" type="number" min="0" placeholder="ej.: 553" /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Índice de respuesta (%)<input className="input" name="pct_respuesta" inputMode="decimal" placeholder="ej.: 87,9" /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Tiempo de respuesta<input className="input" name="tr_promedio" placeholder="ej.: 2 h 11 min" /></label>
             </div>
-            <div className="flex justify-end"><button className="btn-primary" type="submit">Guardar semana</button></div>
+            <div className="flex justify-end"><button className="btn-primary" type="submit">Guardar período</button></div>
           </form>
         )}
       </Bloque>

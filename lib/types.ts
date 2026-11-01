@@ -98,9 +98,14 @@ export interface Cobranza {
   notas?: string | null;
 }
 
-/** Tiempo de respuesta de una semana (lunes), copiado de Meta Business Suite. */
+/** Mensajes de Instagram de un período (semana o rango), copiados de Meta Business Suite. */
 export interface RespuestaSemanal {
-  semana: string; // YYYY-MM-DD (lunes)
+  semana: string; // YYYY-MM-DD: inicio del período
+  hasta?: string | null; // fin del período (si falta, semana + 6)
+  contactos?: number | null; // contactos totales
+  contactos_nuevos?: number | null;
+  conv_organicas?: number | null;
+  conv_pagadas?: number | null;
   tr_promedio_min: number | null; // promedio 24/7
   tr_horario_min?: number | null; // en horario de atención
   pct_respuesta?: number | null; // 0–1

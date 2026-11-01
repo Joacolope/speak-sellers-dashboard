@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
-import { aMinutos, lunesDe } from '@/lib/respuesta';
+import { aMinutos } from '@/lib/respuesta';
 
 const CAMPOS = ['conv_organicas', 'conv_pagadas', 'bienvenidas', 'conv_frio', 'mensajes_seguimiento', 'respuestas', 'frio_wa', 'seguimiento_wa', 'respuestas_wa', 'seguimientos', 'links_enviados', 'agendas'] as const;
 
@@ -26,17 +26,24 @@ export async function POST(req: NextRequest) {
   const auth = await exigir('editor', { permitirToken: true });
   if (!auth.ok) return esForm ? volver({ error: auth.error }) : NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  // Semana de Meta Business Suite: tiempo de respuesta promedio, % de respuesta y conversaciones nuevas
+  // Período de Meta Business Suite (Bandeja de entrada → Estadísticas): contactos, conversaciones, índice y tiempo de respuesta
   if (d.tipo === 'respuesta_semanal') {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d.semana ?? '')) return volver({ error: 'Falta la semana' });
-    const semana = lunesDe(d.semana);
+    const semana = d.semana;
+    if (d.hasta && !/^\d{4}-\d{2}-\d{2}$/.test(d.hasta)) return volver({ error: 'Fecha "hasta" inválida' });
+    if (d.hasta && d.hasta < semana) return volver({ error: '"Hasta" no puede ser antes de "desde"' });
     const fila: Record<string, unknown> = { semana, source: 'manual', editado_por: auth.quien, updated_at: new Date().toISOString() };
+    if (!d.hasta) fila.hasta = new Date(Date.parse(`${semana}T12:00:00Z`) + 6 * 86400000).toISOString().slice(0, 10);
+    else fila.hasta = d.hasta;
     const tr = aMinutos(d.tr_promedio);
-    const trH = aMinutos(d.tr_horario);
-    if (d.tr_promedio && tr === null) return volver({ error: 'No entendí el tiempo de respuesta (ej.: 2 h, 2:15, 45 min)' });
-    if (d.tr_horario && trH === null) return volver({ error: 'No entendí el tiempo en horario de atención' });
+    if (d.tr_promedio && tr === null) return volver({ error: 'No entendí el tiempo de respuesta (ej.: 2 h 11 min, 2:15, 45 min)' });
     if (tr !== null) fila.tr_promedio_min = tr;
-    if (trH !== null) fila.tr_horario_min = trH;
+    for (const k of ['contactos', 'contactos_nuevos', 'conv_organicas', 'conv_pagadas'] as const) {
+      if (d[k] === undefined || String(d[k]) === '') continue;
+      const c = Number(d[k]);
+      if (!Number.isInteger(c) || c < 0 || c > 1000000) return volver({ error: `Valor inválido en ${k.replace('_', ' ')}` });
+      fila[k] = c;
+    }
     if (d.pct_respuesta !== undefined && String(d.pct_respuesta) !== '') {
       const p = Number(String(d.pct_respuesta).replace('%', '').replace(',', '.'));
       if (!Number.isFinite(p) || p < 0 || p > 100) return volver({ error: '% de respuesta inválido' });
@@ -48,10 +55,10 @@ export async function POST(req: NextRequest) {
       fila.conversaciones = c;
     }
     if (d.notas) fila.notas = String(d.notas).slice(0, 2000);
-    if (Object.keys(fila).length <= 4) return volver({ error: 'Completá al menos el tiempo de respuesta' });
+    if (Object.keys(fila).length <= 5) return volver({ error: 'Completá al menos un número' });
     const { error } = await supabase().from('respuesta_semanal').upsert(fila, { onConflict: 'semana' });
     if (error) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
-    return volver({ ok: `Semana del ${semana.slice(8, 10)}/${semana.slice(5, 7)} guardada` });
+    return volver({ ok: `Business Suite ${semana.slice(8, 10)}/${semana.slice(5, 7)} – ${String(fila.hasta).slice(8, 10)}/${String(fila.hasta).slice(5, 7)} guardado` });
   }
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d.fecha ?? '')) return volver({ error: 'Falta la fecha' });

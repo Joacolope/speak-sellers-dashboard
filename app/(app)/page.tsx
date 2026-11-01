@@ -85,7 +85,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
   const semanaResp = [...bundle.respuestaSemanal].filter((w) => w.tr_promedio_min != null).sort((a, b) => b.semana.localeCompare(a.semana))[0] ?? null;
   const respuesta = respuestaDia
     ? { etiqueta: fechaCorta(respuestaDia.fecha), min: respuestaDia.tr_mediana_min ?? null, ayuda: 'Mediana del tiempo de respuesta en DMs de Instagram' }
-    : semanaResp ? { etiqueta: `semana del ${fechaCorta(semanaResp.semana)}`, min: semanaResp.tr_promedio_min, ayuda: 'Promedio 24/7 de la semana, según Meta Business Suite' } : null;
+    : semanaResp ? { etiqueta: 'Business Suite', min: semanaResp.tr_promedio_min, ayuda: 'Tiempo de respuesta según Meta Business Suite (último período cargado)' } : null;
   const ok = typeof searchParams.ok === 'string' ? searchParams.ok : null;
   const error = typeof searchParams.error === 'string' ? searchParams.error : null;
   const vsAnterior = (v: number) => (
