@@ -2,6 +2,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 const GRAPH = 'https://graph.facebook.com/v21.0';
 
+/** Cuenta publicitaria (act_…). Si falta la variable, la de Speak Sellers (Marcos Lanci); no es un secreto. */
+function cuentaAds(): string {
+  const v = (process.env.META_AD_ACCOUNT || '1431751731204204').trim();
+  return v.startsWith('act_') ? v : `act_${v}`;
+}
+
 async function graph<T>(path: string, params: Record<string, string>): Promise<T> {
   const token = process.env.META_TOKEN;
   if (!token) throw new Error('Falta META_TOKEN');
@@ -62,8 +68,7 @@ const suma = (a: number | null, b: number | null) => (a === null && b === null ?
  * Si hay varias campañas del mismo funnel el mismo día, se suman en una sola fila.
  */
 export async function syncMetaAds(sb: SupabaseClient, dry = false): Promise<string> {
-  const cuenta = process.env.META_AD_ACCOUNT;
-  if (!cuenta) throw new Error('Falta META_AD_ACCOUNT');
+  const cuenta = cuentaAds();
   const hoy = new Date();
   const d = (n: number) => new Date(hoy.getTime() - n * 86400000).toISOString().slice(0, 10);
   const ayer = d(1);
@@ -175,8 +180,7 @@ function resultadoDe(tipo: 'follow_me' | 'webinar' | 'otra', objetivo?: string):
 
 /** Foto de las campañas activas y pausadas: estado, presupuesto y rendimiento de 7 días y del mes. */
 export async function syncMetaCampanas(sb: SupabaseClient, dry = false): Promise<string> {
-  const cuenta = process.env.META_AD_ACCOUNT;
-  if (!cuenta) throw new Error('Falta META_AD_ACCOUNT');
+  const cuenta = cuentaAds();
   const camps = await graph<{ data: CampanaApi[] }>(`${cuenta}/campaigns`, {
     fields: 'id,name,effective_status,objective,daily_budget,lifetime_budget,start_time,stop_time',
     effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED', 'IN_PROCESS', 'WITH_ISSUES']),

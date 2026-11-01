@@ -91,10 +91,26 @@ export async function syncTiempoRespuesta(sb: SupabaseClient, dry = false): Prom
   // La API de mensajes pide el token de la página, que se obtiene con el del usuario de sistema
   const { access_token: pageToken } = await graph<{ access_token: string }>(page, { fields: 'access_token' }, token);
   const convs: Conversacion[] = [];
+  // Meta corta con "reduce the amount of data" si se piden muchas conversaciones con muchos mensajes:
+  // se empieza chico y, si igual se queja, se achica a la mitad y se reintenta.
+  let tam = 20;
   let next: string | null = `${page}/conversations`;
-  let params: Record<string, string> = { platform: 'instagram', fields: 'updated_time,participants,messages.limit(50){created_time,from}', limit: '50' };
-  for (let paginas = 0; next && paginas < 20; paginas++) {
-    const r: { data: Conversacion[]; paging?: { next?: string } } = await graph(next, params, pageToken);
+  const armar = () => ({ platform: 'instagram', fields: `updated_time,participants,messages.limit(${Math.max(10, tam)}){created_time,from}`, limit: String(tam) });
+  let params: Record<string, string> = armar();
+  for (let paginas = 0; next && paginas < 60; paginas++) {
+    let r: { data: Conversacion[]; paging?: { next?: string } };
+    try {
+      r = await graph(next, params, pageToken);
+    } catch (e) {
+      if (tam > 5 && /reduce the amount of data/i.test(String(e))) {
+        tam = Math.floor(tam / 2);
+        if (params.limit) params = armar();
+        else next = next.replace(/limit=\d+/, `limit=${tam}`).replace(/messages\.limit\(\d+\)/, `messages.limit(${Math.max(10, tam)})`);
+        paginas--;
+        continue;
+      }
+      throw e;
+    }
     convs.push(...r.data);
     // Vienen ordenadas por última actividad: cortar cuando ya son viejas
     if (!r.data.length || Date.parse(r.data[r.data.length - 1].updated_time) < desde) break;

@@ -125,8 +125,8 @@ function estadoAAsistio(estado: string): 'Asistió' | 'No show' | 'Canceló' | '
  * Nunca pisa asistio / compro / cash_collected si la fila ya es manual o del agente.
  */
 export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { eventoId?: string } = {}): Promise<string> {
-  const locationId = process.env.GHL_LOCATION_ID;
-  if (!locationId) throw new Error('Falta GHL_LOCATION_ID');
+  // Si falta la variable, la ubicación de Speak Sellers (LANZA SELLING LLC); no es un secreto.
+  const locationId = process.env.GHL_LOCATION_ID || 'qcLzgJ0LSGXkHKb4pkHn';
   const ahora = Date.now();
   const desde = ahora - 45 * 86400000;
   const hasta = ahora + 30 * 86400000;
