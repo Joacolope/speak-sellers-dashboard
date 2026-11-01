@@ -168,7 +168,7 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
   // Leads que entraron por la migración del spreadsheet y todavía no están atados a GHL:
   // si llega el mismo nombre desde GHL, se adopta ese lead (y su agenda) en vez de duplicarlo.
   const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
-  const { data: migrados } = await sb.from('leads').select('id, nombre').is('ghl_contact_id', null).eq('source', 'migracion');
+  const { data: migrados } = await sb.from('leads').select('id, nombre').is('ghl_contact_id', null).in('source', ['migracion', 'manual']);
   const migradoPorNombre = new Map((migrados ?? []).map((l) => [norm(l.nombre), l.id as string]));
 
   let n = 0;

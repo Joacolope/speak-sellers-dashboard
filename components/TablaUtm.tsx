@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { FilaUtm } from '@/lib/metrics';
 import { num, pct, usd } from '@/lib/format';
+import { COLOR_ORIGEN } from '@/lib/origen';
 
 const NIVELES = [
   { clave: 'utm_campaign', nombre: 'Campaña' },
@@ -45,10 +46,16 @@ export default function TablaUtm({ datos, limite }: { datos: Record<string, Fila
             <tbody>
               {filas.map((f) => (
                 <tr key={f.clave}>
-                  <td className="min-w-[180px]">
-                    <div className={f.clave === '(sin UTM)' ? 'text-text-disabled' : 'font-medium'}>{f.clave}</div>
+                  <td className="min-w-[200px]">
+                    <div className="flex items-center gap-2" title={f.codigos.length ? `UTM: ${f.codigos.join(', ')}` : 'Sin UTM: origen según lo que sabemos del lead'}>
+                      <span className="dot shrink-0" style={{ background: COLOR_ORIGEN[f.origen] }} />
+                      <span className={f.sinUtm ? 'text-text-muted' : 'font-medium'}>{f.clave}</span>
+                    </div>
+                    {f.codigos.length > 0 && f.codigos.join(', ') !== f.clave && (
+                      <div className="mt-0.5 pl-4 text-[11px] text-text-disabled">{f.codigos.join(', ')}</div>
+                    )}
                     <div className="mt-1 h-1.5 rounded-full bg-[var(--surface-2)]">
-                      <div className="h-1.5 rounded-full bg-[var(--blue)]" style={{ width: `${(f.agendas / max) * 100}%` }} />
+                      <div className="h-1.5 rounded-full" style={{ width: `${(f.agendas / max) * 100}%`, background: COLOR_ORIGEN[f.origen] }} />
                     </div>
                   </td>
                   <td className="num">{num(f.agendas)}</td>
@@ -66,7 +73,7 @@ export default function TablaUtm({ datos, limite }: { datos: Record<string, Fila
       ) : (
         <div className="rounded-xl bg-[var(--surface-2)] p-6 text-center text-[14px] text-text-muted">Sin agendas en este período.</div>
       )}
-      <div className="text-[12px] text-text-disabled">Los UTM salen del link con el que agendó cada lead (atribución de GoHighLevel). "(sin UTM)" = agendó sin link con parámetros.</div>
+      <div className="text-[12px] text-text-disabled">Los UTM salen del link con el que agendó cada lead (atribución de GoHighLevel). "Sin UTM" = agendó sin link con parámetros: el origen sale de lo que ya sabemos del lead (funnel, fuente, cómo llegó).</div>
     </div>
   );
 }

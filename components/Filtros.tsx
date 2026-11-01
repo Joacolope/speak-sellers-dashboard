@@ -14,7 +14,7 @@ interface Props {
   mostrarFuente?: boolean;
 }
 
-export default function Filtros({ filtros, meses, mostrarCloser = true, mostrarFuente = true }: Props) {
+export default function Filtros({ filtros, meses, mostrarCloser = true, mostrarFuente = false }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();

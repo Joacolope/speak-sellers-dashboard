@@ -12,7 +12,7 @@ const corto = (v: number | null) => (v === null ? '—' : v >= 1000 ? `$${(v / 1
    Relleno: Ember mezclado con la superficie, de 100 % a 45 %. */
 const ANCHOS = [100, 91, 82, 73, 64, 56, 48];
 
-export default function Funnel({ niveles, sinAviso = false }: { niveles: NivelFunnel[]; sinAviso?: boolean }) {
+export default function Funnel({ niveles, sinAviso = false, color = 'var(--blue)' }: { niveles: NivelFunnel[]; sinAviso?: boolean; color?: string }) {
   const [hover, setHover] = useState<number | null>(null);
 
   return (
@@ -23,7 +23,7 @@ export default function Funnel({ niveles, sinAviso = false }: { niveles: NivelFu
         const inset = ((w - wNext) / 2 / w) * 100;
         const ultimo = i === niveles.length - 1;
         const mezcla = ultimo ? 100 : Math.round(100 - i * 13);
-        const base = ultimo ? 'var(--green)' : 'var(--blue)';
+        const base = ultimo ? 'var(--green)' : color;
         const anterior = niveles[i - 1];
         const conv = anterior && anterior.valor && n.valor !== null && !n.esUsd ? n.valor / anterior.valor : null;
         return (
@@ -78,7 +78,10 @@ export default function Funnel({ niveles, sinAviso = false }: { niveles: NivelFu
   );
 }
 
-/** Embudo con botones para cambiar de fuente: General, Orgánico, Follow Me Ads, Webinar, Lead magnet. */
+/** Color de cada pestaña: Orgánico = Instagram (rosa), Webinar el azul de siempre, YouTube rojo. */
+const COLOR_EMBUDO: Record<string, string> = { general: 'var(--blue)', 'Orgánico': 'var(--ig)', Webinar: 'var(--blue)', YouTube: 'var(--yt)', WhatsApp: 'var(--wa)' };
+
+/** Embudo con botones para cambiar de fuente: General, Orgánico, Webinar, YouTube. */
 export function EmbudoPorFuente({ embudos }: { embudos: { clave: string; nombre: string; niveles: NivelFunnel[] }[] }) {
   const [activa, setActiva] = useState(embudos[0]?.clave ?? 'general');
   const actual = embudos.find((e) => e.clave === activa) ?? embudos[0];
@@ -86,19 +89,25 @@ export function EmbudoPorFuente({ embudos }: { embudos: { clave: string; nombre:
   return (
     <div className="flex flex-col gap-4" data-fuente={actual.clave}>
       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Fuente del embudo">
-        {embudos.map((e) => (
-          <button
-            key={e.clave}
-            type="button"
-            role="tab"
-            aria-selected={e.clave === activa}
-            className="chip !px-3 !py-1 !text-[13px]"
-            data-active={e.clave === activa}
-            onClick={() => setActiva(e.clave)}
-          >
-            {e.nombre}
-          </button>
-        ))}
+        {embudos.map((e) => {
+          const c = COLOR_EMBUDO[e.clave] ?? 'var(--blue)';
+          const on = e.clave === activa;
+          return (
+            <button
+              key={e.clave}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              className="chip flex items-center gap-1.5 !px-3 !py-1 !text-[13px]"
+              style={on && e.clave !== 'general' ? { background: c, borderColor: c, color: '#ffffff' } : undefined}
+              data-active={on && e.clave === 'general'}
+              onClick={() => setActiva(e.clave)}
+            >
+              {e.clave !== 'general' && <span className="dot !h-2 !w-2" style={{ background: on ? '#ffffff' : c }} />}
+              {e.clave === 'Orgánico' ? 'Instagram' : e.nombre}
+            </button>
+          );
+        })}
       </div>
       {sinDatos ? (
         <div className="rounded-xl bg-[var(--surface-2)] p-6 text-center text-[14px] text-text-muted">
@@ -106,7 +115,7 @@ export function EmbudoPorFuente({ embudos }: { embudos: { clave: string; nombre:
         </div>
       ) : (
         <>
-          <Funnel niveles={actual.niveles} sinAviso={actual.clave === 'YouTube'} />
+          <Funnel niveles={actual.niveles} sinAviso={actual.clave === 'YouTube'} color={COLOR_EMBUDO[actual.clave]} />
           {actual.clave === 'YouTube' && (
             <div className="-mt-2 text-[13px] text-text-disabled">YouTube todavía no tiene fuente de conversaciones: el embudo arranca en las agendas de leads que vinieron de YouTube.</div>
           )}

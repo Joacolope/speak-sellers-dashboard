@@ -109,6 +109,9 @@ export async function syncTiempoRespuesta(sb: SupabaseClient, dry = false): Prom
         paginas--;
         continue;
       }
+      if (/2534084|advanced access/i.test(String(e))) {
+        throw new Error('Meta no deja leer los DMs: la app necesita "acceso avanzado" a instagram_manage_messages (revisión de la app en developers.facebook.com). Hasta entonces el tiempo de respuesta no se puede medir solo.');
+      }
       throw e;
     }
     convs.push(...r.data);

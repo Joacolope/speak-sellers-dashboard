@@ -20,11 +20,23 @@ export async function GET() {
     sb.from('setter_diario').select('fecha, conv_api, tr_mediana_min, source').gte('fecha', hace40).order('fecha', { ascending: false }).limit(10),
     sb.from('organico_diario').select('fecha').order('fecha', { ascending: false }).limit(1),
   ]);
+  // Leads repetidos por nombre (para detectar duplicados entre GHL y lo cargado a mano)
+  const { data: leads } = await sb.from('leads').select('nombre, source, ghl_contact_id');
+  const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  const cuenta = new Map<string, { nombre: string; fuentes: string[] }>();
+  for (const l of leads ?? []) {
+    const k = norm(l.nombre ?? '');
+    const g = cuenta.get(k) ?? { nombre: String(l.nombre), fuentes: [] as string[] };
+    g.fuentes.push(`${l.source}${l.ghl_contact_id ? '+ghl' : ''}`);
+    cuenta.set(k, g);
+  }
+  const repetidos = Array.from(cuenta.values()).filter((g) => g.fuentes.length > 1);
   return NextResponse.json({
     cron: log.data ?? [],
     ads: ads.data ?? [],
     campanas: campanas.error ? { error: campanas.error.message } : campanas.data,
     setter: setter.data ?? [],
     organico_ultimo: ig.data?.[0]?.fecha ?? null,
+    leads_repetidos: repetidos,
   });
 }

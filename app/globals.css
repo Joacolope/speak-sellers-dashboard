@@ -168,6 +168,9 @@
   --yellow-soft: color-mix(in srgb, var(--yellow) 20%, var(--surface));
 }
 :root, :root[data-theme="light"] { --chart-muted: #a8a49c; --bg: #f3f2ef; }
+/* Colores por origen: Instagram rosa, WhatsApp verde, YouTube rojo (Webinar usa el azul de siempre) */
+:root, :root[data-theme="light"] { --ig: #d6246e; --wa: #1fa855; --yt: #e62117; }
+:root[data-theme="dark"] { --ig: #ec4899; --wa: #25d366; --yt: #ff3b30; }
 :root[data-theme="dark"] { --chart-muted: #77736b; }
 
 html { background: var(--bg); }

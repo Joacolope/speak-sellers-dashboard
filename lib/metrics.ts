@@ -1,5 +1,6 @@
 import type { Agenda, Closer, Cobranza, Filtros, Funnel, RawBundle } from './types';
 import { CLOSERS, FUNNELS, funnelDeLead } from './types';
+import { nombreUtm, origenSinUtm, type Origen } from './origen';
 import { periodoAnterior } from './filtros';
 import { costosDelMes } from './costos';
 import { comisionesDelMes } from './comisiones';
@@ -477,6 +478,12 @@ export type NivelUtm = 'utm_source' | 'utm_campaign' | 'utm_content' | 'utm_medi
 
 export interface FilaUtm {
   clave: string;
+  /** Origen para el color (Instagram, WhatsApp, YouTube, Webinar…) */
+  origen: Origen;
+  /** true = agendó sin UTM: el origen sale de lo que sabemos del lead */
+  sinUtm: boolean;
+  /** Valores crudos del UTM que se agruparon en esta fila */
+  codigos: string[];
   agendas: number;
   presentadas: number;
   ventas: number;
@@ -486,20 +493,32 @@ export interface FilaUtm {
   pctCierreSinNoShow: number | null; // ventas / (agendas − no-shows)
 }
 
-/** Agendas agrupadas por un parámetro UTM, con su resultado. "(sin UTM)" agrupa las que no traen. */
+/**
+ * Agendas agrupadas por un parámetro UTM, con nombres legibles ("organico_ig" → "Link en bio de Instagram").
+ * Las que no traen UTM se agrupan por lo que ya sabemos del lead (funnel, fuente, primer punto de contacto).
+ */
 export function agendasPorUtm(b: RawBundle, f: Filtros, nivel: NivelUtm): FilaUtm[] {
-  const mapa = new Map<string, Agenda[]>();
+  const mapa = new Map<string, { origen: Origen; sinUtm: boolean; codigos: Set<string>; ag: Agenda[] }>();
   for (const a of agendasDelMes(b, f)) {
-    const k = (a.lead?.[nivel] ?? '').trim() || '(sin UTM)';
-    mapa.set(k, [...(mapa.get(k) ?? []), a]);
+    const crudo = (a.lead?.[nivel] ?? '').trim();
+    const { nombre, origen } = crudo ? nombreUtm(crudo) : { nombre: '', origen: origenSinUtm(a) };
+    const clave = crudo ? nombre : `Sin UTM · ${origen}`;
+    const g = mapa.get(clave) ?? { origen, sinUtm: !crudo, codigos: new Set<string>(), ag: [] };
+    if (crudo) g.codigos.add(crudo);
+    g.ag.push(a);
+    mapa.set(clave, g);
   }
   return Array.from(mapa.entries())
-    .map(([clave, ag]) => {
+    .map(([clave, g]) => {
+      const ag = g.ag;
       const presentadas = ag.filter((a) => a.asistio === 'Asistió').length;
       const noShow = ag.filter((a) => a.asistio === 'No show').length;
       const ventas = ag.filter(esVenta);
       return {
         clave,
+        origen: g.origen,
+        sinUtm: g.sinUtm,
+        codigos: Array.from(g.codigos),
         agendas: ag.length,
         presentadas,
         ventas: ventas.length,
@@ -509,5 +528,5 @@ export function agendasPorUtm(b: RawBundle, f: Filtros, nivel: NivelUtm): FilaUt
         pctCierreSinNoShow: ratio(ventas.length, ag.length - noShow),
       };
     })
-    .sort((x, y) => (x.clave === '(sin UTM)' ? 1 : y.clave === '(sin UTM)' ? -1 : y.agendas - x.agendas));
+    .sort((x, y) => Number(x.sinUtm) - Number(y.sinUtm) || y.agendas - x.agendas);
 }
