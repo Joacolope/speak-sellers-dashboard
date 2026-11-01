@@ -172,15 +172,42 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
   const migradoPorNombre = new Map((migrados ?? []).map((l) => [norm(l.nombre), l.id as string]));
 
   let n = 0;
+  let sinContacto = 0;
   for (const ev of eventos) {
     const contacto = await ghl<{ contact: GhlContact }>(`/contacts/${ev.contactId}`).then((r) => r.contact).catch(() => null);
-    const nombre = contacto?.name ?? [contacto?.firstName, contacto?.lastName].filter(Boolean).join(' ') ?? ev.title ?? 'Sin nombre';
+    if (!contacto) sinContacto++;
+    // Nombre: el del contacto; si no hay, el título de la cita; si tampoco, "Sin nombre" (sin pisar uno real)
+    const limpio = (t?: string | null) => (t ?? '').replace(/\s+/g, ' ').trim();
+    let nombre = limpio(contacto?.name) || limpio([contacto?.firstName, contacto?.lastName].filter(Boolean).join(' ')) || limpio(ev.title) || 'Sin nombre';
+    if (nombre === 'Sin nombre') {
+      const { data: previo } = await sb.from('leads').select('nombre').eq('ghl_contact_id', ev.contactId).maybeSingle();
+      if (limpio(previo?.nombre) && previo?.nombre !== 'Sin nombre') nombre = limpio(previo?.nombre);
+    }
     const closer: Closer = CLOSER_POR_CALENDARIO[ev.calendarId] ?? (ev.assignedUserId ? CLOSER_POR_USER[ev.assignedUserId] : undefined) ?? 'Marcos';
 
     if (dry) { n++; continue; }
 
     const idMigrado = migradoPorNombre.get(norm(nombre));
     if (idMigrado) {
+      // Si GHL ya había creado un lead aparte para este contacto (p. ej. llegó sin nombre), se fusiona:
+      // sus llamadas pasan al lead cargado antes (o se juntan con la misma llamada a ±3 días) y se borra el repetido.
+      const { data: repetido } = await sb.from('leads').select('id').eq('ghl_contact_id', ev.contactId).neq('id', idMigrado).maybeSingle();
+      if (repetido) {
+        const { data: agsRep } = await sb.from('agendas').select('id, ghl_event_id, fecha_llamada').eq('lead_id', repetido.id);
+        for (const a of agsRep ?? []) {
+          const t = Date.parse(a.fecha_llamada);
+          const { data: gemela } = await sb.from('agendas').select('id').eq('lead_id', idMigrado).is('ghl_event_id', null)
+            .gte('fecha_llamada', new Date(t - 3 * 86400000).toISOString()).lte('fecha_llamada', new Date(t + 3 * 86400000).toISOString())
+            .limit(1).maybeSingle();
+          if (gemela && a.ghl_event_id) {
+            await sb.from('agendas').delete().eq('id', a.id);
+            await sb.from('agendas').update({ ghl_event_id: a.ghl_event_id }).eq('id', gemela.id);
+          } else {
+            await sb.from('agendas').update({ lead_id: idMigrado }).eq('id', a.id);
+          }
+        }
+        await sb.from('leads').delete().eq('id', repetido.id);
+      }
       await sb.from('leads').update({ ghl_contact_id: ev.contactId }).eq('id', idMigrado).is('ghl_contact_id', null);
       migradoPorNombre.delete(norm(nombre));
     }
@@ -250,5 +277,5 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
     }
     n++;
   }
-  return `${n} agendas`;
+  return `${n} agendas${sinContacto ? ` (${sinContacto} sin datos del contacto: revisar permiso contacts.readonly del token de GHL)` : ''}`;
 }
