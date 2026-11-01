@@ -96,18 +96,19 @@ function formulario(c: GhlContact | null, nombres: Map<string, string>) {
   return out;
 }
 
-function paisPorPrefijo(tel?: string): string | null {
+/** Código de país del teléfono → país. Acepta "+54 9 11…", "54911…" o "0054…". */
+const PREFIJOS: [string, string][] = [
+  ['598', 'Uruguay'], ['595', 'Paraguay'], ['593', 'Ecuador'], ['591', 'Bolivia'],
+  ['507', 'Panamá'], ['506', 'Costa Rica'], ['505', 'Nicaragua'], ['504', 'Honduras'], ['503', 'El Salvador'], ['502', 'Guatemala'],
+  ['54', 'Argentina'], ['52', 'México'], ['56', 'Chile'], ['57', 'Colombia'], ['51', 'Perú'], ['58', 'Venezuela'],
+  ['53', 'Cuba'], ['34', 'España'], ['39', 'Italia'], ['49', 'Alemania'], ['44', 'Reino Unido'], ['1', 'EE. UU.'],
+];
+export function paisPorPrefijo(tel?: string | null): string | null {
   if (!tel) return null;
-  const t = tel.replace(/\s|-/g, '');
-  if (t.startsWith('+54')) return 'Argentina';
-  if (t.startsWith('+52')) return 'México';
-  if (t.startsWith('+56')) return 'Chile';
-  if (t.startsWith('+57')) return 'Colombia';
-  if (t.startsWith('+34')) return 'España';
-  if (t.startsWith('+598')) return 'Uruguay';
-  if (t.startsWith('+51')) return 'Perú';
-  if (t.startsWith('+1')) return 'EE. UU.';
-  return null;
+  const limpio = tel.replace(/[^\d+]/g, '');
+  if (!limpio.startsWith('+') && !limpio.startsWith('00')) return null; // sin código de país no se adivina
+  const t = limpio.replace(/^(\+|00)/, '');
+  return PREFIJOS.find(([p]) => t.startsWith(p))?.[1] ?? null;
 }
 
 function estadoAAsistio(estado: string): 'Asistió' | 'No show' | 'Canceló' | 'Pendiente' {
@@ -190,9 +191,10 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
         {
           ghl_contact_id: ev.contactId,
           nombre,
-          email: contacto?.email ?? null,
-          telefono: contacto?.phone ?? null,
-          pais: paisPorPrefijo(contacto?.phone),
+          // Solo se mandan si GHL los tiene: así no se borra lo que ya estaba cargado a mano
+          ...(contacto?.email ? { email: contacto.email } : {}),
+          ...(contacto?.phone ? { telefono: contacto.phone } : {}),
+          ...(paisPorPrefijo(contacto?.phone) ? { pais: paisPorPrefijo(contacto?.phone) } : {}),
           tags: contacto?.tags ?? [],
           etapa_pipeline: etapas.get(ev.contactId) ?? null,
           ...formulario(contacto, nombresCampos),
