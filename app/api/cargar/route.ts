@@ -2,12 +2,21 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 import { PLATAFORMAS } from '@/lib/types';
+import { paisPorPrefijo } from '@/lib/sync/ghl';
+
+const FUENTES = ['Instagram', 'WhatsApp', 'Webinar', 'YouTube', 'Referido', 'Otro'];
+const CLOSERS_OK = ['Marcos', 'Andrea', 'Gonzalo'];
+const esFecha = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const sumarDias = (f: string, d: number) => new Date(Date.parse(`${f}T12:00:00Z`) + d * 86400000).toISOString().slice(0, 10);
 
 /**
  * Carga manual (formulario /cargar o Claude).
  * Acepta form-data (usuario editor con sesión de Google) o JSON con
  * "Authorization: Bearer $CARGA_API_TOKEN" (Claude / scripts).
- * Busca la agenda más reciente del lead por nombre (ilike). Si hay más de un lead, devuelve error.
+ * Busca el lead por nombre (ilike). Si hay más de un lead, devuelve error.
+ * Con "fecha" (AAAA-MM-DD) usa la agenda de ±3 días de esa fecha; sin fecha, la más reciente.
+ * Venta con "crear": true crea el lead y/o la agenda si no existen (pide closer).
+ * Un cobro igual (misma agenda, fecha y monto) no se carga dos veces.
  */
 export async function POST(req: NextRequest) {
   const esForm = req.headers.get('content-type')?.includes('form');
@@ -55,16 +64,59 @@ export async function POST(req: NextRequest) {
   // ilike con comodines escapados: el nombre no puede inyectar patrones
   const patron = nombre.replace(/[\\%_]/g, (c) => `\\${c}`);
 
-  const { data: leads, error: eLeads } = await sb.from('leads').select('id, nombre').ilike('nombre', `%${patron}%`);
-  if (eLeads) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
-  if (!leads?.length) return volver({ error: `No encontré ningún lead que se llame "${nombre}"` });
-  if (leads.length > 1) return volver({ error: `Hay ${leads.length} leads que matchean "${nombre}": ${leads.map((l) => l.nombre).join(', ')}. Pasá el nombre completo.` });
-  const lead = leads[0];
+  const crear = String(data.crear) === 'true' && data.tipo === 'venta';
+  const fecha = esFecha(data.fecha) ? data.fecha : null;
+  if (data.fecha && !fecha) return volver({ error: 'La fecha tiene que ser AAAA-MM-DD' });
+  const closerNuevo = CLOSERS_OK.includes(String(data.closer)) ? String(data.closer) : null;
+  const notasTxt = data.notas ? String(data.notas).slice(0, 2000) : null;
+  const juntarNotas = (previas: string | null | undefined, nuevas: string | null) =>
+    !nuevas ? previas ?? null : previas && previas.includes(nuevas) ? previas : [previas, nuevas].filter(Boolean).join(' · ');
 
-  const { data: agendas, error: eAg } = await sb.from('agendas').select('*').eq('lead_id', lead.id).order('fecha_llamada', { ascending: false }).limit(1);
+  const { data: leads, error: eLeads } = await sb.from('leads').select('id, nombre, notas, fuente, pais').ilike('nombre', `%${patron}%`);
+  if (eLeads) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
+  if (leads && leads.length > 1) return volver({ error: `Hay ${leads.length} leads que matchean "${nombre}": ${leads.map((l) => l.nombre).join(', ')}. Pasá el nombre completo.` });
+  let lead = leads?.[0];
+  const fuente = FUENTES.includes(String(data.fuente)) ? String(data.fuente) : null;
+  const pais = paisPorPrefijo(data.telefono ? String(data.telefono) : null);
+  if (!lead) {
+    if (!crear) return volver({ error: `No encontré ningún lead que se llame "${nombre}"` });
+    if (!closerNuevo || !fecha) return volver({ error: 'Para crear el lead hacen falta closer y fecha' });
+    const { data: nuevo, error } = await sb.from('leads')
+      .insert({ nombre, fuente, pais, notas: notasTxt, source: 'manual', editado_por: auth.quien })
+      .select('id, nombre, notas, fuente, pais').single();
+    if (error || !nuevo) return volver({ error: 'No se pudo crear el lead.' });
+    lead = nuevo;
+  } else if (crear && (notasTxt || fuente || pais)) {
+    await sb.from('leads').update({
+      notas: juntarNotas(lead.notas, notasTxt), fuente: lead.fuente ?? fuente, pais: lead.pais ?? pais, updated_at: new Date().toISOString(),
+    }).eq('id', lead.id);
+  }
+
+  let q = sb.from('agendas').select('*').eq('lead_id', lead.id);
+  if (fecha) q = q.gte('fecha_llamada', `${sumarDias(fecha, -3)}T00:00:00-03:00`).lte('fecha_llamada', `${sumarDias(fecha, 3)}T23:59:59-03:00`);
+  const { data: agendas, error: eAg } = await q.order('fecha_llamada', { ascending: false }).limit(1);
   if (eAg) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
-  const agenda = agendas?.[0];
+  let agenda = agendas?.[0];
+  if (!agenda && fecha && !crear) {
+    // Sin agenda cerca de esa fecha: se usa la más reciente (ej.: una cuota de una venta vieja)
+    const { data: ult } = await sb.from('agendas').select('*').eq('lead_id', lead.id).order('fecha_llamada', { ascending: false }).limit(1);
+    agenda = ult?.[0];
+  }
+  if (!agenda && crear) {
+    if (!closerNuevo || !fecha) return volver({ error: 'Para crear la llamada hacen falta closer y fecha' });
+    const { data: nueva, error } = await sb.from('agendas')
+      .insert({ lead_id: lead.id, closer: closerNuevo, fecha_llamada: `${fecha}T19:00:00-03:00`, asistio: 'Asistió', source: 'manual', notas: notasTxt, editado_por: auth.quien })
+      .select('*').single();
+    if (error || !nueva) return volver({ error: 'No se pudo crear la llamada.' });
+    agenda = nueva;
+  }
   if (!agenda) return volver({ error: `${lead.nombre} no tiene agendas` });
+
+  /** true si ya hay un cobro igual (para no duplicar si se carga dos veces lo mismo) */
+  const cobroRepetido = async (fechaCobro: string, monto: number) => {
+    const { data: igual } = await sb.from('cobranzas').select('id').eq('agenda_id', agenda.id).eq('fecha_cobro', fechaCobro).eq('monto_cobrado', monto).limit(1);
+    return Boolean(igual?.length);
+  };
 
   const plataforma = data.plataforma && (PLATAFORMAS as string[]).includes(data.plataforma) ? data.plataforma : null;
   if (data.plataforma && !plataforma) return volver({ error: 'Plataforma de cobro inválida' });
@@ -87,16 +139,18 @@ export async function POST(req: NextRequest) {
       cash_collected: n(data.cash_collected),
       revenue: n(data.revenue) ?? n(data.cash_collected),
       producto: data.producto || null,
+      notas: juntarNotas(agenda.notas, notasTxt),
       source: 'manual',
       editado_por: auth.quien,
       updated_at: ahora,
     };
     const { error } = await sb.from('agendas').update(patch).eq('id', agenda.id);
     if (error) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
-    if (patch.cash_collected && compro !== 'No') {
+    const fechaCobro = fecha ?? ahora.slice(0, 10);
+    if (patch.cash_collected && compro !== 'No' && !(await cobroRepetido(fechaCobro, patch.cash_collected))) {
       await sb.from('cobranzas').insert({
         agenda_id: agenda.id,
-        fecha_cobro: ahora.slice(0, 10),
+        fecha_cobro: fechaCobro,
         monto_cobrado: patch.cash_collected,
         // Lo que falta del valor total queda como pendiente (no cuenta en facturación hasta cobrarse)
         pendiente: Math.max(0, Number(patch.revenue ?? 0) - Number(patch.cash_collected)),
@@ -114,9 +168,11 @@ export async function POST(req: NextRequest) {
   if (data.tipo === 'cobranza') {
     const monto = n(data.monto_cobrado);
     if (monto === null) return volver({ error: 'Falta el monto' });
+    const fechaCobro = esFecha(data.fecha_cobro) ? data.fecha_cobro : ahora.slice(0, 10);
+    if (await cobroRepetido(fechaCobro, monto)) return volver({ ok: `${lead.nombre} · ese cobro ya estaba cargado` });
     const { error } = await sb.from('cobranzas').insert({
       agenda_id: agenda.id,
-      fecha_cobro: data.fecha_cobro || ahora.slice(0, 10),
+      fecha_cobro: fechaCobro,
       monto_cobrado: monto,
       pendiente: n(data.pendiente),
       cuotas_restantes: n(data.cuotas_restantes),

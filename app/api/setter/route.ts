@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 
-const CAMPOS = ['conv_organicas', 'conv_pagadas', 'bienvenidas', 'conv_frio', 'mensajes_seguimiento', 'respuestas', 'frio_wa', 'seguimiento_wa', 'respuestas_wa', 'seguimientos', 'links_enviados'] as const;
+const CAMPOS = ['conv_organicas', 'conv_pagadas', 'bienvenidas', 'conv_frio', 'mensajes_seguimiento', 'respuestas', 'frio_wa', 'seguimiento_wa', 'respuestas_wa', 'seguimientos', 'links_enviados', 'agendas'] as const;
 
 /**
  * Carga o corrige un día del setter. Form-data con sesión de editor, o JSON con
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     alguno = true;
   }
   if (!alguno) return volver({ error: 'Completá al menos un número' });
+  if (d.notas) fila.notas = String(d.notas).slice(0, 2000);
 
   const { error } = await supabase().from('setter_diario').upsert(fila, { onConflict: 'fecha' });
   if (error) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
