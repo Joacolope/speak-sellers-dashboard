@@ -98,6 +98,17 @@ export interface Cobranza {
   notas?: string | null;
 }
 
+/** Tiempo de respuesta de una semana (lunes), copiado de Meta Business Suite. */
+export interface RespuestaSemanal {
+  semana: string; // YYYY-MM-DD (lunes)
+  tr_promedio_min: number | null; // promedio 24/7
+  tr_horario_min?: number | null; // en horario de atención
+  pct_respuesta?: number | null; // 0–1
+  conversaciones?: number | null; // conversaciones nuevas
+  notas?: string | null;
+  source?: Source;
+}
+
 export interface SetterDiario {
   fecha: string;
   conv_organicas?: number | null;
@@ -290,6 +301,7 @@ export interface RawBundle {
   comisiones: Comision[];
   comisionesPlataformas: ComisionPlataforma[];
   webinars: Webinar[];
+  respuestaSemanal: RespuestaSemanal[];
   log: LogAgente[];
   actualizaciones: UltimaActualizacion[];
 }

@@ -42,6 +42,9 @@ export async function cargarBundle(): Promise<RawBundle> {
     sb.from('log_agente').select('*').order('fecha', { ascending: false }).limit(30),
   ]);
 
+  // Tabla nueva: si todavía no existe (antes de aplicar la migración), se sigue sin ella
+  const semanal = await sb.from('respuesta_semanal').select('*').order('semana');
+
   const errores = [leads, agendas, cobranzas, setter, ads, campanas, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log].map((r) => r.error).filter(Boolean);
   if (errores.length) throw new Error(`Supabase: ${errores.map((e) => e!.message).join('; ')}`);
 
@@ -86,6 +89,12 @@ export async function cargarBundle(): Promise<RawBundle> {
     costos: (costos.data ?? []).map((c) => ({ ...c, monto: Number(c.monto) })) as RawBundle['costos'],
     comisiones: (comisiones.data ?? []).map((c) => ({ ...c, porcentaje: Number(c.porcentaje) })) as RawBundle['comisiones'],
     webinars: (webinars.data ?? []) as RawBundle['webinars'],
+    respuestaSemanal: (semanal.error ? [] : semanal.data ?? []).map((r) => ({
+      ...r,
+      tr_promedio_min: r.tr_promedio_min == null ? null : Number(r.tr_promedio_min),
+      tr_horario_min: r.tr_horario_min == null ? null : Number(r.tr_horario_min),
+      pct_respuesta: r.pct_respuesta == null ? null : Number(r.pct_respuesta),
+    })) as RawBundle['respuestaSemanal'],
     comisionesPlataformas: (comPlat.data ?? []).map((c) => ({ ...c, porcentaje: Number(c.porcentaje), fijo: Number(c.fijo) })) as RawBundle['comisionesPlataformas'],
     log: logs,
     actualizaciones,

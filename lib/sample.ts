@@ -422,6 +422,14 @@ export function sampleBundle(): RawBundle {
       { id: 'web-1', fecha: '2026-09-06', nombre: 'Webinar 6/9', registrados: 320, registrados_calificados: 130, asistentes: 95, source: 'manual' },
       { id: 'web-2', fecha: '2026-10-04', nombre: 'Webinar 4/10', registrados: 975, registrados_calificados: 410, asistentes: 240, source: 'manual' },
     ],
+    // Tiempo de respuesta semanal de ejemplo (en la real se copia de Meta Business Suite)
+    respuestaSemanal: [
+      { semana: '2026-09-28', tr_promedio_min: 165, pct_respuesta: 0.86, conversaciones: 210 },
+      { semana: '2026-10-05', tr_promedio_min: 140, pct_respuesta: 0.88, conversaciones: 236 },
+      { semana: '2026-10-12', tr_promedio_min: 128, pct_respuesta: 0.9, conversaciones: 251 },
+      { semana: '2026-10-19', tr_promedio_min: 95, pct_respuesta: 0.92, conversaciones: 244 },
+      { semana: '2026-10-26', tr_promedio_min: 120, pct_respuesta: 0.9, conversaciones: 198 },
+    ],
     // Tarifas reales (mismas que la carga inicial de la base)
     comisionesPlataformas: [
       { id: 'cp-1', plataforma: 'Stripe', porcentaje: 4.4, fijo: 0.3, fecha_alta: '2026-08-01', source: 'manual' },

@@ -7,7 +7,7 @@ import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { mesesDisponibles, metricasMes, enPeriodo } from '@/lib/metrics';
 import { getSesion, puede } from '@/lib/auth';
 import { fechaCorta, fechaHora, mesDe, num, pct } from '@/lib/format';
-import { OBJETIVO_RESPUESTA_MIN, colorRespuesta, formatoEspera, resumenRespuesta } from '@/lib/respuesta';
+import { OBJETIVO_RESPUESTA_MIN, colorRespuesta, formatoEspera, lunesDe, resumenRespuesta, resumenSemanal } from '@/lib/respuesta';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +35,10 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
   const metaConv = bundle.ads.filter((a) => enPeriodo(f, a.fecha)).reduce((acc, a) => acc + (a.conversaciones ?? 0), 0);
   const m = metricasMes(bundle, { ...f, closer: 'todos', fuente: 'todas' });
   const rr = resumenRespuesta(filas);
+  const rs = resumenSemanal(bundle.respuestaSemanal, f);
+  // La semana que terminó más recientemente (el lunes de ayer: un lunes sugiere la semana anterior completa)
+  const semanaSugerida = lunesDe(new Date(Date.now() - 3 * 3600000 - 86400000).toISOString().slice(0, 10));
+  const chartSemanas = rs.semanas.filter((w) => w.tr_promedio_min != null).map((w) => ({ x: `${w.semana.slice(8, 10)}/${w.semana.slice(5, 7)}`, minutos: Math.round(w.tr_promedio_min ?? 0) }));
   // Qué pasó la última vez que el cron intentó medir el tiempo de respuesta (para explicar un vacío)
   const ultimoCron = bundle.log.filter((l) => l.resumen.startsWith('cron')).sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
   const intentoRespuesta = ultimoCron && ultimoCron.cambios && typeof ultimoCron.cambios === 'object' ? String((ultimoCron.cambios as Record<string, unknown>).Respuesta ?? '') : '';
@@ -138,7 +142,7 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
               <>
                 <div>El último intento ({fechaHora(ultimoCron!.fecha)}) falló con este mensaje:</div>
                 <code className="block overflow-x-auto rounded-lg bg-surface px-3 py-2 text-[13px] text-[var(--red-ink)]">{intentoRespuesta.replace(/^error:\s*/, '')}</code>
-                <div>Casi siempre es un permiso de Instagram: en la app de Instagram, Configuración → Mensajes → Herramientas conectadas → <strong>Permitir acceso a los mensajes</strong>. Mañana a las 6:00 se vuelve a intentar solo.</div>
+                <div>Mientras Meta no habilite la lectura de los DMs, el tiempo de respuesta se carga por semana con los números de Meta Business Suite (más abajo) y el dashboard calcula el resto.</div>
               </>
             ) : intentoRespuesta ? (
               <div>El último intento ({fechaHora(ultimoCron!.fecha)}) terminó así: {intentoRespuesta}. Se mide el día anterior, así que el primer dato aparece a la mañana siguiente de activar el permiso de mensajes.</div>
@@ -148,6 +152,85 @@ export default async function Setter({ searchParams }: { searchParams: SearchPar
           </div>
         )}
       </Seccion>
+
+      <Bloque
+        titulo="Tiempo de respuesta semanal"
+        sub="Copiado de Meta Business Suite · el promedio del mes se calcula solo, ponderado por conversaciones"
+      >
+        {rs.semanas.length ? (
+          <>
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
+              <div className="card flex flex-col gap-3" title="Promedio de las semanas del período, ponderado por la cantidad de conversaciones de cada una">
+                <div className={`metric ${colorRespuesta(rs.promedio)}`}>{formatoEspera(rs.promedio)}</div>
+                <div className="text-[14px] text-text-muted">Promedio del período (24/7)</div>
+                <div className="text-[13px] text-text-disabled">{rs.horario != null ? `En horario: ${formatoEspera(rs.horario)} · ` : ''}objetivo {OBJETIVO_RESPUESTA_MIN} min</div>
+              </div>
+              <div className="card flex flex-col gap-3">
+                <div className={`metric ${colorRespuesta(rs.ultima?.tr_promedio_min ?? null)}`}>{formatoEspera(rs.ultima?.tr_promedio_min)}</div>
+                <div className="text-[14px] text-text-muted">Última semana · {rs.ultima ? fechaCorta(rs.ultima.semana) : '—'}</div>
+                <div className="text-[13px]">
+                  {rs.cambio === null ? <span className="text-text-disabled">sin semana anterior</span> : (
+                    <span className={rs.cambio <= 0 ? 'ok' : 'bad'}>{rs.cambio <= 0 ? '▼' : '▲'} {pct(Math.abs(rs.cambio))} {rs.cambio <= 0 ? 'más rápido' : 'más lento'}</span>
+                  )}
+                </div>
+              </div>
+              <div className="card flex flex-col gap-3">
+                <div className="metric">{pct(rs.pctRespuesta)}</div>
+                <div className="text-[14px] text-text-muted">% de respuesta</div>
+                <div className="text-[13px] text-text-disabled">Conversaciones respondidas</div>
+              </div>
+              <div className="card flex flex-col gap-3">
+                <div className="metric">{num(rs.conversaciones)}</div>
+                <div className="text-[14px] text-text-muted">Conversaciones nuevas</div>
+                <div className="text-[13px] text-text-disabled">Según Business Suite, en el período</div>
+              </div>
+            </div>
+            <div className="grid gap-5 lg:grid-cols-2">
+              <div className="card">
+                <div className="eyebrow mb-4">Tiempo de respuesta por semana (minutos, 24/7)</div>
+                <BarrasSimples data={chartSemanas} series={[{ key: 'minutos', nombre: 'Minutos', color: 'main' }]} />
+              </div>
+              <div className="card overflow-x-auto !p-0">
+                <table className="table">
+                  <thead><tr><th className="!pl-6">Semana</th><th className="num">24/7</th><th className="num">En horario</th><th className="num">% resp.</th><th className="num !pr-6">Conv. nuevas</th></tr></thead>
+                  <tbody>
+                    {[...rs.semanas].reverse().map((w) => (
+                      <tr key={w.semana}>
+                        <td className="!pl-6">{fechaCorta(w.semana)}{w.dias < 7 && <span className="ml-1 text-[12px] text-text-disabled">({w.dias} días en el período)</span>}</td>
+                        <td className={`num ${colorRespuesta(w.tr_promedio_min)}`}>{formatoEspera(w.tr_promedio_min)}</td>
+                        <td className="num">{formatoEspera(w.tr_horario_min)}</td>
+                        <td className="num">{pct(w.pct_respuesta ?? null)}</td>
+                        <td className="num !pr-6">{num(w.conversaciones ?? null)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        ) : <Vacio texto="Todavía no hay semanas cargadas. Cargá la primera abajo con los números de Meta Business Suite." />}
+        {editor && (
+          <form method="POST" action="/api/setter" className="card flex flex-col gap-4">
+            <input type="hidden" name="tipo" value="respuesta_semanal" />
+            <input type="hidden" name="mes" value={f.mes} />
+            <div>
+              <h3 className="card-title">Cargar una semana</h3>
+              <div className="card-sub">
+                En Meta Business Suite: Bandeja de entrada → Estadísticas, elegí la semana (lunes a domingo) y copiá los números.
+                El tiempo se escribe como quieras: "2 h", "2:15", "1,5 h" o "45 min". Si la semana ya estaba, se corrige.
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Semana (cualquier día)<input className="input" name="semana" type="date" required defaultValue={semanaSugerida} /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Tiempo de respuesta 24/7<input className="input" name="tr_promedio" placeholder="ej.: 2 h" required /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">En horario de atención<input className="input" name="tr_horario" placeholder="opcional" /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">% de respuesta<input className="input" name="pct_respuesta" inputMode="decimal" placeholder="ej.: 92" /></label>
+              <label className="flex flex-col gap-1.5 text-[13px] text-text-muted">Conversaciones nuevas<input className="input" name="conversaciones" type="number" min="0" placeholder="ej.: 240" /></label>
+            </div>
+            <div className="flex justify-end"><button className="btn-primary" type="submit">Guardar semana</button></div>
+          </form>
+        )}
+      </Bloque>
 
       <Seccion eyebrow="Outbound por canal">
         <div className="grid gap-5 md:grid-cols-2">
