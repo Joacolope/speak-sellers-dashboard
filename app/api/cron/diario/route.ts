@@ -16,8 +16,9 @@ export const dynamic = 'force-dynamic';
  * Si una fuente falla, las otras siguen; el error queda en log_agente.
  */
 export async function GET(req: NextRequest) {
-  // CRON_SECRET es obligatorio (mín. 32 caracteres); Vercel lo manda solo en el header.
-  if (!bearerValido(req.headers.get('authorization'), env.cronSecret())) {
+  // Vercel manda CRON_SECRET (mín. 32 caracteres) en el header. También se puede correr a mano con CARGA_API_TOKEN.
+  const authz = req.headers.get('authorization');
+  if (!bearerValido(authz, env.cronSecret()) && !bearerValido(authz, env.cargaToken())) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
   if (!supabaseConfigurado()) return NextResponse.json({ error: 'Supabase no configurado' }, { status: 503 });
@@ -48,6 +49,10 @@ export async function GET(req: NextRequest) {
   const dias = vence ? Math.ceil((vence.getTime() - Date.now()) / 86400000) : null;
   if (dias !== null && dias <= 10) {
     errores.push(`El token de Meta vence ${dias <= 0 ? 'hoy' : `en ${dias} días`} (${vence!.toISOString().slice(0, 10)}): renovarlo en developers.facebook.com/tools/explorer y actualizar META_TOKEN en Vercel`);
+  }
+
+  if (env.cronSecret().length < 32) {
+    errores.push('Falta CRON_SECRET en Vercel (mín. 32 caracteres): el sync automático de las 6:00 no puede correr. Cargalo en Settings → Environment Variables y redeployá.');
   }
 
   const resumen = `cron ${errores.length ? 'con errores' : 'ok'}: ${Object.entries(resultados).map(([k, v]) => `${k} ${v}`).join(', ')}`;
