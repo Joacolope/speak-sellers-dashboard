@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 
@@ -12,7 +13,7 @@ const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
  * El nombre tiene que coincidir completo (sin importar tildes ni mayúsculas).
  * Solo completa campos vacíos: nunca pisa lo cargado. La nota se agrega una sola vez.
  */
-export async function POST(req: NextRequest) {
+async function manejarPOST(req: NextRequest) {
   const auth = await exigir('editor', { permitirToken: true });
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const body = await req.json().catch(() => null);
@@ -53,4 +54,11 @@ export async function POST(req: NextRequest) {
     actualizados.push(nombre);
   }
   return NextResponse.json({ ok: true, actualizados, sinCambios, noEncontrados, repetidos });
+}
+
+/** Después de escribir se descarta la caché de datos, así el dashboard muestra lo nuevo al instante. */
+export async function POST(...args: Parameters<typeof manejarPOST>) {
+  const res = await manejarPOST(...args);
+  refrescarDatos();
+  return res;
 }

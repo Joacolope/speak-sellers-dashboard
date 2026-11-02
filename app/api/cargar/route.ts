@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 import { PLATAFORMAS } from '@/lib/types';
@@ -18,7 +19,7 @@ const sumarDias = (f: string, d: number) => new Date(Date.parse(`${f}T12:00:00Z`
  * Venta con "crear": true crea el lead y/o la agenda si no existen (pide closer).
  * Un cobro igual (misma agenda, fecha y monto) no se carga dos veces.
  */
-export async function POST(req: NextRequest) {
+async function manejarPOST(req: NextRequest) {
   const esForm = req.headers.get('content-type')?.includes('form');
   const data: Record<string, string> = {};
   // Errores de base de datos: no se devuelven al cliente (no filtrar estructura interna)
@@ -208,4 +209,11 @@ export async function POST(req: NextRequest) {
   }
 
   return volver({ error: `Tipo desconocido: ${data.tipo}` });
+}
+
+/** Después de escribir se descarta la caché de datos, así el dashboard muestra lo nuevo al instante. */
+export async function POST(...args: Parameters<typeof manejarPOST>) {
+  const res = await manejarPOST(...args);
+  refrescarDatos();
+  return res;
 }

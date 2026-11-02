@@ -28,15 +28,33 @@ function mismoOrigen(req: NextRequest): boolean {
   return false;
 }
 
-async function permitido(email: string): Promise<boolean> {
-  const res = await fetch(`${url()}/rest/v1/usuarios?select=email&activo=eq.true&email=eq.${encodeURIComponent(email.toLowerCase())}`, {
+type Usuario = { email: string; nombre: string | null; rol: string };
+// Caché corta por instancia: no consultar la lista de usuarios en cada clic (se revalida al minuto)
+const usuariosCache = new Map<string, { u: Usuario | null; hasta: number }>();
+
+async function permitido(email: string): Promise<Usuario | null> {
+  const clave = email.toLowerCase();
+  const c = usuariosCache.get(clave);
+  if (c && c.hasta > Date.now()) return c.u;
+  const res = await fetch(`${url()}/rest/v1/usuarios?select=email,nombre,rol&activo=eq.true&email=eq.${encodeURIComponent(clave)}`, {
     // Las claves nuevas (sb_secret_...) no son JWT: van solo en apikey
     headers: service().startsWith('eyJ') ? { apikey: service(), Authorization: `Bearer ${service()}` } : { apikey: service() },
     cache: 'no-store',
   });
-  if (!res.ok) return false;
-  const filas = (await res.json()) as unknown[];
-  return filas.length === 1;
+  if (!res.ok) return null;
+  const filas = (await res.json()) as Usuario[];
+  const u = filas.length === 1 ? filas[0] : null;
+  usuariosCache.set(clave, { u, hasta: Date.now() + 60_000 });
+  return u;
+}
+
+/** Firma el usuario ya validado para pasárselo a la página sin volver a consultarlo (HMAC + vencimiento corto). */
+async function firmarSesion(u: Usuario): Promise<string> {
+  const datos = btoa(unescape(encodeURIComponent(JSON.stringify({ ...u, t: Date.now() }))));
+  const clave = await crypto.subtle.importKey('raw', new TextEncoder().encode(service()), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const firma = await crypto.subtle.sign('HMAC', clave, new TextEncoder().encode(datos));
+  const hex = Array.from(new Uint8Array(firma)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return `${datos}.${hex}`;
 }
 
 function aLogin(req: NextRequest, params: Record<string, string> = {}) {
@@ -86,8 +104,19 @@ export async function middleware(req: NextRequest) {
       },
     },
   });
-  const { data } = await sb.auth.getUser();
-  const email = data.user?.email;
+  // getClaims valida el JWT localmente cuando el proyecto usa claves asimétricas (sin ir a la red);
+  // si no puede, hace lo mismo que getUser. Si falla por cualquier motivo, se usa getUser.
+  let email: string | undefined;
+  try {
+    const { data } = await sb.auth.getClaims();
+    email = (data?.claims as { email?: string } | undefined)?.email;
+  } catch {
+    email = undefined;
+  }
+  if (!email) {
+    const { data } = await sb.auth.getUser();
+    email = data.user?.email;
+  }
 
   if (!email) {
     if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Iniciá sesión' }, { status: 401 });
@@ -97,14 +126,20 @@ export async function middleware(req: NextRequest) {
   }
 
   // 3. Lista de usuarios permitidos
-  if (!(await permitido(email))) {
+  const usuario = await permitido(email);
+  if (!usuario) {
     await sb.auth.signOut();
     const r = pathname.startsWith('/api/') ? NextResponse.json({ error: 'No autorizado' }, { status: 403 }) : aLogin(req, { error: 'no_autorizado' });
     for (const c of req.cookies.getAll()) if (c.name.startsWith('sb-')) r.cookies.delete(c.name);
     return r;
   }
 
-  return res;
+  // 4. La página recibe el usuario ya validado (firmado) y no repite las consultas
+  const h = new Headers(req.headers);
+  h.set('x-ss-sesion', await firmarSesion(usuario));
+  const final = NextResponse.next({ request: { headers: h } });
+  for (const c of res.cookies.getAll()) final.cookies.set(c);
+  return final;
 }
 
 export const config = {

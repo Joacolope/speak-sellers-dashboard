@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 import { CLOSERS } from '@/lib/types';
@@ -8,7 +9,7 @@ import { CLOSERS } from '@/lib/types';
  * "Authorization: Bearer $CARGA_API_TOKEN". Body: closer, porcentaje (0–100), desde (YYYY-MM-DD).
  * Cierra el % vigente el día anterior y abre uno nuevo: los meses pasados no cambian.
  */
-export async function POST(req: NextRequest) {
+async function manejarPOST(req: NextRequest) {
   const esForm = req.headers.get('content-type')?.includes('form');
   const d: Record<string, string> = {};
   if (esForm) (await req.formData()).forEach((v, k) => (d[k] = String(v)));
@@ -42,4 +43,11 @@ export async function POST(req: NextRequest) {
   const { error: e3 } = await sb.from('comisiones').insert({ closer: d.closer, porcentaje, fecha_alta: desde, source: 'manual', editado_por: auth.quien });
   if (e1 || e2 || e3) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
   return volver({ ok: `Comisión de ${d.closer}: ${porcentaje}% desde ${desde}` });
+}
+
+/** Después de escribir se descarta la caché de datos, así el dashboard muestra lo nuevo al instante. */
+export async function POST(...args: Parameters<typeof manejarPOST>) {
+  const res = await manejarPOST(...args);
+  refrescarDatos();
+  return res;
 }

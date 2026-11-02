@@ -1,6 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { cookies, headers } from 'next/headers';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { env, supabaseConfigurado, bearerValido } from './env';
 import { supabase } from './supabase';
@@ -62,10 +63,31 @@ export const getSesion = cache(async (): Promise<Sesion | null> => {
   if (!supabaseConfigurado()) {
     return env.enVercel() ? null : { email: 'demo@local', nombre: 'Demo', rol: 'admin', demo: true };
   }
+  // El middleware ya validó la sesión y la lista de usuarios: si viene su firma (y es reciente), se usa
+  const firmada = sesionFirmada(headers().get('x-ss-sesion'));
+  if (firmada) return firmada;
   const { data, error } = await clienteAuth().auth.getUser();
   if (error || !data.user) return null;
   return usuarioPermitido(data.user.email);
 });
+
+/** Verifica la sesión firmada por el middleware (HMAC con la clave de servicio, válida 2 minutos). */
+function sesionFirmada(valor: string | null): Sesion | null {
+  if (!valor) return null;
+  const [datos, firma] = valor.split('.');
+  if (!datos || !firma) return null;
+  const esperada = createHmac('sha256', env.supabaseService()).update(datos).digest('hex');
+  const a = Buffer.from(firma, 'hex');
+  const b = Buffer.from(esperada, 'hex');
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  try {
+    const u = JSON.parse(Buffer.from(datos, 'base64').toString('utf8')) as { email: string; nombre: string | null; rol: Rol; t: number };
+    if (!u.email || !['admin', 'editor', 'lector'].includes(u.rol) || Date.now() - u.t > 120_000) return null;
+    return { email: u.email, nombre: u.nombre, rol: u.rol };
+  } catch {
+    return null;
+  }
+}
 
 /** Para route handlers que escriben: exige rol mínimo, o un token de máquina válido. */
 export async function exigir(minimo: Rol, opciones: { permitirToken?: boolean } = {}): Promise<{ ok: true; quien: string } | { ok: false; status: number; error: string }> {

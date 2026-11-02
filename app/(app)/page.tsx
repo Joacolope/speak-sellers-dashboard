@@ -12,7 +12,7 @@ import { getBundle } from '@/lib/data';
 import { etiquetaComparacion, etiquetaPeriodo, leerFiltros, queryDe, type SearchParams } from '@/lib/filtros';
 import {
   acumuladoAnual, adsVsCashSemanal, agendasPorDia, avisos, mesesDisponibles,
-  agendasDelMes, agendasPorUtm, cobranzasDelMes, embudosPorFuente, esVenta, metricasConAnterior, resumenCloser, serieMeses, ventasPorPais,
+  agendasDelMes, agendasPorUtm, cobranzasDelMes, embudosPorFuente, esVenta, metricasConAnterior, resumenCloser, serieKpi, serieMeses, ventasPorPais,
 } from '@/lib/metrics';
 import ClosersDesplegable, { type DetalleCloser } from '@/components/ClosersDesplegable';
 import TablaUtm from '@/components/TablaUtm';
@@ -75,6 +75,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
     };
   });
   const hoy = hoyAR();
+  const sk = serieKpi(bundle, f, hoy);
   const pendientes = avisos(bundle, f, hoy);
   const enCurso = f.mes === mesDe(hoy);
   const metas = progresoMetas(bundle, f, hoy);
@@ -126,7 +127,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       {/* Fila 1 · números grandes: plata y volumen arriba, tasas abajo */}
       <Bloque titulo="Resultados" sub={periodo}>
       <section className="grid grid-cols-2 gap-5 md:grid-cols-4">
-        <StatCard contra={contra} label="Facturación" valor={usd(actual.revenue)} variacion={variacion(actual.revenue, anterior.revenue)} icono={Iconos.revenue} color="blue" />
+        <StatCard contra={contra} label="Facturación" valor={usd(actual.revenue)} variacion={variacion(actual.revenue, anterior.revenue)} icono={Iconos.revenue} color="blue" serie={{ data: sk.revenue, labels: sk.labels, formato: 'usd' }} />
         <StatCard contra={contra}
           label="Cash Collected"
           valor={usd(actual.cash_collected)}
@@ -134,14 +135,15 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           icono={Iconos.cash}
           color="green"
           nota={actual.costo_software === null ? 'Después de ads · falta software' : undefined}
+          serie={{ data: sk.cash, labels: sk.labels, formato: 'usd' }}
         />
-        <StatCard contra={contra} label="Ventas" valor={num(actual.ventas)} variacion={variacion(actual.ventas, anterior.ventas)} icono={Iconos.ventas} color="green" />
-        <StatCard contra={contra} label="Agendas" valor={num(actual.agendas)} variacion={variacion(actual.agendas, anterior.agendas)} icono={Iconos.agendas} color="blue" />
+        <StatCard contra={contra} label="Ventas" valor={num(actual.ventas)} variacion={variacion(actual.ventas, anterior.ventas)} icono={Iconos.ventas} color="green" serie={{ data: sk.ventas, labels: sk.labels, formato: 'num' }} />
+        <StatCard contra={contra} label="Agendas" valor={num(actual.agendas)} variacion={variacion(actual.agendas, anterior.agendas)} icono={Iconos.agendas} color="blue" serie={{ data: sk.agendas, labels: sk.labels, formato: 'num' }} />
       </section>
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <StatCard contra={contra} label="% Asistencia" valor={pct(actual.pct_asistencia)} variacion={variacion(actual.pct_asistencia, anterior.pct_asistencia)} icono={Iconos.asistencia} color={semaforo(actual.pct_asistencia, 0.6)} />
-        <StatCard contra={contra} label="% Cierre s/ no-show" valor={pct(actual.pct_cierre_sin_noshow)} variacion={variacion(actual.pct_cierre_sin_noshow, anterior.pct_cierre_sin_noshow)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_sin_noshow, 0.3)} />
-        <StatCard contra={contra} label="% Cierre / presentadas" valor={pct(actual.pct_cierre_asistencia)} variacion={variacion(actual.pct_cierre_asistencia, anterior.pct_cierre_asistencia)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_asistencia, 0.3)} />
+        <StatCard contra={contra} label="% Asistencia" valor={pct(actual.pct_asistencia)} variacion={variacion(actual.pct_asistencia, anterior.pct_asistencia)} icono={Iconos.asistencia} color={semaforo(actual.pct_asistencia, 0.6)} serie={{ data: sk.asistencia, labels: sk.labels, formato: 'pct' }} />
+        <StatCard contra={contra} label="% Cierre s/ no-show" valor={pct(actual.pct_cierre_sin_noshow)} variacion={variacion(actual.pct_cierre_sin_noshow, anterior.pct_cierre_sin_noshow)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_sin_noshow, 0.3)} serie={{ data: sk.cierreSinNoShow, labels: sk.labels, formato: 'pct' }} />
+        <StatCard contra={contra} label="% Cierre / presentadas" valor={pct(actual.pct_cierre_asistencia)} variacion={variacion(actual.pct_cierre_asistencia, anterior.pct_cierre_asistencia)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_asistencia, 0.3)} serie={{ data: sk.cierrePresentadas, labels: sk.labels, formato: 'pct' }} />
       </section>
       </Bloque>
 
@@ -254,7 +256,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           <AdsVsCash data={semanas} />
         </ChartCard>
         <ChartCard titulo="Agendas por día" sub="Agendas (azul) y asistencias (verde)" icono={Iconos.agendas} color="blue">
-          <AgendasPorDia data={dias} />
+          <AgendasPorDia data={dias} mes={f.mes} />
         </ChartCard>
       </section>
       </Bloque>

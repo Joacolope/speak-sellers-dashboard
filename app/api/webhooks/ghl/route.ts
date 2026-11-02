@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { refrescarDatos } from '@/lib/data';
 import { env, igualSeguro } from '@/lib/env';
 import { supabase, supabaseConfigurado } from '@/lib/supabase';
 import { syncGhl } from '@/lib/sync/ghl';
@@ -15,7 +16,7 @@ export const maxDuration = 60;
  *   https://<dominio>/api/webhooks/ghl?token=<GHL_WEBHOOK_SECRET>
  * El secreto se define en Vercel (GHL_WEBHOOK_SECRET). No duplica: cada cita se identifica por su id.
  */
-export async function POST(req: NextRequest) {
+async function manejarPOST(req: NextRequest) {
   const secreto = process.env.GHL_WEBHOOK_SECRET || env.cargaToken();
   const token = req.nextUrl.searchParams.get('token') ?? (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
   if (!secreto || secreto.length < 16 || !igualSeguro(token, secreto)) {
@@ -44,4 +45,11 @@ function idDeCita(b: Record<string, unknown>): string | null {
   const candidatos = [cal.appointmentId, cal.id, b.appointmentId, b.appointment_id, b.eventId, b.id];
   const id = candidatos.find((v) => typeof v === 'string' && /^[A-Za-z0-9_-]{8,}$/.test(v));
   return (id as string | undefined) ?? null;
+}
+
+/** Después de escribir se descarta la caché de datos, así el dashboard muestra lo nuevo al instante. */
+export async function POST(...args: Parameters<typeof manejarPOST>) {
+  const res = await manejarPOST(...args);
+  refrescarDatos();
+  return res;
 }

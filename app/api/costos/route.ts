@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 import { CATEGORIAS_COSTO } from '@/lib/types';
@@ -13,7 +14,7 @@ const FRECUENCIAS = ['Mensual', 'Anual', 'Único'];
  *  accion=precio  → id, monto, fecha (desde cuándo rige). Cierra la fila vieja
  *                   el día anterior y abre una nueva: el historial no se pisa.
  */
-export async function POST(req: NextRequest) {
+async function manejarPOST(req: NextRequest) {
   const esForm = req.headers.get('content-type')?.includes('form');
   const d: Record<string, string> = {};
   if (esForm) (await req.formData()).forEach((v, k) => (d[k] = String(v)));
@@ -77,4 +78,11 @@ export async function POST(req: NextRequest) {
   }
 
   return volver({ error: `Acción desconocida: ${d.accion}` });
+}
+
+/** Después de escribir se descarta la caché de datos, así el dashboard muestra lo nuevo al instante. */
+export async function POST(...args: Parameters<typeof manejarPOST>) {
+  const res = await manejarPOST(...args);
+  refrescarDatos();
+  return res;
 }

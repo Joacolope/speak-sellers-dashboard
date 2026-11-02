@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 
@@ -8,7 +9,7 @@ const CAMPOS = { meta_revenue: 10_000_000, meta_cash: 10_000_000, meta_ventas: 1
  * Guarda las metas de un mes. Form-data con sesión de editor, o JSON con
  * "Authorization: Bearer $CARGA_API_TOKEN". Un campo vacío borra esa meta.
  */
-export async function POST(req: NextRequest) {
+async function manejarPOST(req: NextRequest) {
   const esForm = req.headers.get('content-type')?.includes('form');
   const d: Record<string, string> = {};
   if (esForm) (await req.formData()).forEach((v, k) => (d[k] = String(v)));
@@ -40,4 +41,11 @@ export async function POST(req: NextRequest) {
   const { error } = await supabase().from('ajustes_mensuales').upsert(fila, { onConflict: 'mes' });
   if (error) return volver({ error: 'No se pudieron guardar las metas. Probá de nuevo.' });
   return volver({ ok: 'Metas guardadas' });
+}
+
+/** Después de escribir se descarta la caché de datos, así el dashboard muestra lo nuevo al instante. */
+export async function POST(...args: Parameters<typeof manejarPOST>) {
+  const res = await manejarPOST(...args);
+  refrescarDatos();
+  return res;
 }

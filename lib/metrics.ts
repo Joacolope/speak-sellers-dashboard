@@ -530,3 +530,39 @@ export function agendasPorUtm(b: RawBundle, f: Filtros, nivel: NivelUtm): FilaUt
     })
     .sort((x, y) => Number(x.sinUtm) - Number(y.sinUtm) || y.agendas - x.agendas);
 }
+
+export interface SerieKpi {
+  labels: string[];
+  revenue: number[];
+  cash: number[];
+  ventas: number[];
+  agendas: number[];
+  asistencia: (number | null)[];
+  cierreSinNoShow: (number | null)[];
+  cierrePresentadas: (number | null)[];
+}
+
+/**
+ * Evolución acumulada día a día de los números grandes dentro del período (del primer día hasta cada día),
+ * para las sparklines de las tarjetas. No pasa de hoy. Con un solo día devuelve una serie de un punto.
+ */
+export function serieKpi(b: RawBundle, f: Filtros, hoy: string): SerieKpi {
+  const dias = diasDelMes(f.mes);
+  const inicio = f.dia ? f.dia : f.desde && mesDe(f.desde) === f.mes ? f.desde : dias[0];
+  let fin = f.dia ? f.dia : f.hasta && mesDe(f.hasta) === f.mes ? f.hasta : dias[dias.length - 1];
+  if (fin > hoy && inicio <= hoy) fin = hoy;
+  const out: SerieKpi = { labels: [], revenue: [], cash: [], ventas: [], agendas: [], asistencia: [], cierreSinNoShow: [], cierrePresentadas: [] };
+  for (const d of dias) {
+    if (d < inicio || d > fin) continue;
+    const m = metricasMes(b, { ...f, dia: null, desde: inicio, hasta: d, rangoAuto: false });
+    out.labels.push(`${Number(d.slice(8))}/${Number(d.slice(5, 7))}`);
+    out.revenue.push(m.revenue);
+    out.cash.push(m.cash_collected);
+    out.ventas.push(m.ventas);
+    out.agendas.push(m.agendas);
+    out.asistencia.push(m.pct_asistencia);
+    out.cierreSinNoShow.push(m.pct_cierre_sin_noshow);
+    out.cierrePresentadas.push(m.pct_cierre_asistencia);
+  }
+  return out;
+}

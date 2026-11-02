@@ -1,5 +1,7 @@
 'use client';
 
+import Sparkline from './Sparkline';
+
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, LabelList, Legend, Line,
   Pie, PieChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -80,32 +82,26 @@ function marcador(x: string | undefined, y: number | undefined, color = B) {
 }
 
 /** "Revenues": área con la tendencia; si el mes está en curso, el último tramo va punteado. */
-export function TendenciaMes({ data, campo, enCurso, nombre }: { data: PuntoMensual[]; campo: 'revenue' | 'cash'; enCurso: boolean; nombre: string }) {
-  const n = data.length;
-  const C = campo === 'cash' ? G : B;
-  const CS = campo === 'cash' ? GS : BS;
-  const filas = data.map((p, i) => ({
-    label: p.label,
-    cerrado: enCurso && i === n - 1 ? null : p[campo],
-    parcial: enCurso && i >= n - 2 ? p[campo] : null,
-  }));
-  const ult = data[n - 1];
+export function TendenciaMes({ data, campo, nombre }: { data: PuntoMensual[]; campo: 'revenue' | 'cash'; enCurso: boolean; nombre: string }) {
   return (
-    <ResponsiveContainer width="100%" height={150}>
-      <AreaChart data={filas} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-        {grid}
-        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={44} />
-        <Tooltip content={<Pill fmt={(v) => usd(v)} />} cursor={{ stroke: 'var(--chart-grid)' }} />
-        <Area type="monotone" dataKey="cerrado" name={nombre} stroke={C} strokeWidth={1.5} fill={CS} fillOpacity={1} connectNulls={false} />
-        <Area type="monotone" dataKey="parcial" name={`${nombre} (mes en curso)`} stroke={C} strokeWidth={1.5} strokeDasharray="4 4" fill={CS} fillOpacity={0.5} connectNulls={false} />
-        {marcador(ult?.label, ult?.[campo], C)}
-      </AreaChart>
-    </ResponsiveContainer>
+    <div className="mt-auto">
+      <Sparkline data={data.map((p) => p[campo])} labels={data.map((p) => p.label)} label={`${nombre}, últimos meses`} variant="area"
+        color={campo === 'cash' ? G : B} height={110} strokeWidth={2} interactive formato="usd" />
+      <EjeMeses labels={data.map((p) => p.label)} />
+    </div>
   );
 }
 
-/** Rentabilidad: anillo con el margen (Cash Collected / Revenue) y la leyenda al costado. */
+/** Etiquetas de los extremos debajo de una sparkline (primer y último punto). */
+function EjeMeses({ labels }: { labels: string[] }) {
+  if (labels.length < 2) return null;
+  return (
+    <div className="mt-1.5 flex justify-between pr-[76px] text-[11px] text-text-disabled">
+      <span>{labels[0]}</span><span>{labels[labels.length - 1]}</span>
+    </div>
+  );
+}
+
 export function AnilloRentabilidad({ revenue, ads, software, comisiones, plataformas = null, cash }: { revenue: number; ads: number; software: number | null; comisiones: number | null; plataformas?: number | null; cash: number }) {
   const margen = revenue > 0 ? Math.max(0, Math.min(1, cash / revenue)) : null;
   const datos = margen === null ? [{ v: 1 }] : [{ v: margen }, { v: 1 - margen }];
@@ -188,24 +184,15 @@ export function BarrasMes({
 
 /** Inversión en anuncios: barras durazno, el mes elegido en naranja. */
 export function InversionMes({ data }: { data: PuntoMensual[] }) {
-  const n = data.length;
   return (
-    <ResponsiveContainer width="100%" height={H}>
-      <BarChart data={data} margin={{ top: 18, right: 4, left: 0, bottom: 0 }}>
-        {grid}
-        <XAxis dataKey="label" tick={tick} axisLine={false} tickLine={false} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={48} />
-        <Tooltip content={<Pill fmt={(v) => usd(v, 2)} />} cursor={{ fill: 'var(--surface-2)' }} />
-        <Bar dataKey="inversion" name="Inversión" radius={[6, 6, 0, 0]} maxBarSize={40}>
-          {data.map((_, i) => <Cell key={i} fill={i === n - 1 ? R : RS} />)}
-          <LabelList dataKey="inversion" position="top" formatter={(v: number) => (v ? usdCorto(v) : '')} style={valor} />
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="mt-auto">
+      <Sparkline data={data.map((p) => p.inversion)} labels={data.map((p) => p.label)} label="Inversión en anuncios, últimos meses" variant="area"
+        color={R} height={110} strokeWidth={2} interactive formato="usd" />
+      <EjeMeses labels={data.map((p) => p.label)} />
+    </div>
   );
 }
 
-/** Agendas (área) vs. Ventas (línea gris). */
 export function AgendasVentasMes({ data }: { data: PuntoMensual[] }) {
   const ult = data[data.length - 1];
   return (
@@ -243,42 +230,37 @@ export function VentasPorPais({ data }: { data: { pais: string; ventas: number }
 
 /** Inversión (barras grises) vs. Cash cobrado (línea naranja), por semana. */
 export function AdsVsCash({ data }: { data: SemanaAdsCash[] }) {
+  const labels = data.map((d) => `Semana ${d.semana}`);
   return (
-    <ResponsiveContainer width="100%" height={H}>
-      <ComposedChart data={data} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
-        {grid}
-        <XAxis dataKey="semana" tick={tick} axisLine={false} tickLine={false} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} tickFormatter={usdCorto} width={48} />
-        <ReferenceLine y={0} stroke="var(--chart-axis)" strokeOpacity={0.3} />
-        <Tooltip content={<Pill fmt={(v) => usd(v)} prefijo="Días " />} cursor={{ fill: 'var(--surface-2)' }} />
-        <Legend {...leyenda} />
-        <Bar dataKey="inversion" name="Inversión en ads" fill={R} fillOpacity={0.75} radius={[6, 6, 0, 0]} maxBarSize={40} />
-        <Line type="monotone" dataKey="cash" name="Cash cobrado" stroke={G} strokeWidth={2} dot={{ r: 3, fill: G, strokeWidth: 0 }}>
-          <LabelList dataKey="cash" position="top" offset={8} formatter={(v: number) => (v ? usdCorto(v) : '')} style={valor} />
-        </Line>
-      </ComposedChart>
-    </ResponsiveContainer>
+    <div className="flex flex-col gap-5">
+      <div>
+        <div className="mb-2 flex items-center gap-2 text-[12px] text-text-muted"><span className="dot" style={{ background: R }} />Inversión en ads por semana</div>
+        <Sparkline data={data.map((d) => d.inversion)} labels={labels} label="Inversión en ads por semana" variant="area" color={R} height={72} strokeWidth={2} interactive formato="usd" />
+      </div>
+      <div>
+        <div className="mb-2 flex items-center gap-2 text-[12px] text-text-muted"><span className="dot" style={{ background: G }} />Cash cobrado por semana</div>
+        <Sparkline data={data.map((d) => d.cash)} labels={labels} label="Cash cobrado por semana" variant="area" color={G} height={72} strokeWidth={2} interactive formato="usd" />
+      </div>
+    </div>
   );
 }
 
-/** Agendas por día (barras durazno) con asistencias (línea). */
-export function AgendasPorDia({ data }: { data: DiaAgendas[] }) {
+export function AgendasPorDia({ data, mes }: { data: DiaAgendas[]; mes?: string }) {
+  const labels = data.map((d) => (mes ? `${Number(d.dia)}/${Number(mes.slice(5, 7))}` : d.dia));
   return (
-    <ResponsiveContainer width="100%" height={H}>
-      <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        {grid}
-        <XAxis dataKey="dia" tick={tick} axisLine={false} tickLine={false} interval={4} dy={6} />
-        <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} width={26} />
-        <Tooltip content={<Pill prefijo="Día " />} cursor={{ fill: 'var(--surface-2)' }} />
-        <Legend {...leyenda} />
-        <Bar dataKey="agendas" name="Agendas" fill={B} fillOpacity={0.35} radius={[3, 3, 0, 0]} maxBarSize={12} />
-        <Line type="monotone" dataKey="asistencias" name="Asistencias" stroke={G} strokeWidth={2} dot={false} />
-      </ComposedChart>
-    </ResponsiveContainer>
+    <div className="flex flex-col gap-5">
+      <div>
+        <div className="mb-2 flex items-center gap-2 text-[12px] text-text-muted"><span className="dot" style={{ background: B }} />Agendas por día</div>
+        <Sparkline data={data.map((d) => d.agendas)} labels={labels} label="Agendas por día" variant="area" color={B} height={72} strokeWidth={2} interactive formato="num" />
+      </div>
+      <div>
+        <div className="mb-2 flex items-center gap-2 text-[12px] text-text-muted"><span className="dot" style={{ background: G }} />Asistencias por día</div>
+        <Sparkline data={data.map((d) => d.asistencias)} labels={labels} label="Asistencias por día" variant="area" color={G} height={72} strokeWidth={2} interactive formato="num" />
+      </div>
+    </div>
   );
 }
 
-/** Barras apiladas por día (setter: orgánicas, pagadas, outbound). */
 export function BarrasSimples({ data, series }: { data: Record<string, string | number | null>[]; series: { key: string; nombre: string; color: 'main' | 'accent' | 'soft' }[] }) {
   const color = { main: B, accent: Y, soft: G };
   return (

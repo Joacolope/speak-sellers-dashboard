@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 
@@ -15,7 +16,7 @@ const VALIDOS: Record<string, (v: unknown) => boolean> = {
 };
 
 /** Edición inline desde Closers. Solo editor o admin, solo campos manuales y valores válidos. */
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+async function manejarPATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const auth = await exigir('editor');
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
   if (!UUID.test(params.id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
@@ -38,4 +39,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { error } = await supabase().from('agendas').update(patch).eq('id', params.id);
   if (error) return NextResponse.json({ error: 'No se pudo guardar' }, { status: 500 });
   return NextResponse.json({ ok: true });
+}
+
+/** Después de escribir se descarta la caché de datos, así el dashboard muestra lo nuevo al instante. */
+export async function PATCH(...args: Parameters<typeof manejarPATCH>) {
+  const res = await manejarPATCH(...args);
+  refrescarDatos();
+  return res;
 }

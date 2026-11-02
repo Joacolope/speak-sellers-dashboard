@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { unstable_cache, revalidateTag } from 'next/cache';
 import type { Agenda, Lead, RawBundle, UltimaActualizacion } from './types';
 import { sampleBundle } from './sample';
 import { supabase, supabaseConfigurado } from './supabase';
@@ -14,8 +15,24 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
   if (!sesion) throw new Error('No autorizado');
   // Datos de ejemplo solo en desarrollo local sin Supabase; publicado, siempre datos reales.
   if (!supabaseConfigurado()) return sampleBundle();
-  return cargarBundle();
+  return bundleEnCache();
 });
+
+/**
+ * Los datos cambian pocas veces al día (cron de la mañana, cargas a mano): se guardan en la caché de Next
+ * y no se vuelven a leer de Supabase en cada clic. Cada escritura llama a refrescarDatos() y la caché se
+ * descarta al instante; igual vence sola a los 5 minutos por si algo cambió por fuera (SQL directo).
+ */
+const bundleEnCache = unstable_cache(() => cargarBundle(), ['bundle-v1'], { revalidate: 300, tags: ['bundle'] });
+
+/** Llamar después de cualquier escritura en la base para que el dashboard muestre lo nuevo al instante. */
+export function refrescarDatos() {
+  try {
+    revalidateTag('bundle');
+  } catch {
+    // Fuera de un request de Next (scripts): no hay caché que refrescar
+  }
+}
 
 /** Lectura sin sesión: solo para procesos del servidor ya autorizados (cron con CRON_SECRET). */
 export async function cargarBundle(): Promise<RawBundle> {
@@ -25,7 +42,7 @@ export async function cargarBundle(): Promise<RawBundle> {
   desde.setUTCMonth(desde.getUTCMonth() - 14);
   const desdeIso = desde.toISOString().slice(0, 10);
 
-  const [leads, agendas, cobranzas, setter, ads, campanas, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log] = await Promise.all([
+  const [leads, agendas, cobranzas, setter, ads, campanas, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log, semanal] = await Promise.all([
     sb.from('leads').select('*'),
     sb.from('agendas').select('*').gte('fecha_llamada', desdeIso),
     sb.from('cobranzas').select('*').gte('fecha_cobro', desdeIso),
@@ -40,10 +57,9 @@ export async function cargarBundle(): Promise<RawBundle> {
     sb.from('comisiones_plataformas').select('*').order('fecha_alta'),
     sb.from('webinars').select('*').order('fecha'),
     sb.from('log_agente').select('*').order('fecha', { ascending: false }).limit(30),
+    // Tabla nueva: si todavía no existe (antes de aplicar la migración), se sigue sin ella
+    sb.from('respuesta_semanal').select('*').order('semana'),
   ]);
-
-  // Tabla nueva: si todavía no existe (antes de aplicar la migración), se sigue sin ella
-  const semanal = await sb.from('respuesta_semanal').select('*').order('semana');
 
   const errores = [leads, agendas, cobranzas, setter, ads, campanas, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log].map((r) => r.error).filter(Boolean);
   if (errores.length) throw new Error(`Supabase: ${errores.map((e) => e!.message).join('; ')}`);

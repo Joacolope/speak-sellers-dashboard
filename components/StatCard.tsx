@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Variacion } from './ui';
+import Sparkline, { type FormatoSpark } from './Sparkline';
 
 interface Props {
   /** Contra qué se compara (\"mes anterior\", \"1–29 sep\", \"día anterior\") */
@@ -12,17 +12,39 @@ interface Props {
   /** Para costos: bajar es bueno (verde). */
   invertir?: boolean;
   color?: 'blue' | 'green' | 'red' | 'yellow';
+  /** Evolución dentro del período (acumulado día a día) para la sparkline */
+  serie?: { data: readonly (number | null)[]; labels: readonly string[]; formato: FormatoSpark };
 }
 
-export default function StatCard({ label, valor, variacion, icono, nota, invertir, color = 'blue', contra }: Props) {
+const TINTA = { blue: 'var(--blue)', green: 'var(--green)', red: 'var(--red)', yellow: 'var(--yellow)' } as const;
+
+export default function StatCard({ label, valor, variacion, icono, nota, invertir, color = 'blue', contra = 'mes anterior', serie }: Props) {
+  const badge = variacion === null ? null : {
+    texto: `${variacion >= 0 ? '+' : ''}${(variacion * 100).toFixed(1).replace('.', ',')}%`,
+    bueno: (variacion >= 0) !== Boolean(invertir),
+  };
+  const conSerie = serie && serie.data.filter((v) => v !== null).length >= 2;
   return (
-    <div className="card flex flex-col gap-4">
+    <div className="card flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <span className="card-title !text-[14px] text-text-muted">{label}</span>
         <span className={`icon-badge icon-${color} !h-8 !w-8`} aria-hidden>{icono}</span>
       </div>
       <div className="metric">{valor}</div>
-      {nota ? <div className="text-[13px] text-text-disabled">{nota}</div> : <Variacion v={variacion} invertir={invertir} contra={contra} />}
+      {conSerie ? (
+        <Sparkline data={serie.data} labels={serie.labels} label={`${label}, evolución del período`} variant="area" color={TINTA[color]} height={40} badge={badge} formato={serie.formato} />
+      ) : null}
+      {nota ? (
+        <div className="text-[13px] text-text-disabled">{nota}</div>
+      ) : variacion === null ? (
+        <div className="text-[13px] text-text-disabled">sin datos de {contra}</div>
+      ) : conSerie ? (
+        <div className="text-[12px] text-text-disabled">vs. {contra}</div>
+      ) : (
+        <div className="text-[13px]">
+          <span className={badge?.bueno ? 'ok' : 'bad'}>{variacion >= 0 ? '▲' : '▼'} {badge?.texto}</span> <span className="text-text-disabled">vs. {contra}</span>
+        </div>
+      )}
     </div>
   );
 }

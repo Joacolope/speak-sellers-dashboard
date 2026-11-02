@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 import { aMinutos } from '@/lib/respuesta';
@@ -9,7 +10,7 @@ const CAMPOS = ['conv_organicas', 'conv_pagadas', 'bienvenidas', 'conv_frio', 'm
  * Carga o corrige un día del setter. Form-data con sesión de editor, o JSON con
  * "Authorization: Bearer $CARGA_API_TOKEN". Solo pisa los campos que vienen completos.
  */
-export async function POST(req: NextRequest) {
+async function manejarPOST(req: NextRequest) {
   const esForm = req.headers.get('content-type')?.includes('form');
   const d: Record<string, string> = {};
   if (esForm) (await req.formData()).forEach((v, k) => (d[k] = String(v)));
@@ -78,4 +79,11 @@ export async function POST(req: NextRequest) {
   const { error } = await supabase().from('setter_diario').upsert(fila, { onConflict: 'fecha' });
   if (error) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
   return volver({ ok: `Día ${d.fecha} guardado` });
+}
+
+/** Después de escribir se descarta la caché de datos, así el dashboard muestra lo nuevo al instante. */
+export async function POST(...args: Parameters<typeof manejarPOST>) {
+  const res = await manejarPOST(...args);
+  refrescarDatos();
+  return res;
 }

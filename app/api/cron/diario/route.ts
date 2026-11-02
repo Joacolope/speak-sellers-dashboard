@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { refrescarDatos } from '@/lib/data';
 import { supabase, supabaseConfigurado } from '@/lib/supabase';
 import { bearerValido, env } from '@/lib/env';
 import { syncGhl } from '@/lib/sync/ghl';
@@ -15,7 +16,7 @@ export const dynamic = 'force-dynamic';
  * Probar a mano: GET /api/cron/diario?dry=1 con header Authorization: Bearer $CRON_SECRET.
  * Si una fuente falla, las otras siguen; el error queda en log_agente.
  */
-export async function GET(req: NextRequest) {
+async function manejarGET(req: NextRequest) {
   // Vercel manda CRON_SECRET (mín. 32 caracteres) en el header. También se puede correr a mano con CARGA_API_TOKEN.
   const authz = req.headers.get('authorization');
   if (!bearerValido(authz, env.cronSecret()) && !bearerValido(authz, env.cargaToken())) {
@@ -60,4 +61,11 @@ export async function GET(req: NextRequest) {
     await sb.from('log_agente').insert({ fecha: new Date().toISOString(), resumen, cambios: resultados, pendientes: errores, source: 'ghl' });
   }
   return NextResponse.json({ ok: errores.length === 0, dry, resultados, errores });
+}
+
+/** Después de escribir se descarta la caché de datos, así el dashboard muestra lo nuevo al instante. */
+export async function GET(...args: Parameters<typeof manejarGET>) {
+  const res = await manejarGET(...args);
+  refrescarDatos();
+  return res;
 }
