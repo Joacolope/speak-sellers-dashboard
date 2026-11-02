@@ -22,7 +22,6 @@ import CuotasPorCobrar from '@/components/CuotasPorCobrar';
 import { alertas as calcularAlertas } from '@/lib/alertas';
 import { progresoMetas } from '@/lib/metas';
 import { cuotasPorCobrar } from '@/lib/cuotas';
-import { colorRespuesta, formatoEspera } from '@/lib/respuesta';
 import { getSesion, puede } from '@/lib/auth';
 import Link from 'next/link';
 import { comisionesDelMes } from '@/lib/comisiones';
@@ -81,12 +80,6 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
   const metas = progresoMetas(bundle, f, hoy);
   const lista = calcularAlertas(bundle, hoy, enCurso ? metas.items : []);
   const cuotas = cuotasPorCobrar(bundle, hoy);
-  const respuestaDia = bundle.setter.filter((s) => s.tr_mediana_min != null).sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? null;
-  // Si no hay medición diaria (Meta no deja leer los DMs), la última semana cargada desde Business Suite
-  const semanaResp = [...bundle.respuestaSemanal].filter((w) => w.tr_promedio_min != null).sort((a, b) => b.semana.localeCompare(a.semana))[0] ?? null;
-  const respuesta = respuestaDia
-    ? { etiqueta: fechaCorta(respuestaDia.fecha), min: respuestaDia.tr_mediana_min ?? null, ayuda: 'Mediana del tiempo de respuesta en DMs de Instagram' }
-    : semanaResp ? { etiqueta: 'Business Suite', min: semanaResp.tr_promedio_min, ayuda: 'Tiempo de respuesta según Meta Business Suite (último período cargado)' } : null;
   const ok = typeof searchParams.ok === 'string' ? searchParams.ok : null;
   const error = typeof searchParams.error === 'string' ? searchParams.error : null;
   const vsAnterior = (v: number) => (
@@ -112,11 +105,6 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           <div className="flex items-baseline justify-between gap-4">
             <div className="eyebrow">Para mirar hoy</div>
             <div className="flex flex-wrap items-center gap-4">
-              {respuesta && (
-                <Link href="/setter" className="text-[13px] text-text-muted hover:text-text" title={respuesta.ayuda}>
-                  Respuesta en DMs ({respuesta.etiqueta}): <span className={`font-medium ${colorRespuesta(respuesta.min)}`}>{formatoEspera(respuesta.min)}</span>
-                </Link>
-              )}
               <Link href="/resumen" className="text-[13px] text-text-muted hover:text-text">Resumen del viernes →</Link>
             </div>
           </div>

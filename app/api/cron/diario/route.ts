@@ -5,7 +5,6 @@ import { bearerValido, env } from '@/lib/env';
 import { syncGhl } from '@/lib/sync/ghl';
 import { syncMetaAds, syncMetaCampanas } from '@/lib/sync/meta';
 import { syncIgOrganico } from '@/lib/sync/ig';
-import { syncTiempoRespuesta } from '@/lib/sync/respuesta';
 import { vencimientoMeta } from '@/lib/sync/vencimiento';
 
 export const maxDuration = 300;
@@ -43,7 +42,7 @@ async function manejarGET(req: NextRequest) {
   await correr('Meta', () => syncMetaAds(sb, dry));
   await correr('Campañas', () => syncMetaCampanas(sb, dry));
   await correr('IG', () => syncIgOrganico(sb, dry));
-  await correr('Respuesta', () => syncTiempoRespuesta(sb, dry));
+  // Tiempo de respuesta por DMs: Meta no lo permite sin "acceso avanzado"; sale de Business Suite (Setter)
 
   // El token de Meta de 60 días vence: avisar 10 días antes (queda en Avisos del Inicio)
   const vence = await vencimientoMeta().catch(() => null);
