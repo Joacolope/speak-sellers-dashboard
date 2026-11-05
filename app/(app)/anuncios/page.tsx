@@ -91,18 +91,6 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
   const t = totalesFM(fm);
   const fp = periodoAnterior(f);
   const tp = totalesFM(bundle.ads.filter((a) => a.campana === 'follow_me' && enPeriodo(fp, a.fecha)));
-  // Las campañas de mensajes/interacción no informan seguidores: se usan los seguidores nuevos de la cuenta
-  // (orgánico + pauta), que es como se mide Follow Me Ads en la práctica
-  const segCuenta = (per: typeof f) => {
-    const dias = bundle.organico.filter((o) => enPeriodo(per, o.fecha) && o.seguidores_nuevos != null);
-    return dias.length ? dias.reduce((s, o) => s + (o.seguidores_nuevos ?? 0), 0) : null;
-  };
-  const segDeCuenta = !t.seg;
-  if (segDeCuenta) {
-    const a = segCuenta(f), b = segCuenta(fp);
-    Object.assign(t, { seg: a, cSeg: a ? t.inv / a : null });
-    Object.assign(tp, { seg: b, cSeg: b ? tp.inv / b : null });
-  }
   const mp = mesCorto(fp.mes).split(' ')[0].toLowerCase();
   const u2 = (v: number | null) => (v === null ? '—' : usd(v, 2));
   const activas = bundle.campanas.filter((c) => c.estado === 'ACTIVE').sort((a, b) => (b.inversion_7d ?? 0) - (a.inversion_7d ?? 0));
@@ -156,7 +144,7 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
       <Seccion eyebrow="Follow Me Ads · funnel orgánico" titulo="Cuánto cuesta cada resultado">
         <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-5">
           <Dato valor={usd(t.inv, 2)} label="Inversión" sub={<Delta actual={t.inv} antes={tp.inv} mes={mp} neutro />} />
-          <Dato valor={u2(t.cSeg)} label="Costo por seguidor" ayuda={segDeCuenta ? 'Inversión / seguidores nuevos de la cuenta (orgánico + pauta): las campañas de mensajes no informan seguidores' : 'Inversión / seguidores nuevos'} sub={<>{num(t.seg)} {segDeCuenta ? 'seguidores nuevos de la cuenta' : 'seguidores'} · <Delta actual={t.cSeg} antes={tp.cSeg} mes={mp} menosEsMejor /></>} />
+          <Dato valor={u2(t.cSeg)} label="Costo por seguidor" ayuda="Inversión / seguidores que trajeron los anuncios" sub={<>{num(t.seg)} seguidores · <Delta actual={t.cSeg} antes={tp.cSeg} mes={mp} menosEsMejor /></>} />
           <Dato valor={u2(t.cConv)} label="Costo por conversación" ayuda="Inversión / conversaciones iniciadas por mensaje" sub={<>{num(t.conv)} conversaciones · <Delta actual={t.cConv} antes={tp.cConv} mes={mp} menosEsMejor /></>} />
           <Dato valor={u2(t.cCom)} label="Costo por comentario" ayuda="Inversión / comentarios en los anuncios" sub={<>{num(t.com)} comentarios · <Delta actual={t.cCom} antes={tp.cCom} mes={mp} menosEsMejor /></>} />
           <Dato valor={u2(t.cVis)} label="Costo por visita al perfil" ayuda="Inversión / visitas al perfil" sub={<>{num(t.vis)} visitas · <Delta actual={t.cVis} antes={tp.cVis} mes={mp} menosEsMejor /></>} />
