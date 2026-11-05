@@ -8,9 +8,27 @@ export const dynamic = 'force-dynamic';
  * Estado de las fuentes automáticas (solo lectura): últimas corridas del cron y hasta qué día hay datos.
  * GET con "Authorization: Bearer $CARGA_API_TOKEN" o sesión de editor. No devuelve datos de clientes.
  */
-export async function GET() {
+/** Ventas y señas desde una fecha, con el perfil del lead y sus cobros (para trazabilidad). */
+async function ventasDesde(desde: string) {
+  const sb = supabase();
+  const { data: ags, error } = await sb.from('agendas')
+    .select('id, lead_id, closer, fecha_llamada, asistio, compro, cash_collected, revenue, metodo_pago, notas, source')
+    .gte('fecha_llamada', `${desde}T00:00:00-03:00`).order('fecha_llamada');
+  if (error) return { error: error.message };
+  const ids = Array.from(new Set((ags ?? []).map((a) => a.lead_id)));
+  const [{ data: leads }, { data: cobs }] = await Promise.all([
+    sb.from('leads').select('id, nombre, fuente, funnel, canal, pais, primer_punto_contacto, ultimo_punto_contacto, closer_en_actividad, rango_comisiones, nicho, dato_previo, utm_source, utm_medium, utm_campaign, utm_content, notas, ghl_contact_id').in('id', ids),
+    sb.from('cobranzas').select('agenda_id, fecha_cobro, monto_cobrado, pendiente, cuotas_restantes, proximo_vencimiento, notas').in('agenda_id', (ags ?? []).map((a) => a.id)),
+  ]);
+  const porId = new Map((leads ?? []).map((l) => [l.id, l]));
+  return (ags ?? []).map((a) => ({ ...a, lead: porId.get(a.lead_id) ?? null, cobros: (cobs ?? []).filter((c) => c.agenda_id === a.id) }));
+}
+
+export async function GET(req: Request) {
   const auth = await exigir('editor', { permitirToken: true });
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const ventas = new URL(req.url).searchParams.get('ventas');
+  if (ventas && /^\d{4}-\d{2}-\d{2}$/.test(ventas)) return NextResponse.json(await ventasDesde(ventas));
   const sb = supabase();
   const hace40 = new Date(Date.now() - 40 * 86400000).toISOString().slice(0, 10);
   const [log, ads, campanas, setter, ig] = await Promise.all([
