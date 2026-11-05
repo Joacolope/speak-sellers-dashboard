@@ -8,10 +8,10 @@ function cuentaAds(): string {
   return v.startsWith('act_') ? v : `act_${v}`;
 }
 
-async function graph<T>(path: string, params: Record<string, string>): Promise<T> {
+async function graph<T>(path: string, params: Record<string, string>, version?: string): Promise<T> {
   const token = process.env.META_TOKEN;
   if (!token) throw new Error('Falta META_TOKEN');
-  const url = new URL(`${GRAPH}/${path}`);
+  const url = new URL(`${version ? `https://graph.facebook.com/${version}` : GRAPH}/${path}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   url.searchParams.set('access_token', token);
   const res = await fetch(url, { cache: 'no-store' });
@@ -168,8 +168,38 @@ export async function syncMetaAds(sb: SupabaseClient, dry = false): Promise<stri
   const conv = Array.from(filas.values()).reduce((a, f) => a + (f.conversaciones ?? 0), 0);
   const seg = Array.from(filas.values()).reduce((a, f) => a + (f.seguidores ?? 0), 0);
   // Si Meta no devuelve seguidores, el resumen lista qué acciones sí trae, para ajustar el nombre
-  const diag = seg ? (tiposFollow.size ? `; acción: ${Array.from(tiposFollow).join(', ')}` : '') : `; sin acción de seguidores. Acciones de Follow Me: ${Array.from(tiposFollowMe).sort().join(', ').slice(0, 900)}`;
+  const diag = seg ? (tiposFollow.size ? `; acción: ${Array.from(tiposFollow).join(', ')}` : '') : `; sin acción de seguidores. Sondeo: ${await sondearSeguidores(cuenta)}`;
   return `${n} días ads (desde ${desde}, ${conv} conversaciones, ${seg} seguidores${diag})`;
+}
+
+/**
+ * Diagnóstico: Ads Manager muestra "seguidores de Instagram" pero la acción no viene en `actions`.
+ * Prueba otros campos y versiones de la API con los últimos 30 días de Follow Me y devuelve qué encontró.
+ */
+async function sondearSeguidores(cuenta: string): Promise<string> {
+  const out: string[] = [];
+  const pruebas: [string, string, Record<string, string>][] = [
+    ['v23.0', 'results,cost_per_result', {}],
+    ['v21.0', 'conversions', {}],
+    ['v23.0', 'instagram_profile_follows', {}],
+    ['v23.0', 'instagram_follows', {}],
+    ['v23.0', 'actions', { level: 'ad' }],
+    ['v23.0', 'actions', { action_breakdowns: 'action_type,action_destination' }],
+  ];
+  for (const [v, campos, extra] of pruebas) {
+    try {
+      const r = await graph<{ data: Record<string, unknown>[] }>(`${cuenta}/insights`, {
+        level: 'campaign', date_preset: 'last_30d', fields: `campaign_name,${campos}`, limit: '200', ...extra,
+      }, v);
+      const fm = (r.data ?? []).filter((x) => String(x.campaign_name ?? '').toLowerCase().includes('follow me'));
+      const txt = JSON.stringify(fm.map((x) => { const { campaign_name: _n, date_start: _a, date_stop: _b, ...resto } = x; return resto; }));
+      const follows = txt.match(/"[^"]*follow[^"]*"/gi);
+      out.push(`${v} ${campos}${extra.level ? ' (por anuncio)' : ''}: ${follows ? Array.from(new Set(follows)).join(' ') : 'sin follow'} ${campos.startsWith('results') ? txt.slice(0, 300) : ''}`.trim());
+    } catch (e) {
+      out.push(`${v} ${campos}: error ${String(e).match(/"message":"([^"]{0,90})/)?.[1] ?? String(e).slice(0, 90)}`);
+    }
+  }
+  return out.join(' | ');
 }
 
 interface CampanaApi {
