@@ -32,6 +32,8 @@ interface GhlEvent {
   assignedUserId?: string;
   dateAdded?: string;
   rescheduledAt?: string;
+  /** Lo que la persona completó al agendar (viene en la cita aunque no se pueda leer el contacto) */
+  appointmentMeta?: { defaultFormDetails?: { firstName?: string; lastName?: string; email?: string; phone?: string } };
 }
 
 interface GhlContact {
@@ -173,11 +175,28 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
 
   let n = 0;
   let sinContacto = 0;
+  let errorContacto = '';
+  const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  /** El contacto completo; si GHL corta (límite de pedidos o error temporal) se reintenta dos veces. */
+  const leerContacto = async (id: string): Promise<GhlContact | null> => {
+    for (let intento = 0; intento < 3; intento++) {
+      try {
+        return (await ghl<{ contact: GhlContact }>(`/contacts/${id}`)).contact;
+      } catch (e) {
+        errorContacto = String(e).slice(0, 160);
+        await esperar(400 * (intento + 1));
+      }
+    }
+    return null;
+  };
   for (const ev of eventos) {
-    const contacto = await ghl<{ contact: GhlContact }>(`/contacts/${ev.contactId}`).then((r) => r.contact).catch(() => null);
-    if (!contacto) sinContacto++;
-    // Nombre: el del contacto; si no hay, el título de la cita; si tampoco, "Sin nombre" (sin pisar uno real)
-    const limpio = (t?: string | null) => (t ?? '').replace(/\s+/g, ' ').trim();
+    const leido = await leerContacto(ev.contactId);
+    if (!leido) sinContacto++;
+    // Sin contacto: se usa lo que la persona completó al agendar (viene dentro de la cita)
+    const form = ev.appointmentMeta?.defaultFormDetails;
+    const contacto: GhlContact | null = leido ?? (form ? { id: ev.contactId, firstName: form.firstName, lastName: form.lastName, email: form.email, phone: form.phone } as GhlContact : null);
+    // Nombre: el del contacto o el del formulario; si no, el título de la cita sin el "<> Marcos Lanci"
+    const limpio = (t?: string | null) => (t ?? '').replace(/\s*<>.*$/, '').replace(/\s+/g, ' ').trim();
     let nombre = limpio(contacto?.name) || limpio([contacto?.firstName, contacto?.lastName].filter(Boolean).join(' ')) || limpio(ev.title) || 'Sin nombre';
     if (nombre === 'Sin nombre') {
       const { data: previo } = await sb.from('leads').select('nombre').eq('ghl_contact_id', ev.contactId).maybeSingle();
@@ -277,5 +296,5 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
     }
     n++;
   }
-  return `${n} agendas${sinContacto ? ` (${sinContacto} sin datos del contacto: revisar permiso contacts.readonly del token de GHL)` : ''}`;
+  return `${n} agendas${sinContacto ? ` (${sinContacto} contactos no se pudieron leer y se usó el formulario de la cita: ${errorContacto})` : ''}`;
 }
