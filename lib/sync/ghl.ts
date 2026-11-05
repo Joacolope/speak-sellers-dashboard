@@ -1,16 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Closer } from '../types';
+import { CLOSER_POR_DEFECTO, type Closer } from '../types';
+import { CLIENTE, ids } from '../cliente';
 
 const BASE = 'https://services.leadconnectorhq.com';
 const VERSION = '2021-07-28';
 
-export const CALENDARIOS = ['tAl7IAvVZiFBju2gkkMG', 'f6KLn8x47VVmqcTAdICC'];
-export const PIPELINE_ID = '8tPjeFZ5cZYG40hQRQCM';
-const CLOSER_POR_USER: Record<string, Closer> = {
-  i8DcrP6UD17xI5U5mHCx: 'Marcos',
-  FfGvrQ15X7p3f52WBFSu: 'Andrea',
-};
-const CLOSER_POR_CALENDARIO: Record<string, Closer> = { f6KLn8x47VVmqcTAdICC: 'Gonzalo' };
+/** De qué closer es cada cita: por calendario propio o por usuario asignado (cliente.json). */
+const CLOSER_POR_USER: Record<string, Closer> = Object.fromEntries(CLIENTE.closers.filter((c) => c.ghlUserId).map((c) => [c.ghlUserId!, c.id]));
+const CLOSER_POR_CALENDARIO: Record<string, Closer> = Object.fromEntries(CLIENTE.closers.filter((c) => c.ghlCalendarId).map((c) => [c.ghlCalendarId!, c.id]));
 
 async function ghl<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   const token = process.env.GHL_TOKEN;
@@ -20,6 +17,23 @@ async function ghl<T>(path: string, params: Record<string, string> = {}): Promis
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Version: VERSION, Accept: 'application/json' }, cache: 'no-store' });
   if (!res.ok) throw new Error(`GHL ${path} → ${res.status} ${await res.text()}`);
   return res.json() as Promise<T>;
+}
+
+/** Calendarios de llamadas: los de cliente.json o, si no hay, todos los de la sub-cuenta. */
+export async function calendarios(locationId: string): Promise<string[]> {
+  const fijos = CLIENTE.ghl.calendarios?.filter(Boolean) ?? [];
+  if (fijos.length) return fijos;
+  const r = await ghl<{ calendars: { id: string; isActive?: boolean }[] }>('/calendars/', { locationId });
+  return (r.calendars ?? []).filter((c) => c.isActive !== false).map((c) => c.id);
+}
+
+/** Pipeline comercial: el de cliente.json o el primero de la sub-cuenta. */
+export async function pipeline(locationId: string): Promise<string> {
+  if (CLIENTE.ghl.pipelineId) return CLIENTE.ghl.pipelineId;
+  const r = await ghl<{ pipelines: { id: string }[] }>('/opportunities/pipelines', { locationId });
+  const id = r.pipelines?.[0]?.id;
+  if (!id) throw new Error('La sub-cuenta no tiene pipelines');
+  return id;
 }
 
 interface GhlEvent {
@@ -80,13 +94,16 @@ function toque(a?: Atribucion): string | null {
 }
 
 /** Respuestas del formulario de agenda: se buscan los campos personalizados por nombre, no por id. */
-const CAMPOS_FORM: [RegExp, 'closer_en_actividad' | 'rango_comisiones' | 'nicho' | 'dato_previo' | 'video_origen'][] = [
-  [/video|reel|te hizo seguir|nos conociste/i, 'video_origen'],
-  [/closer.*actividad|sos closer|en actividad/i, 'closer_en_actividad'],
-  [/comision/i, 'rango_comisiones'],
-  [/nicho/i, 'nicho'],
-  [/dato|mencionar|antes de la sesi/i, 'dato_previo'],
-];
+type CampoForm = 'closer_en_actividad' | 'rango_comisiones' | 'nicho' | 'dato_previo' | 'video_origen';
+const FORM_DEFECTO: Record<CampoForm, string> = {
+  video_origen: 'video|reel|te hizo seguir|nos conociste',
+  closer_en_actividad: 'closer.*actividad|sos closer|en actividad',
+  rango_comisiones: 'comision',
+  nicho: 'nicho',
+  dato_previo: 'dato|mencionar|antes de la sesi',
+};
+/** Cada pregunta del formulario se reconoce por su nombre; cliente.json → formulario puede cambiar las expresiones. */
+const CAMPOS_FORM: [RegExp, CampoForm][] = (Object.keys(FORM_DEFECTO) as CampoForm[]).map((k) => [new RegExp(CLIENTE.formulario?.[k] || FORM_DEFECTO[k], 'i'), k]);
 function formulario(c: GhlContact | null, nombres: Map<string, string>) {
   const out: Partial<Record<(typeof CAMPOS_FORM)[number][1], string>> = {};
   for (const cf of c?.customFields ?? []) {
@@ -128,8 +145,8 @@ function estadoAAsistio(estado: string): 'Asistió' | 'No show' | 'Canceló' | '
  * Nunca pisa asistio / compro / cash_collected si la fila ya es manual o del agente.
  */
 export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { eventoId?: string } = {}): Promise<string> {
-  // Si falta la variable, la ubicación de Speak Sellers (LANZA SELLING LLC); no es un secreto.
-  const locationId = process.env.GHL_LOCATION_ID || 'qcLzgJ0LSGXkHKb4pkHn';
+  const locationId = ids.ghlLocation();
+  if (!locationId) throw new Error('Falta el ID de la sub-cuenta de GHL (ghl.locationId en cliente.json o GHL_LOCATION_ID)');
   const ahora = Date.now();
   const desde = ahora - 45 * 86400000;
   const hasta = ahora + 30 * 86400000;
@@ -142,7 +159,7 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
     if (!ev) throw new Error(`GHL: cita ${opciones.eventoId} no encontrada`);
     eventos.push(ev);
   } else {
-    for (const calendarId of CALENDARIOS) {
+    for (const calendarId of await calendarios(locationId)) {
       const r = await ghl<{ events: GhlEvent[] }>('/calendars/events', { locationId, calendarId, startTime: String(desde), endTime: String(hasta) });
       eventos.push(...(r.events ?? []));
     }
@@ -152,7 +169,7 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
   const etapas = new Map<string, string>();
   try {
     const opp = await ghl<{ opportunities: { contact?: { id: string }; pipelineStageId?: string; stageName?: string; status?: string }[] }>(
-      '/opportunities/search', { location_id: locationId, pipeline_id: PIPELINE_ID, limit: '100' },
+      '/opportunities/search', { location_id: locationId, pipeline_id: await pipeline(locationId), limit: '100' },
     );
     for (const o of opp.opportunities ?? []) if (o.contact?.id) etapas.set(o.contact.id, o.stageName ?? o.pipelineStageId ?? '');
   } catch (e) {
@@ -196,14 +213,14 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
     // Sin contacto: se usa lo que la persona completó al agendar (viene dentro de la cita)
     const form = ev.appointmentMeta?.defaultFormDetails;
     const contacto: GhlContact | null = leido ?? (form ? { id: ev.contactId, firstName: form.firstName, lastName: form.lastName, email: form.email, phone: form.phone } as GhlContact : null);
-    // Nombre: el del contacto o el del formulario; si no, el título de la cita sin el "<> Marcos Lanci"
+    // Nombre: el del contacto o el del formulario; si no, el título de la cita sin el "<> Nombre del closer"
     const limpio = (t?: string | null) => (t ?? '').replace(/\s*<>.*$/, '').replace(/\s+/g, ' ').trim();
     let nombre = limpio(contacto?.name) || limpio([contacto?.firstName, contacto?.lastName].filter(Boolean).join(' ')) || limpio(ev.title) || 'Sin nombre';
     if (nombre === 'Sin nombre') {
       const { data: previo } = await sb.from('leads').select('nombre').eq('ghl_contact_id', ev.contactId).maybeSingle();
       if (limpio(previo?.nombre) && previo?.nombre !== 'Sin nombre') nombre = limpio(previo?.nombre);
     }
-    const closer: Closer = CLOSER_POR_CALENDARIO[ev.calendarId] ?? (ev.assignedUserId ? CLOSER_POR_USER[ev.assignedUserId] : undefined) ?? 'Marcos';
+    const closer: Closer = CLOSER_POR_CALENDARIO[ev.calendarId] ?? (ev.assignedUserId ? CLOSER_POR_USER[ev.assignedUserId] : undefined) ?? CLOSER_POR_DEFECTO;
 
     if (dry) { n++; continue; }
 

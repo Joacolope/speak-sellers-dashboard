@@ -1,5 +1,6 @@
 'use client';
 
+import { OBJETIVOS } from '@/lib/cliente';
 import { useState } from 'react';
 import type { FilaUtm } from '@/lib/metrics';
 import { num, pct, usd } from '@/lib/format';
@@ -60,10 +61,10 @@ export default function TablaUtm({ datos, limite }: { datos: Record<string, Fila
                   </td>
                   <td className="num">{num(f.agendas)}</td>
                   <td className="num">{num(f.presentadas)}</td>
-                  <td className="num"><span className={`tag ${tag(f.pctShow, 0.6)}`}>{pct(f.pctShow)}</span></td>
+                  <td className="num"><span className={`tag ${tag(f.pctShow, OBJETIVOS.asistencia)}`}>{pct(f.pctShow)}</span></td>
                   <td className="num">{num(f.ventas)}</td>
-                  <td className="num"><span className={`tag ${tag(f.pctCierreSinNoShow, 0.3)}`}>{pct(f.pctCierreSinNoShow)}</span></td>
-                  <td className="num"><span className={`tag ${tag(f.pctCierre, 0.3)}`}>{pct(f.pctCierre)}</span></td>
+                  <td className="num"><span className={`tag ${tag(f.pctCierreSinNoShow, OBJETIVOS.cierre)}`}>{pct(f.pctCierreSinNoShow)}</span></td>
+                  <td className="num"><span className={`tag ${tag(f.pctCierre, OBJETIVOS.cierre)}`}>{pct(f.pctCierre)}</span></td>
                   <td className="num ok">{usd(f.cash)}</td>
                 </tr>
               ))}

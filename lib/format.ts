@@ -1,12 +1,14 @@
+import { LOCALE, ZONA_HORARIA } from './cliente';
+
 /** Miles con punto (1.200), USD con $ adelante, porcentajes con un decimal. */
-const nf = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
-const nf2 = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const nf = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 });
+const nf2 = new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const DASH = '—';
 
 export function num(v: number | null | undefined, decimals = 0): string {
   if (v === null || v === undefined || Number.isNaN(v)) return DASH;
-  return decimals ? new Intl.NumberFormat('es-AR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v) : nf.format(v);
+  return decimals ? new Intl.NumberFormat(LOCALE, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v) : nf.format(v);
 }
 
 export function usd(v: number | null | undefined, decimals = 0): string {
@@ -35,7 +37,7 @@ export function fechaCorta(iso: string | null | undefined): string {
 export function fechaHora(iso: string | null | undefined): string {
   if (!iso) return DASH;
   const d = new Date(iso);
-  return d.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(LOCALE, { timeZone: ZONA_HORARIA, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 export const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -50,9 +52,15 @@ export function mesCorto(mes: string): string {
   return `${MESES[m - 1].slice(0, 3)} ${String(y).slice(2)}`;
 }
 
-/** Fecha de hoy en Argentina (YYYY-MM-DD): el servidor corre en UTC. */
+/** Fecha (YYYY-MM-DD) de un instante en la zona horaria del cliente: el servidor corre en UTC. */
+export function diaLocal(d: Date = new Date()): string {
+  // en-CA da AAAA-MM-DD directo
+  return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_HORARIA, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}
+
+/** Fecha de hoy en la zona horaria del cliente (YYYY-MM-DD). El nombre quedó de cuando solo era Argentina. */
 export function hoyAR(): string {
-  return new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);
+  return diaLocal();
 }
 
 export function sumarDias(fecha: string, n: number): string {
@@ -60,10 +68,7 @@ export function sumarDias(fecha: string, n: number): string {
 }
 
 export function mesActual(): string {
-  const now = new Date();
-  // Hora Argentina (UTC-3)
-  const ar = new Date(now.getTime() - 3 * 3600 * 1000);
-  return `${ar.getUTCFullYear()}-${String(ar.getUTCMonth() + 1).padStart(2, '0')}`;
+  return diaLocal().slice(0, 7);
 }
 
 export function mesAnterior(mes: string): string {

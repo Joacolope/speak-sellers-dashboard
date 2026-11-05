@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { rutaSegura } from '@/lib/auth';
 import BotonGoogle from '@/components/BotonGoogle';
+import { EYEBROW, TITULO } from '@/lib/cliente';
 
-export const metadata = { title: 'Ingresar · Speak Sellers Dashboard' };
+export const metadata = { title: `Ingresar · ${TITULO}` };
 export const dynamic = 'force-dynamic';
 
 const MENSAJES: Record<string, string> = {
@@ -19,8 +20,8 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="m7 15 4-4 3 3 5-6" /></svg>
         </span>
         <div className="flex flex-col items-center gap-2">
-          <div className="eyebrow">Speak Sellers · Métricas</div>
-          <h1 className="h2">Speak Sellers Dashboard</h1>
+          <div className="eyebrow">{EYEBROW}</div>
+          <h1 className="h2">{TITULO}</h1>
           <p className="max-w-xs text-[15px] leading-relaxed text-text-muted">Ingresá con tu cuenta de Google. Solo entran los mails autorizados del equipo.</p>
         </div>
 

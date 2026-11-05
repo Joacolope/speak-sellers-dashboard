@@ -1,11 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { CAMPANAS_META, ids } from '../cliente';
 
 const GRAPH = 'https://graph.facebook.com/v21.0';
 
-/** Cuenta publicitaria (act_…). Si falta la variable, la de Speak Sellers (Marcos Lanci); no es un secreto. */
-function cuentaAds(): string {
-  const v = (process.env.META_AD_ACCOUNT || '1431751731204204').trim();
-  return v.startsWith('act_') ? v : `act_${v}`;
+/** Cuenta publicitaria (act_…): cliente.json → meta.cuentaPublicitaria, o META_AD_ACCOUNT. */
+export function cuentaAds(): string {
+  const v = ids.metaCuenta();
+  if (!v) throw new Error('Falta la cuenta publicitaria de Meta (meta.cuentaPublicitaria en cliente.json o META_AD_ACCOUNT)');
+  return v;
 }
 
 async function graph<T>(path: string, params: Record<string, string>, version?: string): Promise<T> {
@@ -51,10 +53,11 @@ function seguidoresDe(ins: Insight): number | null {
   return otras.length ? Math.max(...otras.map((x) => Number(x.value) || 0)) : null;
 }
 
-function campana(nombre: string): 'follow_me' | 'webinar' | null {
+/** Tipo de campaña por su nombre (los textos que cuentan están en cliente.json → meta.campanas). */
+export function campana(nombre: string): 'follow_me' | 'webinar' | null {
   const n = nombre.toLowerCase();
-  if (n.includes('follow me')) return 'follow_me';
-  if (n.includes('webinar')) return 'webinar';
+  if (CAMPANAS_META.follow_me.some((t) => n.includes(t))) return 'follow_me';
+  if (CAMPANAS_META.webinar.some((t) => n.includes(t))) return 'webinar';
   return null; // Lookalike, Tráfico al perfil, etc. se excluyen
 }
 

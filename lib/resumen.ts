@@ -1,5 +1,6 @@
 import type { Closer, RawBundle } from './types';
 import { CLOSERS, NOMBRE_CLOSER } from './types';
+import { CLIENTE } from './cliente';
 import { esPago, esVenta } from './metrics';
 import { progresoMetas, type ProgresoMeta } from './metas';
 import { cuotasPorCobrar, totalCuotas, type CuotaPendiente } from './cuotas';
@@ -159,14 +160,14 @@ export function htmlResumen(d: DatosResumen, appUrl: string): string {
   return `<!doctype html><html><body style="margin:0;background:${C.fondo};font-family:Inter,Helvetica,Arial,sans-serif">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:${C.fondo}"><tr><td align="center" style="padding:32px 12px">
     <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%"><tr><td>
-      <div style="font-size:13px;color:${C.gris}">Speak Sellers · Resumen semanal</div>
+      <div style="font-size:13px;color:${C.gris}">${esc(CLIENTE.nombre)} · Resumen semanal</div>
       <div style="font-size:28px;color:${C.tinta};margin:6px 0 4px">Semana del ${fechaTxt(d.desde)} al ${fechaTxt(d.hasta)}</div>
       <div style="font-size:14px;color:${C.gris};margin-bottom:16px">Cobraste <strong style="color:${C.verde}">${usd(a.cobrado)}</strong> con ${num(a.ventas)} ${a.ventas === 1 ? 'venta nueva' : 'ventas nuevas'} y ${num(a.agendas)} agendas.</div>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 -6px">${filas}</table>
       ${d.respuesta.actual !== null ? `<div style="font-size:14px;color:${C.tinta};margin:14px 0 0">Tiempo de respuesta en DMs: <strong style="color:${d.respuesta.actual <= OBJETIVO_RESPUESTA_MIN ? C.verde : d.respuesta.actual <= OBJETIVO_RESPUESTA_MIN * 2 ? C.amarillo : C.rojo}">${formatoEspera(d.respuesta.actual)}</strong> <span style="color:${C.gris}">(objetivo ${OBJETIVO_RESPUESTA_MIN} min${d.respuesta.anterior !== null ? `, semana anterior ${formatoEspera(d.respuesta.anterior)}` : ''}${d.respuesta.sinResponder ? ` · ${d.respuesta.sinResponder} sin responder` : ''})</span></div>` : ''}
       ${metas}${alertasHtml}${ventas}${closers}${cobrar}
       <div style="margin:32px 0 8px"><a href="${esc(appUrl)}" style="background:${C.tinta};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:10px;font-size:14px;display:inline-block">Abrir el dashboard</a></div>
-      <div style="font-size:12px;color:${C.claro};margin-top:24px">Se manda solo todos los viernes a las 18:00 (Argentina). Cash cobrado = cobros de la semana menos reembolsos.</div>
+      <div style="font-size:12px;color:${C.claro};margin-top:24px">Se manda solo todos los viernes a la tarde. Cash cobrado = cobros de la semana menos reembolsos.</div>
     </td></tr></table>
   </td></tr></table></body></html>`;
 }

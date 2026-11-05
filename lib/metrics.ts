@@ -1,5 +1,5 @@
 import type { Agenda, Closer, Cobranza, Filtros, Funnel, RawBundle } from './types';
-import { CLOSERS, FUNNELS, funnelDeLead } from './types';
+import { CLOSERS, CLOSER_POR_DEFECTO, FUNNELS, funnelDeLead } from './types';
 import { nombreUtm, origenSinUtm, type Origen } from './origen';
 import { periodoAnterior } from './filtros';
 import { costosDelMes } from './costos';
@@ -346,7 +346,7 @@ export function resumenCloser(b: RawBundle, f: Filtros, closer: Closer | 'todos'
   const cierres = ag.filter(esVenta).length;
   const noShow = ag.filter((a) => a.asistio === 'No show').length;
   return {
-    closer: closer === 'todos' ? 'Marcos' : closer,
+    closer: closer === 'todos' ? CLOSER_POR_DEFECTO : closer,
     agendas: ag.length,
     asistencias,
     no_show: noShow,

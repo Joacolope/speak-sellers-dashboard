@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { num, pct, usd } from '@/lib/format';
+import { LOCALE } from '@/lib/cliente';
 
 /** Formatos por nombre: se pueden pasar desde un componente del servidor (una función no). */
 export type FormatoSpark = 'usd' | 'num' | 'pct' | 'min';
@@ -39,7 +40,7 @@ export interface SparklineProps {
   className?: string;
 }
 
-const fmtDefecto = (v: number) => new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 }).format(v);
+const fmtDefecto = (v: number) => new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 }).format(v);
 
 /** Curva monotone (Fritsch–Carlson): suave sin pasarse de los puntos. */
 function caminoMonotone(pts: { x: number; y: number }[]): string {

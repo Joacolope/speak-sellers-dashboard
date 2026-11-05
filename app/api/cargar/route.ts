@@ -2,11 +2,11 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
-import { PLATAFORMAS } from '@/lib/types';
+import { CLOSERS, PLATAFORMAS } from '@/lib/types';
 import { paisPorPrefijo } from '@/lib/sync/ghl';
 
 const FUENTES = ['Instagram', 'WhatsApp', 'Webinar', 'YouTube', 'Referido', 'Otro'];
-const CLOSERS_OK = ['Marcos', 'Andrea', 'Gonzalo'];
+const CLOSERS_OK: string[] = CLOSERS;
 const esFecha = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 const sumarDias = (f: string, d: number) => new Date(Date.parse(`${f}T12:00:00Z`) + d * 86400000).toISOString().slice(0, 10);
 
@@ -199,7 +199,7 @@ async function manejarPOST(req: NextRequest) {
     if (!['Asistió', 'No show', 'Canceló', 'Pendiente'].includes(data.asistio)) return volver({ error: 'Valor de asistencia inválido' });
     const patch: Record<string, unknown> = { asistio: data.asistio, source: 'manual', editado_por: auth.quien, updated_at: ahora };
     if (data.oferta_hecha) patch.oferta_hecha = data.oferta_hecha === 'true';
-    if (data.closer && ['Marcos', 'Andrea', 'Gonzalo'].includes(data.closer)) patch.closer = data.closer;
+    if (data.closer && CLOSERS_OK.includes(data.closer)) patch.closer = data.closer;
     const { error } = await sb.from('agendas').update(patch).eq('id', agenda.id);
     if (error) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
     if (data.cualificacion_economica) {

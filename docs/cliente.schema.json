@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "cliente.json · configuración del dashboard para un cliente",
+  "description": "Todo lo que cambia de un cliente a otro vive acá. Nada de esto es secreto: los tokens van en variables de entorno (ver .env.example).",
+  "type": "object",
+  "required": ["nombre", "zonaHoraria", "closers", "objetivos", "ghl", "meta"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "nombre": { "type": "string", "minLength": 2, "description": "Nombre de la marca. Aparece en el título ('<nombre> Dashboard'), el login y el mail semanal." },
+    "empresa": { "type": "string", "description": "Razón social, para Privacidad y Términos. Si falta se usa el nombre." },
+    "producto": { "type": "string", "description": "Nombre del producto que se vende (valor por defecto del campo Producto al cargar una venta)." },
+    "url": { "type": "string", "format": "uri", "description": "URL pública del dashboard (links del mail semanal). APP_URL la pisa." },
+    "contacto": { "type": "string", "format": "email", "description": "Email de contacto que se muestra en Bienvenida, Privacidad y Términos." },
+    "zonaHoraria": { "type": "string", "description": "Zona horaria IANA del negocio (ej.: America/Argentina/Buenos_Aires, America/Mexico_City, Europe/Madrid). Define qué es 'hoy' y los cortes de mes." },
+    "locale": { "type": "string", "default": "es-AR", "description": "Formato de números (es-AR: 1.200,50)." },
+    "googleSiteVerification": { "type": "string", "description": "Código de Google Search Console para la verificación de marca del login (opcional)." },
+
+    "closers": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Quiénes toman llamadas. El primero es el closer por defecto cuando GHL no dice quién.",
+      "items": {
+        "type": "object",
+        "required": ["id", "nombre"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-zÁÉÍÓÚÑáéíóúñ][A-Za-z0-9ÁÉÍÓÚÑáéíóúñ _-]{0,30}$", "description": "Nombre corto único (es lo que se guarda en la base y va en la URL)." },
+          "nombre": { "type": "string", "description": "Nombre completo para mostrar." },
+          "activo": { "type": "boolean", "default": true, "description": "false = ya no toma llamadas; conserva su historial." },
+          "comisionInicial": { "type": "number", "minimum": 0, "maximum": 100, "default": 0, "description": "% de comisión sobre lo cobrado, solo para la carga inicial (después se edita en Costos)." },
+          "ghlUserId": { "type": "string", "description": "ID de usuario en GoHighLevel: las citas asignadas a ese usuario son de este closer." },
+          "ghlCalendarId": { "type": "string", "description": "ID de calendario propio en GoHighLevel: todas las citas de ese calendario son de este closer." }
+        }
+      }
+    },
+
+    "objetivos": {
+      "type": "object",
+      "required": ["asistencia", "cierre"],
+      "additionalProperties": false,
+      "properties": {
+        "asistencia": { "type": "number", "minimum": 0, "maximum": 1, "description": "% de asistencia (show) a partir del cual el semáforo está en verde. Ej.: 0.6" },
+        "cierre": { "type": "number", "minimum": 0, "maximum": 1, "description": "% de cierre sobre presentadas para el verde. Ej.: 0.3" },
+        "respuestaMin": { "type": "integer", "minimum": 1, "default": 15, "description": "Minutos objetivo para responder un DM." }
+      }
+    },
+
+    "ghl": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "locationId": { "type": "string", "description": "ID de la sub-cuenta (location) de GoHighLevel. GHL_LOCATION_ID la pisa." },
+        "calendarios": { "type": "array", "items": { "type": "string" }, "description": "IDs de los calendarios de llamadas de venta. Vacío = todos los calendarios de la sub-cuenta." },
+        "pipelineId": { "type": "string", "description": "ID del pipeline comercial (para leer la etapa de cada lead). Vacío = el primer pipeline." }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cuentaPublicitaria": { "type": "string", "pattern": "^(act_)?[0-9]+$", "description": "Cuenta publicitaria de Meta (act_…). META_AD_ACCOUNT la pisa." },
+        "paginaId": { "type": "string", "description": "ID de la página de Facebook conectada al Instagram (de ahí sale la cuenta de IG). META_PAGE_ID la pisa." },
+        "instagram": { "type": "string", "description": "Usuario de Instagram (solo informativo, para los docs y Conexiones)." },
+        "campanas": {
+          "type": "object",
+          "description": "Cómo reconocer cada tipo de campaña por su nombre en Meta (texto en minúsculas contenido en el nombre).",
+          "additionalProperties": false,
+          "properties": {
+            "follow_me": { "type": "array", "items": { "type": "string" }, "description": "Campañas que llevan al perfil / buscan seguidores y conversaciones." },
+            "webinar": { "type": "array", "items": { "type": "string" }, "description": "Campañas de registro a webinar." }
+          }
+        }
+      }
+    },
+
+    "formulario": {
+      "type": "object",
+      "description": "Opcional: cómo reconocer las preguntas del formulario de agenda de GHL por su nombre (expresiones regulares, sin distinguir mayúsculas). Si falta, se usan las de siempre.",
+      "additionalProperties": false,
+      "properties": {
+        "closer_en_actividad": { "type": "string" },
+        "rango_comisiones": { "type": "string" },
+        "nicho": { "type": "string" },
+        "dato_previo": { "type": "string" },
+        "video_origen": { "type": "string" }
+      }
+    },
+
+    "resumen": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "remitente": { "type": "string", "description": "Remitente del mail semanal: 'Marca <resumen@dominio.com>'. RESUMEN_DESDE la pisa." }
+      }
+    }
+  }
+}

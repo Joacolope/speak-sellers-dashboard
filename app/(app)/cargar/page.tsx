@@ -1,3 +1,4 @@
+import { PRODUCTO } from '@/lib/cliente';
 import { redirect } from 'next/navigation';
 import { CLOSERS_ACTIVOS, NOMBRE_CLOSER, PLATAFORMAS } from '@/lib/types';
 import { hoyAR } from '@/lib/format';
@@ -64,7 +65,7 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
           <Campo label="Cobrado hoy (USD)" ayuda="Lo que entró en este pago."><input className="input" name="cash_collected" type="number" step="0.01" inputMode="decimal" placeholder="0" /></Campo>
           <Campo label="Valor total de la venta (USD)" ayuda="Si es en cuotas, lo que falta queda como pendiente."><input className="input" name="revenue" type="number" step="0.01" inputMode="decimal" placeholder="0" /></Campo>
           <Campo label="Plataforma de cobro"><select className="input" name="plataforma" defaultValue="Stripe">{OPC_PLATAFORMA}</select></Campo>
-          <Campo label="Producto"><input className="input" name="producto" defaultValue="Speak Sellers" /></Campo>
+          <Campo label="Producto"><input className="input" name="producto" defaultValue={PRODUCTO} /></Campo>
         </Bloque>
 
         <Bloque titulo="Cobro de cuota o reembolso" cuando="Cuando entra una cuota de una venta anterior, o se devuelve plata." boton="Guardar cobro" tipo="cobranza">

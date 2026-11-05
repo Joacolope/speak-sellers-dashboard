@@ -1,3 +1,4 @@
+import { ids } from '../cliente';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { cuentaInstagram } from './cuentaIg';
 
@@ -81,7 +82,7 @@ export function calcularRespuesta(conversaciones: Conversacion[], igUser: string
 
 export async function syncTiempoRespuesta(sb: SupabaseClient, dry = false): Promise<string> {
   const token = process.env.META_TOKEN;
-  const page = process.env.META_PAGE_ID;
+  const page = ids.metaPagina();
   if (!token) throw new Error('Falta META_TOKEN');
   if (!page) throw new Error('Falta META_PAGE_ID');
   const igUser = await cuentaInstagram();

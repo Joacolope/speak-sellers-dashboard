@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import BotonGoogle from '@/components/BotonGoogle';
+import { CLIENTE, CONTACTO, EMPRESA, EYEBROW, TITULO } from '@/lib/cliente';
 
 export const metadata = {
-  title: 'Speak Sellers Dashboard',
-  description: 'Panel interno de métricas comerciales de Speak Sellers: ventas, agendas, cobranzas, anuncios y contenido orgánico.',
+  title: TITULO,
+  description: `Panel interno de métricas comerciales de ${CLIENTE.nombre}: ventas, agendas, cobranzas, anuncios y contenido orgánico.`,
 };
 
 /** Página pública (la que ve Google y cualquiera sin sesión). No muestra datos. */
@@ -20,10 +21,10 @@ export default function Bienvenida() {
         <span className="icon-badge icon-blue !h-12 !w-12" aria-hidden>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="m7 15 4-4 3 3 5-6" /></svg>
         </span>
-        <div className="eyebrow">Speak Sellers · Métricas</div>
-        <h1 className="display text-[40px] leading-[1.05] md:text-[56px]">Speak Sellers Dashboard</h1>
+        <div className="eyebrow">{EYEBROW}</div>
+        <h1 className="display text-[40px] leading-[1.05] md:text-[56px]">{TITULO}</h1>
         <p className="max-w-xl text-[17px] leading-relaxed text-text-muted">
-          Herramienta interna de Speak Sellers (LANZA SELLING LLC) para ver en un solo lugar las métricas comerciales
+          Herramienta interna de {CLIENTE.nombre}{EMPRESA !== CLIENTE.nombre ? ` (${EMPRESA})` : ''} para ver en un solo lugar las métricas comerciales
           del negocio. La usan solo los miembros autorizados del equipo, que ingresan con su cuenta de Google.
         </p>
       </div>
@@ -47,7 +48,7 @@ export default function Bienvenida() {
       <footer className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-[13px] text-text-muted">
         <Link href="/privacidad" className="link-ember">Política de privacidad</Link>
         <Link href="/terminos" className="link-ember">Condiciones del servicio</Link>
-        <a href="mailto:joaquin@salesspawn.com" className="link-ember">Contacto</a>
+        {CONTACTO && <a href={`mailto:${CONTACTO}`} className="link-ember">Contacto</a>}
       </footer>
     </main>
   );

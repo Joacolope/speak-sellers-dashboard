@@ -1,5 +1,6 @@
 'use client';
 
+import { OBJETIVOS } from '@/lib/cliente';
 import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import { num, pct, usd, fechaCorta } from '@/lib/format';
@@ -56,10 +57,10 @@ export default function ClosersDesplegable({ filas }: { filas: DetalleCloser[] }
                 >
                   <td className="font-medium">{c.nombre}</td>
                   <td className="num">{num(c.agendas)}</td>
-                  <td className="num"><span className={`tag ${claseSemaforo(c.pctShow, 0.6)}`}>{pct(c.pctShow)}</span></td>
+                  <td className="num"><span className={`tag ${claseSemaforo(c.pctShow, OBJETIVOS.asistencia)}`}>{pct(c.pctShow)}</span></td>
                   <td className="num">{num(c.cierres)}</td>
-                  <td className="num"><span className={`tag ${claseSemaforo(c.pctCierreSinNoShow, 0.3)}`}>{pct(c.pctCierreSinNoShow)}</span></td>
-                  <td className="num"><span className={`tag ${claseSemaforo(c.pctCierre, 0.3)}`}>{pct(c.pctCierre)}</span></td>
+                  <td className="num"><span className={`tag ${claseSemaforo(c.pctCierreSinNoShow, OBJETIVOS.cierre)}`}>{pct(c.pctCierreSinNoShow)}</span></td>
+                  <td className="num"><span className={`tag ${claseSemaforo(c.pctCierre, OBJETIVOS.cierre)}`}>{pct(c.pctCierre)}</span></td>
                   <td className="num ok">{usd(c.cash)}</td>
                   <td className="num">{c.comision === null ? <span className="text-text-disabled">—</span> : <span className={c.comision > 0 ? "bad" : "text-text-muted"}>{usd(c.comision)}</span>}</td>
                   <td className="num text-text-disabled">

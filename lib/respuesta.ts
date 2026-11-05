@@ -1,7 +1,8 @@
+import { OBJETIVOS } from './cliente';
 import type { Filtros, RespuestaSemanal, SetterDiario } from './types';
 
 /** Objetivo de velocidad de respuesta (minutos, mediana del día). Meta marca "muy responsivo" debajo de 15. */
-export const OBJETIVO_RESPUESTA_MIN = 15;
+export const OBJETIVO_RESPUESTA_MIN = OBJETIVOS.respuestaMin;
 
 /** Verde si cumple el objetivo, amarillo hasta el doble, rojo más arriba. */
 export const colorRespuesta = (min: number | null) => (min === null ? '' : min <= OBJETIVO_RESPUESTA_MIN ? 'ok' : min <= OBJETIVO_RESPUESTA_MIN * 2 ? 'warn' : 'bad');

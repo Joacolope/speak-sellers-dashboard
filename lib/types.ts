@@ -1,5 +1,7 @@
+import { CLIENTE } from './cliente';
 export type Source = 'ghl' | 'meta' | 'ig' | 'manual' | 'agente' | 'migracion';
-export type Closer = 'Marcos' | 'Andrea' | 'Gonzalo';
+/** Closer: el id corto de cliente.json (ej.: 'Marcos'). Los válidos están en CLOSERS. */
+export type Closer = string;
 export type Fuente = 'Instagram' | 'WhatsApp' | 'Webinar' | 'YouTube' | 'Referido' | 'Otro';
 export type Asistio = 'Asistió' | 'No show' | 'Canceló' | 'Pendiente';
 export type Compro = 'Si' | 'No' | 'Reserva';
@@ -8,16 +10,14 @@ export type MetodoPago = 'PIF' | 'Cuotas' | 'Reserva';
 export type PlataformaPago = 'Stripe' | 'Wise' | 'Cripto' | 'Efectivo' | 'Mercado Pago' | 'DólarApp' | 'Otro';
 export const PLATAFORMAS: PlataformaPago[] = ['Stripe', 'Wise', 'Cripto', 'Efectivo', 'Mercado Pago', 'DólarApp', 'Otro'];
 
-export const CLOSERS: Closer[] = ['Marcos', 'Andrea', 'Gonzalo'];
+export const CLOSERS: Closer[] = CLIENTE.closers.map((c) => c.id);
 /** Quién toma llamadas hoy. Los inactivos conservan su historial pero no se les asignan agendas nuevas. */
-export const CLOSER_ACTIVO: Record<Closer, boolean> = { Marcos: true, Andrea: false, Gonzalo: true };
+export const CLOSER_ACTIVO: Record<Closer, boolean> = Object.fromEntries(CLIENTE.closers.map((c) => [c.id, c.activo !== false]));
 export const CLOSERS_ACTIVOS: Closer[] = CLOSERS.filter((c) => CLOSER_ACTIVO[c]);
 /** Nombre completo para mostrar */
-export const NOMBRE_CLOSER: Record<Closer, string> = {
-  Marcos: 'Marcos Lanci',
-  Andrea: 'Andrea Flores',
-  Gonzalo: 'Gonzalo Guimil',
-};
+export const NOMBRE_CLOSER: Record<Closer, string> = Object.fromEntries(CLIENTE.closers.map((c) => [c.id, c.nombre]));
+/** A quién se le asigna una agenda cuando GHL no dice de quién es: el primero de la lista. */
+export const CLOSER_POR_DEFECTO: Closer = CLOSERS[0];
 
 /** Funnel de origen del lead. Orgánico incluye Follow Me Ads (anuncios que llevan al perfil).
     Valores viejos ('Follow Me Ads', 'Lead magnet') o sin clasificar cuentan como Orgánico. */

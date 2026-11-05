@@ -4,10 +4,11 @@ import { enviarMail } from './email';
 import { asuntoResumen, datosResumen, htmlResumen } from './resumen';
 import { hoyAR } from './format';
 import type { RawBundle } from './types';
+import { ids } from './cliente';
 
 const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 
-export const appUrl = () => process.env.APP_URL || 'https://speak-sellers-dashboard.vercel.app';
+export const appUrl = () => ids.appUrl();
 
 /** RESUMEN_EMAILS si está; si no, los admin activos de la tabla usuarios. */
 export async function destinatarios(): Promise<string[]> {

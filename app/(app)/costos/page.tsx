@@ -156,7 +156,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
               <div className="text-[14px] font-medium">Cambiar % de comisión</div>
               <input type="hidden" name="mes" value={f.mes} />
               <Campo label="Closer">
-                <select className="input" name="closer" defaultValue="Andrea">{CLOSERS.map((c) => <option key={c} value={c}>{NOMBRE_CLOSER[c]}</option>)}</select>
+                <select className="input" name="closer" defaultValue={CLOSERS[1] ?? CLOSERS[0]}>{CLOSERS.map((c) => <option key={c} value={c}>{NOMBRE_CLOSER[c]}</option>)}</select>
               </Campo>
               <div className="grid grid-cols-2 gap-3">
                 <Campo label="% sobre lo cobrado"><input className="input" name="porcentaje" type="number" step="0.5" min="0" max="100" required /></Campo>

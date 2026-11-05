@@ -1,3 +1,4 @@
+import { ids } from '../cliente';
 /**
  * ID de la cuenta de Instagram del negocio para la Graph API (empieza con 1784…).
  * Se saca de la página de Facebook conectada (META_PAGE_ID), así no hay que buscarlo a mano.
@@ -8,7 +9,7 @@ let cache: string | null = null;
 export async function cuentaInstagram(): Promise<string> {
   if (cache) return cache;
   const token = process.env.META_TOKEN;
-  const page = process.env.META_PAGE_ID;
+  const page = ids.metaPagina();
   if (token && page) {
     const url = new URL(`https://graph.facebook.com/v21.0/${page}`);
     url.searchParams.set('fields', 'instagram_business_account');

@@ -1,17 +1,18 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Inter_Tight } from 'next/font/google';
 import './globals.css';
+import { CLIENTE, TITULO, ids } from '@/lib/cliente';
 
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-inter-next', display: 'swap' });
 // Inter Tight 400 = sustituto de PolySans indicado en DESIGN_dashboards.md
 const display = Inter_Tight({ subsets: ['latin'], weight: ['400'], variable: '--font-display-next', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'Speak Sellers Dashboard',
-  description: 'Métricas comerciales de Speak Sellers',
+  title: TITULO,
+  description: `Métricas comerciales de ${CLIENTE.nombre}`,
   robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
-  // Google Search Console (etiqueta HTML). Código público; se puede pisar con GOOGLE_SITE_VERIFICATION.
-  verification: { google: process.env.GOOGLE_SITE_VERIFICATION || '5tjimK1VIxrBVCJ8_TyzgBsYMfDcqEK3U4fAcexjvAM' },
+  // Google Search Console (etiqueta HTML). Código público: cliente.json → googleSiteVerification o GOOGLE_SITE_VERIFICATION.
+  ...(ids.googleVerificacion() ? { verification: { google: ids.googleVerificacion() } } : {}),
 };
 
 export const viewport: Viewport = {

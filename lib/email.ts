@@ -1,4 +1,5 @@
 import 'server-only';
+import { ids } from './cliente';
 
 /** Manda un mail con Resend (https://resend.com). Devuelve el id del envío. */
 export async function enviarMail({ para, asunto, html }: { para: string[]; asunto: string; html: string }): Promise<string> {
@@ -8,7 +9,7 @@ export async function enviarMail({ para, asunto, html }: { para: string[]; asunt
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: process.env.RESUMEN_DESDE || 'Speak Sellers <onboarding@resend.dev>', to: para, subject: asunto, html }),
+    body: JSON.stringify({ from: ids.remitenteResumen(), to: para, subject: asunto, html }),
     cache: 'no-store',
   });
   const cuerpo = (await res.json().catch(() => ({}))) as { id?: string; message?: string };

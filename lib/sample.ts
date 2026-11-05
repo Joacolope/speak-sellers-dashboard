@@ -9,7 +9,8 @@ import type {
   RawBundle, SetterDiario, AjusteMensual, Closer, Fuente, Asistio, Costo,
 } from './types';
 import { diasDelMes, sumarDias } from './format';
-import type { Funnel } from './types';
+import { CLOSERS, type Funnel } from './types';
+import { PRODUCTO } from './cliente';
 
 /** UTMs de ejemplo según la fuente (ilustrativos). */
 function utmsDe(fuente: Fuente, r: number) {
@@ -35,7 +36,11 @@ function rng(seed: number) {
   };
 }
 
-const closers: Closer[] = ['Marcos', 'Andrea', 'Gonzalo'];
+// Los datos de ejemplo usan los closers de cliente.json (los tres primeros; si hay menos, se repiten)
+const C0: Closer = CLOSERS[0];
+const C1: Closer = CLOSERS[1] ?? CLOSERS[0];
+const C2: Closer = CLOSERS[2] ?? CLOSERS[1] ?? CLOSERS[0];
+const closers: Closer[] = [C0, C1, C2];
 const fuentes: Fuente[] = ['Instagram', 'Instagram', 'Instagram', 'Webinar', 'Webinar', 'WhatsApp', 'YouTube'];
 const paises = ['Argentina', 'Argentina', 'Argentina', 'México', 'Chile', 'Colombia', 'España', 'Uruguay'];
 
@@ -59,29 +64,29 @@ interface Semilla {
 
 // Casos nombrados en la spec (sección 10) + ventas de ejemplo para llegar a ≈ 10.690 USD
 const SEMILLAS: Semilla[] = [
-  { nombre: 'Elías Sánchez', dia: 9, closer: 'Marcos', asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1200, revenue: 1200, metodo: 'PIF', fuente: 'Instagram', cualif: 8, confirmada: true, estado: 'showed' },
-  { nombre: 'Betina', dia: 15, closer: 'Andrea', asistio: 'Asistió', oferta: true, compro: 'Si', cash: 670, revenue: 670, metodo: 'Cuotas', fuente: 'Webinar', cualif: 7, confirmada: true, estado: 'showed', notas: 'Quedan 1.000 USD para mediados de noviembre' },
-  { nombre: 'Martinetti', dia: 7, closer: 'Marcos', asistio: 'Asistió', oferta: true, compro: 'No', cash: 0, revenue: 0, fuente: 'Instagram', cualif: 6, confirmada: true, estado: 'showed', notas: 'Reembolsado' },
-  { nombre: 'Murakami', dia: 8, closer: 'Andrea', asistio: 'Asistió', oferta: true, compro: 'No', cash: 0, revenue: 0, fuente: 'Webinar', cualif: 5, confirmada: true, estado: 'showed', notas: 'Reembolsado' },
-  { nombre: 'Axel', dia: 16, closer: 'Gonzalo', asistio: 'No show', fuente: 'Instagram', confirmada: false, estado: 'noshow' },
-  { nombre: 'Martín', dia: 20, closer: 'Marcos', asistio: 'Asistió', oferta: true, compro: 'Si', fuente: 'Instagram', cualif: 7, confirmada: true, estado: 'showed', notas: 'Pagó en ARS (~600 USD), falta cotización' },
-  { nombre: 'Damián', dia: 21, closer: 'Andrea', asistio: 'Asistió', oferta: true, compro: 'Si', fuente: 'Webinar', cualif: 6, confirmada: true, estado: 'showed', notas: 'Pagó en ARS (~600 USD), falta cotización' },
-  { nombre: 'Cristian', dia: 22, closer: 'Marcos', asistio: 'Asistió', oferta: true, compro: 'Reserva', cash: 300, revenue: 300, metodo: 'Reserva', fuente: 'Instagram', cualif: 7, confirmada: true, estado: 'showed', notas: 'Reserva; pagó ~67 USD en ARS además' },
-  { nombre: 'Luis Paulino', dia: 14, closer: 'Gonzalo', asistio: 'Pendiente', fuente: 'Instagram', confirmada: true, estado: 'confirmed', notas: 'Asistencia sin marcar' },
-  { nombre: 'Gino', dia: 26, closer: 'Marcos', asistio: 'Pendiente', fuente: 'Instagram', confirmada: true, estado: 'confirmed' },
-  { nombre: 'Gianluca', dia: 26, closer: 'Andrea', asistio: 'Pendiente', fuente: 'Webinar', confirmada: true, estado: 'confirmed' },
-  { nombre: 'Tiago', dia: 26, closer: 'Marcos', asistio: 'Pendiente', fuente: 'Instagram', confirmada: false, estado: 'confirmed' },
-  { nombre: 'Daniela', dia: 29, closer: 'Andrea', asistio: 'Pendiente', fuente: 'Instagram', confirmada: true, estado: 'confirmed', reprog: '2026-10-26T18:00:00Z', notas: 'Reprogramada del 26/10 al 29/10' },
-  { nombre: 'Elbio', dia: 26, closer: 'Gonzalo', asistio: 'Pendiente', fuente: 'WhatsApp', confirmada: true, estado: 'confirmed' },
-  { nombre: 'Tomás', dia: 29, closer: 'Marcos', asistio: 'Pendiente', fuente: 'Instagram', confirmada: false, estado: 'confirmed', reprog: '2026-10-24T15:00:00Z', notas: 'Reprogramada al 29/10' },
+  { nombre: 'Elías Sánchez', dia: 9, closer: C0, asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1200, revenue: 1200, metodo: 'PIF', fuente: 'Instagram', cualif: 8, confirmada: true, estado: 'showed' },
+  { nombre: 'Betina', dia: 15, closer: C1, asistio: 'Asistió', oferta: true, compro: 'Si', cash: 670, revenue: 670, metodo: 'Cuotas', fuente: 'Webinar', cualif: 7, confirmada: true, estado: 'showed', notas: 'Quedan 1.000 USD para mediados de noviembre' },
+  { nombre: 'Martinetti', dia: 7, closer: C0, asistio: 'Asistió', oferta: true, compro: 'No', cash: 0, revenue: 0, fuente: 'Instagram', cualif: 6, confirmada: true, estado: 'showed', notas: 'Reembolsado' },
+  { nombre: 'Murakami', dia: 8, closer: C1, asistio: 'Asistió', oferta: true, compro: 'No', cash: 0, revenue: 0, fuente: 'Webinar', cualif: 5, confirmada: true, estado: 'showed', notas: 'Reembolsado' },
+  { nombre: 'Axel', dia: 16, closer: C2, asistio: 'No show', fuente: 'Instagram', confirmada: false, estado: 'noshow' },
+  { nombre: 'Martín', dia: 20, closer: C0, asistio: 'Asistió', oferta: true, compro: 'Si', fuente: 'Instagram', cualif: 7, confirmada: true, estado: 'showed', notas: 'Pagó en ARS (~600 USD), falta cotización' },
+  { nombre: 'Damián', dia: 21, closer: C1, asistio: 'Asistió', oferta: true, compro: 'Si', fuente: 'Webinar', cualif: 6, confirmada: true, estado: 'showed', notas: 'Pagó en ARS (~600 USD), falta cotización' },
+  { nombre: 'Cristian', dia: 22, closer: C0, asistio: 'Asistió', oferta: true, compro: 'Reserva', cash: 300, revenue: 300, metodo: 'Reserva', fuente: 'Instagram', cualif: 7, confirmada: true, estado: 'showed', notas: 'Reserva; pagó ~67 USD en ARS además' },
+  { nombre: 'Luis Paulino', dia: 14, closer: C2, asistio: 'Pendiente', fuente: 'Instagram', confirmada: true, estado: 'confirmed', notas: 'Asistencia sin marcar' },
+  { nombre: 'Gino', dia: 26, closer: C0, asistio: 'Pendiente', fuente: 'Instagram', confirmada: true, estado: 'confirmed' },
+  { nombre: 'Gianluca', dia: 26, closer: C1, asistio: 'Pendiente', fuente: 'Webinar', confirmada: true, estado: 'confirmed' },
+  { nombre: 'Tiago', dia: 26, closer: C0, asistio: 'Pendiente', fuente: 'Instagram', confirmada: false, estado: 'confirmed' },
+  { nombre: 'Daniela', dia: 29, closer: C1, asistio: 'Pendiente', fuente: 'Instagram', confirmada: true, estado: 'confirmed', reprog: '2026-10-26T18:00:00Z', notas: 'Reprogramada del 26/10 al 29/10' },
+  { nombre: 'Elbio', dia: 26, closer: C2, asistio: 'Pendiente', fuente: 'WhatsApp', confirmada: true, estado: 'confirmed' },
+  { nombre: 'Tomás', dia: 29, closer: C0, asistio: 'Pendiente', fuente: 'Instagram', confirmada: false, estado: 'confirmed', reprog: '2026-10-24T15:00:00Z', notas: 'Reprogramada al 29/10' },
   // Ventas de ejemplo para completar el revenue de octubre
-  { nombre: 'Lead ejemplo A', dia: 2, closer: 'Marcos', asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1500, revenue: 1500, metodo: 'PIF', fuente: 'Instagram', cualif: 9, confirmada: true, estado: 'showed' },
-  { nombre: 'Lead ejemplo B', dia: 3, closer: 'Andrea', asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1500, revenue: 1500, metodo: 'PIF', fuente: 'Webinar', cualif: 8, confirmada: true, estado: 'showed' },
-  { nombre: 'Lead ejemplo C', dia: 6, closer: 'Marcos', asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1200, revenue: 1200, metodo: 'PIF', fuente: 'Instagram', cualif: 8, confirmada: true, estado: 'showed' },
-  { nombre: 'Lead ejemplo D', dia: 10, closer: 'Gonzalo', asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1200, revenue: 1200, metodo: 'Cuotas', fuente: 'Webinar', cualif: 7, confirmada: true, estado: 'showed' },
-  { nombre: 'Lead ejemplo E', dia: 13, closer: 'Andrea', asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1200, revenue: 1200, metodo: 'PIF', fuente: 'Instagram', cualif: 8, confirmada: true, estado: 'showed' },
-  { nombre: 'Lead ejemplo F', dia: 17, closer: 'Marcos', asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1000, revenue: 1000, metodo: 'Cuotas', fuente: 'YouTube', cualif: 6, confirmada: true, estado: 'showed' },
-  { nombre: 'Lead ejemplo G', dia: 23, closer: 'Andrea', asistio: 'Asistió', oferta: true, compro: 'Si', cash: 920, revenue: 920, metodo: 'Cuotas', fuente: 'Webinar', cualif: 7, confirmada: true, estado: 'showed' },
+  { nombre: 'Lead ejemplo A', dia: 2, closer: C0, asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1500, revenue: 1500, metodo: 'PIF', fuente: 'Instagram', cualif: 9, confirmada: true, estado: 'showed' },
+  { nombre: 'Lead ejemplo B', dia: 3, closer: C1, asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1500, revenue: 1500, metodo: 'PIF', fuente: 'Webinar', cualif: 8, confirmada: true, estado: 'showed' },
+  { nombre: 'Lead ejemplo C', dia: 6, closer: C0, asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1200, revenue: 1200, metodo: 'PIF', fuente: 'Instagram', cualif: 8, confirmada: true, estado: 'showed' },
+  { nombre: 'Lead ejemplo D', dia: 10, closer: C2, asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1200, revenue: 1200, metodo: 'Cuotas', fuente: 'Webinar', cualif: 7, confirmada: true, estado: 'showed' },
+  { nombre: 'Lead ejemplo E', dia: 13, closer: C1, asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1200, revenue: 1200, metodo: 'PIF', fuente: 'Instagram', cualif: 8, confirmada: true, estado: 'showed' },
+  { nombre: 'Lead ejemplo F', dia: 17, closer: C0, asistio: 'Asistió', oferta: true, compro: 'Si', cash: 1000, revenue: 1000, metodo: 'Cuotas', fuente: 'YouTube', cualif: 6, confirmada: true, estado: 'showed' },
+  { nombre: 'Lead ejemplo G', dia: 23, closer: C1, asistio: 'Asistió', oferta: true, compro: 'Si', cash: 920, revenue: 920, metodo: 'Cuotas', fuente: 'Webinar', cualif: 7, confirmada: true, estado: 'showed' },
 ];
 
 function construirAgendasOctubre(): { leads: Lead[]; agendas: Agenda[] } {
@@ -121,7 +126,7 @@ function construirAgendasOctubre(): { leads: Lead[]; agendas: Agenda[] } {
       asistio: s.asistio,
       oferta_hecha: s.oferta ?? false,
       compro: s.compro ?? (s.asistio === 'Asistió' && s.oferta ? 'No' : null),
-      producto: s.compro && s.compro !== 'No' ? 'Speak Sellers' : null,
+      producto: s.compro && s.compro !== 'No' ? PRODUCTO : null,
       cash_collected: s.cash ?? null,
       revenue: s.revenue ?? null,
       metodo_pago: s.metodo ?? null,
@@ -208,12 +213,12 @@ function construirCobranzas(agendas: Agenda[]): Cobranza[] {
     }
   }
   // Reembolsos (sección 10): Martinetti y Murakami
-  out.push({ id: 'cob-ref-1', agenda_id: 'ag-oct-2', fecha_cobro: '2026-10-07', monto_cobrado: 1500, pendiente: 0, cuotas_restantes: 0, closer: 'Marcos', es_reembolso: false, source: 'migracion', notas: 'Pago original' });
-  out.push({ id: 'cob-ref-2', agenda_id: 'ag-oct-2', fecha_cobro: '2026-10-18', monto_cobrado: -1500, pendiente: 0, cuotas_restantes: 0, closer: 'Marcos', es_reembolso: true, source: 'manual', notas: 'Reembolso Martinetti' });
-  out.push({ id: 'cob-ref-3', agenda_id: 'ag-oct-3', fecha_cobro: '2026-10-08', monto_cobrado: 1200, pendiente: 0, cuotas_restantes: 0, closer: 'Andrea', es_reembolso: false, source: 'migracion', notas: 'Pago original' });
-  out.push({ id: 'cob-ref-4', agenda_id: 'ag-oct-3', fecha_cobro: '2026-10-19', monto_cobrado: -1200, pendiente: 0, cuotas_restantes: 0, closer: 'Andrea', es_reembolso: true, source: 'manual', notas: 'Reembolso Murakami' });
+  out.push({ id: 'cob-ref-1', agenda_id: 'ag-oct-2', fecha_cobro: '2026-10-07', monto_cobrado: 1500, pendiente: 0, cuotas_restantes: 0, closer: C0, es_reembolso: false, source: 'migracion', notas: 'Pago original' });
+  out.push({ id: 'cob-ref-2', agenda_id: 'ag-oct-2', fecha_cobro: '2026-10-18', monto_cobrado: -1500, pendiente: 0, cuotas_restantes: 0, closer: C0, es_reembolso: true, source: 'manual', notas: 'Reembolso Martinetti' });
+  out.push({ id: 'cob-ref-3', agenda_id: 'ag-oct-3', fecha_cobro: '2026-10-08', monto_cobrado: 1200, pendiente: 0, cuotas_restantes: 0, closer: C1, es_reembolso: false, source: 'migracion', notas: 'Pago original' });
+  out.push({ id: 'cob-ref-4', agenda_id: 'ag-oct-3', fecha_cobro: '2026-10-19', monto_cobrado: -1200, pendiente: 0, cuotas_restantes: 0, closer: C1, es_reembolso: true, source: 'manual', notas: 'Reembolso Murakami' });
   // Old cash: cobranza de una venta de septiembre que pagó en octubre
-  out.push({ id: 'cob-old-1', agenda_id: 'ag-sep-3', fecha_cobro: '2026-10-05', monto_cobrado: 600, pendiente: 0, cuotas_restantes: 0, closer: 'Marcos', es_reembolso: false, source: 'migracion', notas: 'Segunda cuota (venta de septiembre)' });
+  out.push({ id: 'cob-old-1', agenda_id: 'ag-sep-3', fecha_cobro: '2026-10-05', monto_cobrado: 600, pendiente: 0, cuotas_restantes: 0, closer: C0, es_reembolso: false, source: 'migracion', notas: 'Segunda cuota (venta de septiembre)' });
   return out.map((c, i) => ({ ...c, plataforma: PLAT_EJEMPLO[i % PLAT_EJEMPLO.length] }));
 }
 
@@ -411,11 +416,11 @@ export function sampleBundle(): RawBundle {
     organico: org.diario,
     piezas: org.piezas,
     ajustes,
-    // % de ejemplo (ilustrativos): Marcos es el dueño, no cobra comisión
+    // % de ejemplo (ilustrativos): el primer closer es el dueño, no cobra comisión
     comisiones: [
-      { id: 'com-1', closer: 'Marcos', porcentaje: 0, fecha_alta: '2026-08-01', source: 'manual' },
-      { id: 'com-2', closer: 'Andrea', porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
-      { id: 'com-3', closer: 'Gonzalo', porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'com-1', closer: C0, porcentaje: 0, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'com-2', closer: C1, porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
+      { id: 'com-3', closer: C2, porcentaje: 10, fecha_alta: '2026-08-01', source: 'manual' },
     ],
     // Webinar del 4/10: 975 registrados es real (spec); asistentes y el del 6/9 son de ejemplo
     webinars: [

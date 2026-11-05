@@ -1,0 +1,35 @@
+{
+  "$schema": "./docs/cliente.schema.json",
+
+  "nombre": "Speak Sellers",
+  "empresa": "LANZA SELLING LLC",
+  "producto": "Speak Sellers",
+  "url": "https://speak-sellers-dashboard.vercel.app",
+  "contacto": "joaquin@salesspawn.com",
+  "zonaHoraria": "America/Argentina/Buenos_Aires",
+  "locale": "es-AR",
+  "googleSiteVerification": "5tjimK1VIxrBVCJ8_TyzgBsYMfDcqEK3U4fAcexjvAM",
+
+  "closers": [
+    { "id": "Marcos", "nombre": "Marcos Lanci", "activo": true, "comisionInicial": 0, "ghlUserId": "i8DcrP6UD17xI5U5mHCx" },
+    { "id": "Andrea", "nombre": "Andrea Flores", "activo": false, "comisionInicial": 10, "ghlUserId": "FfGvrQ15X7p3f52WBFSu" },
+    { "id": "Gonzalo", "nombre": "Gonzalo Guimil", "activo": true, "comisionInicial": 10, "ghlCalendarId": "f6KLn8x47VVmqcTAdICC" }
+  ],
+
+  "objetivos": { "asistencia": 0.6, "cierre": 0.3, "respuestaMin": 15 },
+
+  "ghl": {
+    "locationId": "qcLzgJ0LSGXkHKb4pkHn",
+    "calendarios": ["tAl7IAvVZiFBju2gkkMG", "f6KLn8x47VVmqcTAdICC"],
+    "pipelineId": "8tPjeFZ5cZYG40hQRQCM"
+  },
+
+  "meta": {
+    "cuentaPublicitaria": "act_1431751731204204",
+    "paginaId": "1696198744016068",
+    "instagram": "marcoslanci",
+    "campanas": { "follow_me": ["follow me"], "webinar": ["webinar"] }
+  },
+
+  "resumen": { "remitente": "Speak Sellers <onboarding@resend.dev>" }
+}

@@ -1,4 +1,4 @@
--- Speak Sellers Dashboard · schema de Supabase
+-- Dashboard de ventas · schema de Supabase (los {{PLACEHOLDERS}} los completa scripts/db-setup.mjs desde cliente.json)
 -- Se aplica solo en cada deploy (scripts/db-setup.mjs). También se puede pegar
 -- en el SQL Editor. Idempotente: correrlo de nuevo no rompe ni borra nada.
 --
@@ -16,9 +16,6 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 do $$ begin
   create type fuente_t as enum ('Instagram','WhatsApp','Webinar','YouTube','Referido','Otro');
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create type closer_t as enum ('Marcos','Andrea','Gonzalo');
 exception when duplicate_object then null; end $$;
 do $$ begin
   create type asistio_t as enum ('Asistió','No show','Canceló','Pendiente');
@@ -75,7 +72,7 @@ create table if not exists agendas (
   notas text,
   ghl_event_id text unique,
   lead_id uuid not null references leads(id) on delete cascade,
-  closer closer_t not null,
+  closer text not null,  -- id corto del closer (cliente.json)
   fecha_llamada timestamptz not null,
   fecha_agendada timestamptz,
   estado_ghl text,
@@ -104,7 +101,7 @@ create table if not exists cobranzas (
   pendiente numeric(12,2),
   cuotas_restantes int,
   proximo_vencimiento date,
-  closer closer_t not null,
+  closer text not null,  -- id corto del closer (cliente.json)
   es_reembolso boolean not null default false
 );
 create index if not exists cobranzas_fecha_idx on cobranzas (fecha_cobro);
@@ -231,8 +228,8 @@ create table if not exists ajustes_mensuales (
   notas text,
   mes date not null unique,
   costo_software numeric(12,2),
-  objetivo_asistencia numeric(5,4) default 0.60,
-  objetivo_cierre_oferta numeric(5,4) default 0.30
+  objetivo_asistencia numeric(5,4) default {{OBJ_ASISTENCIA}},
+  objetivo_cierre_oferta numeric(5,4) default {{OBJ_CIERRE}}
 );
 -- Metas del mes (para la barra de avance y la proyección).
 alter table ajustes_mensuales add column if not exists meta_revenue numeric(12,2) check (meta_revenue >= 0);
@@ -249,7 +246,7 @@ create table if not exists comisiones (
   updated_at timestamptz not null default now(),
   source source_t not null default 'manual',
   notas text,
-  closer closer_t not null,
+  closer text not null,  -- id corto del closer (cliente.json)
   porcentaje numeric(5,2) not null check (porcentaje >= 0 and porcentaje <= 100),
   fecha_alta date not null default current_date,
   fecha_baja date,
@@ -273,12 +270,8 @@ create table if not exists comisiones_plataformas (
   check (fecha_baja is null or fecha_baja >= fecha_alta)
 );
 
--- Comisiones iniciales (se cargan una sola vez, si la tabla está vacía).
--- Marcos es el dueño: 0 %. Andrea y Gonzalo: 10 % sobre lo cobrado. Se cambian desde Costos.
-insert into comisiones (closer, porcentaje, fecha_alta, notas, source)
-select v.closer::closer_t, v.pct, date '2026-08-01', 'Carga inicial', 'manual'
-from (values ('Marcos', 0), ('Andrea', 10), ('Gonzalo', 10)) as v(closer, pct)
-where not exists (select 1 from comisiones);
+-- Comisiones iniciales: las carga scripts/db-setup.mjs desde cliente.json (comisionInicial de cada closer),
+-- una sola vez, si la tabla está vacía. Después se cambian desde Costos.
 
 -- Webinars: registrados y asistentes de cada uno (para el embudo de Webinar).
 create table if not exists webinars (
@@ -296,9 +289,6 @@ create table if not exists webinars (
 -- Registrados que cumplen el perfil (respuestas del formulario de registro).
 alter table webinars add column if not exists registrados_calificados int check (registrados_calificados >= 0);
 
--- Dato real conocido: webinar del 4/10 con 975 registrados (asistentes sin cargar).
-insert into webinars (fecha, nombre, registrados, source) values ('2026-10-04', 'Webinar 4/10', 975, 'migracion')
-on conflict (fecha) do nothing;
 
 -- Quién puede entrar. El login es con Google; si el email no está acá (o está
 -- inactivo) no ve nada. admin y editor cargan datos; lector solo mira.
@@ -312,14 +302,7 @@ create table if not exists usuarios (
   ultimo_ingreso timestamptz
 );
 
--- Usuarios autorizados (se agregan si no están; no se pisa un rol cambiado a mano).
-insert into usuarios (email, nombre, rol) values
-  ('joacolope609@gmail.com', 'Joaquín López', 'admin'),
-  ('joaquin@salesspawn.com', 'Joaquín López', 'admin'),
-  ('marcoslanciventas@gmail.com', 'Marcos Lanci', 'editor')
-on conflict (email) do nothing;
--- Marcos pasó de lector a editor (puede cargar datos)
-update usuarios set rol = 'editor' where email = 'marcoslanciventas@gmail.com' and rol = 'lector';
+-- Los usuarios autorizados se cargan desde ADMIN_EMAILS / EDITOR_EMAILS / LECTOR_EMAILS (scripts/db-setup.mjs).
 
 -- Software y costos fijos. Cuenta desde fecha_alta hasta fecha_baja (incluida).
 -- Anual = monto/12 por mes. Único = entero en el mes de fecha_alta.
@@ -351,14 +334,7 @@ create table if not exists log_agente (
   pendientes jsonb
 );
 
--- Costos reales confirmados por Joaco (se cargan una sola vez; después se editan en Costos).
-insert into costos (nombre, categoria, frecuencia, monto, fecha_alta, notas, source)
-select v.nombre, 'CRM y ventas', 'Mensual', v.monto, date '2026-10-01', v.notas, 'manual'
-from (values
-  ('GoHighLevel', 97::numeric, 'Plan base'),
-  ('GoHighLevel · integración WhatsApp', 30::numeric, 'Add-on de WhatsApp')
-) as v(nombre, monto, notas)
-where not exists (select 1 from costos c where c.nombre = v.nombre);
+-- Los costos (software, herramientas) se cargan desde la pantalla Costos.
 
 -- Tarifas de plataformas de cobro (se cargan una sola vez, si la tabla está vacía).
 -- Por ahora no se paga comisión en ninguna plataforma: todo arranca en 0 y se cambia desde Costos
@@ -397,6 +373,22 @@ alter table agendas add column if not exists editado_por text;
 alter table cobranzas add column if not exists editado_por text;
 alter table costos add column if not exists editado_por text;
 alter table ajustes_mensuales add column if not exists editado_por text;
+
+-- ───────────────────────── Closers configurables ─────────────────────────
+-- Antes el closer era un enum fijo (closer_t). Ahora es texto y los válidos salen de cliente.json.
+-- Bases creadas con el enum se convierten acá una sola vez (las vistas se recrean más abajo).
+do $$ begin
+  if exists (select 1 from pg_type where typname = 'closer_t') then
+    drop view if exists v_closer_mes, v_metricas_mes, v_funnel_mes, v_top_organico_mes, v_cobranzas_pendientes, v_costos_mes cascade;
+    alter table agendas alter column closer type text using closer::text;
+    alter table cobranzas alter column closer type text using closer::text;
+    alter table comisiones alter column closer type text using closer::text;
+    drop type closer_t;
+  end if;
+end $$;
+-- Los objetivos por defecto de ajustes_mensuales siguen a cliente.json si cambian.
+alter table ajustes_mensuales alter column objetivo_asistencia set default {{OBJ_ASISTENCIA}};
+alter table ajustes_mensuales alter column objetivo_cierre_oferta set default {{OBJ_CIERRE}};
 
 -- ───────────────────────── updated_at automático ─────────────────────────
 create or replace function set_updated_at() returns trigger language plpgsql as $$
@@ -470,7 +462,7 @@ from generate_series(date_trunc('month', now()) - interval '24 months', date_tru
 
 create or replace view v_funnel_mes with (security_invoker = true) as
 with ag as (
-  select date_trunc('month', fecha_llamada at time zone 'America/Argentina/Buenos_Aires')::date as mes,
+  select date_trunc('month', fecha_llamada at time zone '{{ZONA_HORARIA}}')::date as mes,
          count(*) as agendas,
          count(*) filter (where asistio = 'Asistió') as asistencias,
          count(*) filter (where oferta_hecha) as ofertas,
@@ -496,7 +488,7 @@ from ag left join conv using (mes) left join rf using (mes);
 create or replace view v_metricas_mes with (security_invoker = true) as
 with f as (select * from v_funnel_mes),
 ag as (
-  select date_trunc('month', fecha_llamada at time zone 'America/Argentina/Buenos_Aires')::date as mes,
+  select date_trunc('month', fecha_llamada at time zone '{{ZONA_HORARIA}}')::date as mes,
          count(*) filter (where asistio = 'No show') as no_show,
          count(*) filter (where compro = 'Reserva') as reservas
   from agendas group by 1
@@ -516,8 +508,8 @@ aj as (
 ),
 cash as (
   select date_trunc('month', c.fecha_cobro)::date as mes,
-         sum(c.monto_cobrado) filter (where not c.es_reembolso and date_trunc('month', a.fecha_llamada at time zone 'America/Argentina/Buenos_Aires')::date = date_trunc('month', c.fecha_cobro)::date) as new_cash,
-         sum(c.monto_cobrado) filter (where not c.es_reembolso and date_trunc('month', a.fecha_llamada at time zone 'America/Argentina/Buenos_Aires')::date <> date_trunc('month', c.fecha_cobro)::date) as old_cash
+         sum(c.monto_cobrado) filter (where not c.es_reembolso and date_trunc('month', a.fecha_llamada at time zone '{{ZONA_HORARIA}}')::date = date_trunc('month', c.fecha_cobro)::date) as new_cash,
+         sum(c.monto_cobrado) filter (where not c.es_reembolso and date_trunc('month', a.fecha_llamada at time zone '{{ZONA_HORARIA}}')::date <> date_trunc('month', c.fecha_cobro)::date) as old_cash
   from cobranzas c join agendas a on a.id = c.agenda_id group by 1
 )
 select f.mes,
@@ -539,7 +531,7 @@ select f.mes,
 from f left join ag using (mes) left join st using (mes) left join ads using (mes) left join aj using (mes) left join cash using (mes);
 
 create or replace view v_closer_mes with (security_invoker = true) as
-select date_trunc('month', fecha_llamada at time zone 'America/Argentina/Buenos_Aires')::date as mes, closer,
+select date_trunc('month', fecha_llamada at time zone '{{ZONA_HORARIA}}')::date as mes, closer,
        count(*) as agendas,
        count(*) filter (where asistio = 'Asistió') as asistencias,
        case when count(*) > 0 then (count(*) filter (where asistio = 'Asistió'))::numeric / count(*) end as pct_show,

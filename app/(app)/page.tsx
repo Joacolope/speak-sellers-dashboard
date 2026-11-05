@@ -1,3 +1,4 @@
+import { OBJETIVOS } from '@/lib/cliente';
 import { Suspense } from 'react';
 import Filtros from '@/components/Filtros';
 import StatCard, { Iconos } from '@/components/StatCard';
@@ -129,9 +130,9 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <StatCard contra={contra} label="Agendas" valor={num(actual.agendas)} variacion={variacion(actual.agendas, anterior.agendas)} icono={Iconos.agendas} color="blue" serie={{ data: sk.agendas, labels: sk.labels, formato: 'num' }} />
       </section>
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <StatCard contra={contra} label="% Asistencia" valor={pct(actual.pct_asistencia)} variacion={variacion(actual.pct_asistencia, anterior.pct_asistencia)} icono={Iconos.asistencia} color={semaforo(actual.pct_asistencia, 0.6)} serie={{ data: sk.asistencia, labels: sk.labels, formato: 'pct' }} />
-        <StatCard contra={contra} label="% Cierre s/ no-show" valor={pct(actual.pct_cierre_sin_noshow)} variacion={variacion(actual.pct_cierre_sin_noshow, anterior.pct_cierre_sin_noshow)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_sin_noshow, 0.3)} serie={{ data: sk.cierreSinNoShow, labels: sk.labels, formato: 'pct' }} />
-        <StatCard contra={contra} label="% Cierre / presentadas" valor={pct(actual.pct_cierre_asistencia)} variacion={variacion(actual.pct_cierre_asistencia, anterior.pct_cierre_asistencia)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_asistencia, 0.3)} serie={{ data: sk.cierrePresentadas, labels: sk.labels, formato: 'pct' }} />
+        <StatCard contra={contra} label="% Asistencia" valor={pct(actual.pct_asistencia)} variacion={variacion(actual.pct_asistencia, anterior.pct_asistencia)} icono={Iconos.asistencia} color={semaforo(actual.pct_asistencia, OBJETIVOS.asistencia)} serie={{ data: sk.asistencia, labels: sk.labels, formato: 'pct' }} />
+        <StatCard contra={contra} label="% Cierre s/ no-show" valor={pct(actual.pct_cierre_sin_noshow)} variacion={variacion(actual.pct_cierre_sin_noshow, anterior.pct_cierre_sin_noshow)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_sin_noshow, OBJETIVOS.cierre)} serie={{ data: sk.cierreSinNoShow, labels: sk.labels, formato: 'pct' }} />
+        <StatCard contra={contra} label="% Cierre / presentadas" valor={pct(actual.pct_cierre_asistencia)} variacion={variacion(actual.pct_cierre_asistencia, anterior.pct_cierre_asistencia)} icono={Iconos.cierre} color={semaforo(actual.pct_cierre_asistencia, OBJETIVOS.cierre)} serie={{ data: sk.cierrePresentadas, labels: sk.labels, formato: 'pct' }} />
       </section>
       </Bloque>
 

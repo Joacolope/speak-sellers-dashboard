@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import ThemeToggle from './ThemeToggle';
+import { EYEBROW, TITULO } from '@/lib/cliente';
 
 const SECCIONES = [
   { href: '/', label: 'Inicio' },
@@ -26,8 +27,8 @@ export default function TopNav({ email, rol, puedeCargar }: { email: string; rol
     <header className="bg-bg">
       <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between gap-6 px-4 md:px-8">
         <Link href={`/${query}`} className="shrink-0 leading-tight">
-          <div className="eyebrow">Speak Sellers · Métricas</div>
-          <div className="h3">Speak Sellers Dashboard</div>
+          <div className="eyebrow">{EYEBROW}</div>
+          <div className="h3">{TITULO}</div>
         </Link>
 
         {/* Navigation Pill Container */}
