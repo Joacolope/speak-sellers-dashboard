@@ -9,7 +9,7 @@ const VERSION = '2021-07-28';
 const CLOSER_POR_USER: Record<string, Closer> = Object.fromEntries(CLIENTE.closers.filter((c) => c.ghlUserId).map((c) => [c.ghlUserId!, c.id]));
 const CLOSER_POR_CALENDARIO: Record<string, Closer> = Object.fromEntries(CLIENTE.closers.filter((c) => c.ghlCalendarId).map((c) => [c.ghlCalendarId!, c.id]));
 
-async function ghl<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+export async function ghl<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   const token = process.env.GHL_TOKEN;
   if (!token) throw new Error('Falta GHL_TOKEN');
   const url = new URL(BASE + path);

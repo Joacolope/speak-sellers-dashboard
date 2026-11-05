@@ -47,6 +47,11 @@ export default function TopNav({ email, rol, puedeCargar }: { email: string; rol
         </nav>
 
         <div className="flex items-center gap-2">
+          {rol === 'admin' && (
+            <Link href="/conexiones" title="Qué está conectado y qué falta" className={`hidden h-9 items-center rounded-full px-3 text-[13px] lg:flex ${pathname.startsWith('/conexiones') ? 'bg-text text-surface' : 'bg-[var(--nav-pill)] text-text-muted hover:text-text'}`}>
+              Conexiones
+            </Link>
+          )}
           {puedeCargar && <Link href={`/cargar${query}`} className="btn-primary hidden md:inline-block">Cargar</Link>}
           <ThemeToggle />
           <form method="POST" action="/auth/logout" className="hidden sm:block">
