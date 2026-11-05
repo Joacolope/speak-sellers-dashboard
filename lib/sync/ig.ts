@@ -41,6 +41,16 @@ export function palabraClave(caption?: string): string | null {
   return may ? may[1] : null;
 }
 
+/** Métricas de una pieza. "plays" dejó de existir en la API: se prueba primero con "views" y, si falla, con el set viejo. */
+async function insightsPieza(id: string, esReel: boolean): Promise<Insights | null> {
+  const intentos = esReel ? ['views,reach,saved,shares', 'plays,reach,saved,shares', 'reach,saved'] : ['views,reach,saved', 'reach,saved'];
+  for (const metric of intentos) {
+    const ins = await graph<Insights>(`${id}/insights`, { metric }).catch(() => null);
+    if (ins) return ins;
+  }
+  return null;
+}
+
 /** Historias de las últimas 24 h, reels de los últimos 7 días y mensajería de ayer. */
 export async function syncIgOrganico(sb: SupabaseClient, dry = false): Promise<string> {
   const igUser = await cuentaInstagram();
@@ -68,20 +78,35 @@ export async function syncIgOrganico(sb: SupabaseClient, dry = false): Promise<s
     }
   }
 
-  // Reels de los últimos 7 días (para capturar comentarios a 48 h)
-  const media = await graph<{ data: Media[] }>(`${igUser}/media`, {
+  // Reels: los últimos 7 días todos los días (comentarios a 48 h). Los lunes, o mientras no haya
+  // seguidores cargados, se repasan 120 días para el ranking de "qué reel trae seguidores".
+  const { count: conSeguidores } = await sb.from('organico_piezas').select('ig_media_id', { count: 'exact', head: true }).not('seguidores', 'is', null);
+  const repaso = !conSeguidores || new Date().getUTCDay() === 1;
+  const desdeReels = repaso ? new Date(Date.now() - 120 * 86400000).toISOString() : hace7;
+  const media: Media[] = [];
+  let pagina = await graph<{ data: Media[]; paging?: { next?: string } }>(`${igUser}/media`, {
     fields: 'id,media_product_type,media_type,timestamp,caption,comments_count,like_count,permalink',
-    since: String(Math.floor(new Date(hace7).getTime() / 1000)),
+    since: String(Math.floor(new Date(desdeReels).getTime() / 1000)),
     limit: '50',
   });
+  for (let i = 0; i < 6; i++) {
+    media.push(...(pagina.data ?? []).filter((m) => m.timestamp >= desdeReels));
+    const sig = pagina.paging?.next;
+    if (!sig || (pagina.data ?? []).some((m) => m.timestamp < desdeReels)) break;
+    const r = await fetch(sig, { cache: 'no-store' });
+    if (!r.ok) break;
+    pagina = await r.json();
+  }
   let nReels = 0;
   let formatoAyer: 'Reel' | 'Carrusel' | 'Imagen' | null = null;
   let ctaAyer: string | null = null;
   let comentariosAyer: number | null = null;
-  for (const m of media.data ?? []) {
+  for (const m of media) {
     const esReel = m.media_product_type === 'REELS' || m.media_type === 'VIDEO';
-    const ins = await graph<Insights>(`${m.id}/insights`, { metric: esReel ? 'plays,reach,saved,shares' : 'reach,saved' }).catch(() => null);
-    const views = metrica(ins, 'plays') ?? metrica(ins, 'views') ?? metrica(ins, 'reach');
+    const ins = await insightsPieza(m.id, esReel);
+    const views = metrica(ins, 'views') ?? metrica(ins, 'plays') ?? metrica(ins, 'reach');
+    // Seguidores y visitas al perfil: no todas las piezas los tienen; si Instagram no los da, quedan vacíos
+    const perfil = await graph<Insights>(`${m.id}/insights`, { metric: 'follows,profile_visits' }).catch(() => null);
     const promocionado = false; // TODO: cruzar con effective_object_story_id de los ads activos
     if (!dry) {
       await sb.from('organico_piezas').upsert({
@@ -89,6 +114,7 @@ export async function syncIgOrganico(sb: SupabaseClient, dry = false): Promise<s
         titulo: `${esReel ? 'Reel' : m.media_type === 'CAROUSEL_ALBUM' ? 'Carrusel' : 'Imagen'}${palabraClave(m.caption) ? ` «${palabraClave(m.caption)}»` : ''}`,
         views, alcance: metrica(ins, 'reach'), comentarios: m.comments_count ?? null,
         guardados: metrica(ins, 'saved'), compartidos: metrica(ins, 'shares'), promocionado, url: m.permalink ?? null,
+        ...(perfil ? { seguidores: metrica(perfil, 'follows'), visitas_perfil: metrica(perfil, 'profile_visits') } : {}),
         updated_at: new Date().toISOString(),
       }, { onConflict: 'ig_media_id' });
     }
@@ -118,5 +144,5 @@ export async function syncIgOrganico(sb: SupabaseClient, dry = false): Promise<s
       await sb.from('setter_diario').upsert({ fecha: ayer, conv_organicas: convOrg, source: 'ig', updated_at: new Date().toISOString() }, { onConflict: 'fecha' });
     }
   }
-  return `${nHist} historias, ${nReels} reels`;
+  return `${nHist} historias, ${nReels} reels${repaso ? ' (repaso 120 días)' : ''}`;
 }

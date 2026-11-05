@@ -54,6 +54,8 @@ export interface Lead {
   rango_comisiones?: string | null;
   nicho?: string | null;
   dato_previo?: string | null;
+  /** "¿Qué video nuestro te hizo seguirnos?" (formulario de agenda) */
+  video_origen?: string | null;
   primer_punto_contacto?: string | null;
   ultimo_punto_contacto?: string | null;
   etapa_pipeline?: string | null;
@@ -204,6 +206,9 @@ export interface OrganicoPieza {
   respuestas?: number | null;
   guardados?: number | null;
   compartidos?: number | null;
+  /** Cuentas que empezaron a seguir desde esta pieza */
+  seguidores?: number | null;
+  visitas_perfil?: number | null;
   promocionado: boolean;
   url?: string | null;
   a_confirmar?: boolean;

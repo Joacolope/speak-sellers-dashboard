@@ -80,7 +80,8 @@ function toque(a?: Atribucion): string | null {
 }
 
 /** Respuestas del formulario de agenda: se buscan los campos personalizados por nombre, no por id. */
-const CAMPOS_FORM: [RegExp, 'closer_en_actividad' | 'rango_comisiones' | 'nicho' | 'dato_previo'][] = [
+const CAMPOS_FORM: [RegExp, 'closer_en_actividad' | 'rango_comisiones' | 'nicho' | 'dato_previo' | 'video_origen'][] = [
+  [/video|reel|te hizo seguir|nos conociste/i, 'video_origen'],
   [/closer.*actividad|sos closer|en actividad/i, 'closer_en_actividad'],
   [/comision/i, 'rango_comisiones'],
   [/nicho/i, 'nicho'],
