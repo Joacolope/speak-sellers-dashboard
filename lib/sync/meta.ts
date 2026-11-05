@@ -36,6 +36,21 @@ function accion(ins: Insight, tipos: string[]): number | null {
   return a ? Number(a.value) : null;
 }
 
+/** Tipos de acción vistos con "follow" en el nombre (para el resumen del cron, por si Meta los renombra). */
+const tiposFollow = new Set<string>();
+
+/**
+ * Seguidores de Instagram que trajo el anuncio. Meta cambió el nombre de esta acción varias veces,
+ * así que primero se prueban los conocidos y si no, cualquier acción con "follow" (que no sea unfollow).
+ */
+function seguidoresDe(ins: Insight): number | null {
+  const conocida = accion(ins, ['onsite_conversion.ig_follow', 'ig_follow', 'onsite_conversion.follow', 'instagram_profile_follow', 'follow']);
+  if (conocida !== null) return conocida;
+  const otras = (ins.actions ?? []).filter((x) => /follow/i.test(x.action_type) && !/unfollow/i.test(x.action_type));
+  for (const x of otras) tiposFollow.add(x.action_type);
+  return otras.length ? Math.max(...otras.map((x) => Number(x.value) || 0)) : null;
+}
+
 function campana(nombre: string): 'follow_me' | 'webinar' | null {
   const n = nombre.toLowerCase();
   if (n.includes('follow me')) return 'follow_me';
@@ -87,10 +102,12 @@ export async function syncMetaAds(sb: SupabaseClient, dry = false): Promise<stri
     visitas_perfil: number | null; seguidores: number | null; conversaciones: number | null; comentarios: number | null; registros: number | null;
   };
   const filas = new Map<string, Fila>();
+  const tiposFollowMe = new Set<string>();
   for (const ins of datos) {
     const c = campana(ins.campaign_name);
     if (!c) continue;
     if (c === 'webinar' && ins.date_start < desdeWebinar) continue;
+    if (c === 'follow_me') for (const x of ins.actions ?? []) tiposFollowMe.add(x.action_type);
     const k = `${ins.date_start}|${c}`;
     const imp = Number(ins.impressions) || 0;
     const nueva: Fila = {
@@ -101,7 +118,7 @@ export async function syncMetaAds(sb: SupabaseClient, dry = false): Promise<stri
       alcance: Number(ins.reach) || 0,
       clics: (Number(ins.ctr) || 0) / 100 * imp,
       visitas_perfil: accion(ins, ['onsite_conversion.ig_profile_visit', 'link_click']),
-      seguidores: accion(ins, ['onsite_conversion.follow', 'ig_follow']),
+      seguidores: seguidoresDe(ins),
       // Webinar no busca conversaciones: mide registros
       conversaciones: c === 'webinar' ? null : accion(ins, ['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.total_messaging_connection']),
       comentarios: c === 'follow_me' ? accion(ins, ['comment']) : null,
@@ -149,7 +166,10 @@ export async function syncMetaAds(sb: SupabaseClient, dry = false): Promise<stri
     n++;
   }
   const conv = Array.from(filas.values()).reduce((a, f) => a + (f.conversaciones ?? 0), 0);
-  return `${n} días ads (desde ${desde}, ${conv} conversaciones)`;
+  const seg = Array.from(filas.values()).reduce((a, f) => a + (f.seguidores ?? 0), 0);
+  // Si Meta no devuelve seguidores, el resumen lista qué acciones sí trae, para ajustar el nombre
+  const diag = seg ? (tiposFollow.size ? `; acción: ${Array.from(tiposFollow).join(', ')}` : '') : `; sin acción de seguidores. Acciones de Follow Me: ${Array.from(tiposFollowMe).sort().join(', ').slice(0, 900)}`;
+  return `${n} días ads (desde ${desde}, ${conv} conversaciones, ${seg} seguidores${diag})`;
 }
 
 interface CampanaApi {
