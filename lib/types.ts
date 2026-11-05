@@ -191,6 +191,8 @@ export interface OrganicoDiario {
   formato_reel?: 'Reel' | 'Carrusel' | 'Imagen' | null;
   tipo_cta?: string | null;
   comentarios_48h?: number | null;
+  /** Seguidores nuevos de la cuenta ese día (orgánico + pauta) */
+  seguidores_nuevos?: number | null;
   notas?: string | null;
   source: Source;
 }

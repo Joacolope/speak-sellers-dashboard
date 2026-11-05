@@ -126,6 +126,25 @@ export async function syncIgOrganico(sb: SupabaseClient, dry = false): Promise<s
     nReels++;
   }
 
+  // Seguidores nuevos por día, últimos 30 días (Instagram los da por día; el valor de cada día cierra al día siguiente)
+  let nSeg = 0;
+  try {
+    const hasta = new Date();
+    const desdeSeg = new Date(hasta.getTime() - 29 * 86400000);
+    const fc = await graph<{ data: { name: string; values: { value: number; end_time: string }[] }[] }>(`${igUser}/insights`, {
+      metric: 'follower_count', period: 'day',
+      since: String(Math.floor(desdeSeg.getTime() / 1000)), until: String(Math.floor(hasta.getTime() / 1000)),
+    });
+    for (const v of fc.data?.[0]?.values ?? []) {
+      const fecha = new Date(Date.parse(v.end_time) - 86400000).toISOString().slice(0, 10);
+      if (fecha > ayer) continue; // el día de hoy todavía no cerró
+      if (!dry) await sb.from('organico_diario').upsert({ fecha, seguidores_nuevos: v.value, updated_at: new Date().toISOString() }, { onConflict: 'fecha' });
+      nSeg += v.value;
+    }
+  } catch (e) {
+    console.warn('IG follower_count:', e);
+  }
+
   // Mensajería de ayer → setter_diario (conversaciones orgánicas)
   let convOrg: number | null = null;
   try {
@@ -144,5 +163,5 @@ export async function syncIgOrganico(sb: SupabaseClient, dry = false): Promise<s
       await sb.from('setter_diario').upsert({ fecha: ayer, conv_organicas: convOrg, source: 'ig', updated_at: new Date().toISOString() }, { onConflict: 'fecha' });
     }
   }
-  return `${nHist} historias, ${nReels} reels${repaso ? ' (repaso 120 días)' : ''}`;
+  return `${nHist} historias, ${nReels} reels${repaso ? ' (repaso 120 días)' : ''}, ${nSeg} seguidores nuevos en 30 días`;
 }
