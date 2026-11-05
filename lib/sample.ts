@@ -10,7 +10,8 @@ import type {
 } from './types';
 import { diasDelMes, sumarDias } from './format';
 import { CLOSERS, type Funnel } from './types';
-import { PRODUCTO } from './cliente';
+import { CLIENTE, PRODUCTO } from './cliente';
+const IG_URL = CLIENTE.meta.instagram ? `https://www.instagram.com/${CLIENTE.meta.instagram}/` : null;
 
 /** UTMs de ejemplo según la fuente (ilustrativos). */
 function utmsDe(fuente: Fuente, r: number) {
@@ -353,13 +354,13 @@ function construirOrganico(): { diario: OrganicoDiario[]; piezas: OrganicoPieza[
         ig_media_id: `reel-${fecha}`, fecha, tipo: 'reel', titulo: `Reel «${palabra}»`,
         views: 1500 + Math.floor(rand() * 6000), comentarios: 10 + Math.floor(rand() * 60),
         guardados: Math.floor(rand() * 80), compartidos: Math.floor(rand() * 40),
-        promocionado: rand() < 0.1, url: 'https://www.instagram.com/marcoslanci/',
+        promocionado: rand() < 0.1, url: IG_URL,
       });
     }
   }
   // Top históricos (sección 10)
-  piezas.push({ ig_media_id: 'reel-clase', fecha: '2026-09-19', tipo: 'reel', titulo: 'Reel «CLASE»', views: 8200, comentarios: 173, guardados: 140, compartidos: 60, promocionado: false, url: 'https://www.instagram.com/marcoslanci/' });
-  piezas.push({ ig_media_id: 'reel-miro', fecha: '2026-09-30', tipo: 'reel', titulo: 'Reel «MIRO»', views: 10139, comentarios: 44, guardados: 210, compartidos: 95, promocionado: false, url: 'https://www.instagram.com/marcoslanci/' });
+  piezas.push({ ig_media_id: 'reel-clase', fecha: '2026-09-19', tipo: 'reel', titulo: 'Reel «CLASE»', views: 8200, comentarios: 173, guardados: 140, compartidos: 60, promocionado: false, url: IG_URL });
+  piezas.push({ ig_media_id: 'reel-miro', fecha: '2026-09-30', tipo: 'reel', titulo: 'Reel «MIRO»', views: 10139, comentarios: 44, guardados: 210, compartidos: 95, promocionado: false, url: IG_URL });
   return { diario, piezas };
 }
 

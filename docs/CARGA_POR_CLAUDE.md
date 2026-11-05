@@ -1,11 +1,11 @@
-# Carga manual vía Claude · Speak Sellers Dashboard
+# Carga de datos dictándole a Claude
 
-Joaco dicta, Claude escribe en Supabase. Patrón de uso en cualquier chat del proyecto.
+El cliente (o quien opere) dicta, Claude escribe en la base. Patrón de uso en cualquier chat del proyecto.
 
 ## Cómo escribir
 
 Opción A (preferida): MCP de Supabase, tablas `agendas`, `cobranzas`, `leads`, `ajustes_mensuales`.
-Opción B: `POST https://speak-sellers-dashboard.vercel.app/api/cargar` con JSON y el header `Authorization: Bearer $CARGA_API_TOKEN`:
+Opción B: `POST https://<dominio-del-dashboard>/api/cargar` con JSON y el header `Authorization: Bearer $CARGA_API_TOKEN`:
 
 ```json
 { "tipo": "venta", "nombre": "Elías Sánchez", "compro": "Si", "metodo_pago": "PIF", "cash_collected": 1200, "revenue": 1200 }
@@ -24,7 +24,7 @@ Costos (software): `POST /api/costos`
 
 ## Traducción de frases
 
-| Joaco dice | Claude hace |
+| Dicen | Claude hace |
 |---|---|
 | "Elías pagó 1200 PIF" | agenda de Elías: `asistio=Asistió`, `oferta_hecha=true`, `compro=Si`, `metodo_pago=PIF`, `cash_collected=1200`, `revenue=1200`, `source=manual` + cobranza de 1200 |
 | "Betina pagó 670 hoy, le quedan 1000 para mediados de noviembre" | cobranza 670 con `pendiente=1000`, `proximo_vencimiento=2026-11-15`; `cash_collected` acumulado |

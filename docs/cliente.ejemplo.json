@@ -1,0 +1,33 @@
+{
+  "$schema": "./cliente.schema.json",
+
+  "nombre": "Academia Ejemplo",
+  "empresa": "Academia Ejemplo SAS",
+  "producto": "Mentoría Ejemplo",
+  "url": "https://academia-ejemplo-dashboard.vercel.app",
+  "contacto": "hola@agencia.com",
+  "zonaHoraria": "America/Mexico_City",
+  "locale": "es-MX",
+
+  "closers": [
+    { "id": "Juan", "nombre": "Juan Pérez", "activo": true, "comisionInicial": 0 },
+    { "id": "Sofi", "nombre": "Sofía Gómez", "activo": true, "comisionInicial": 10 }
+  ],
+
+  "objetivos": { "asistencia": 0.6, "cierre": 0.3, "respuestaMin": 15 },
+
+  "ghl": {
+    "locationId": "",
+    "calendarios": [],
+    "pipelineId": ""
+  },
+
+  "meta": {
+    "cuentaPublicitaria": "",
+    "paginaId": "",
+    "instagram": "",
+    "campanas": { "follow_me": ["follow me", "perfil"], "webinar": ["webinar", "masterclass"] }
+  },
+
+  "resumen": { "remitente": "Academia Ejemplo <onboarding@resend.dev>" }
+}
