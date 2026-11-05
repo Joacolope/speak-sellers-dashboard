@@ -45,9 +45,28 @@ export function alertas(b: RawBundle, hoy: string, metas: ProgresoMeta[] = []): 
     out.push({ nivel: 'yellow', texto: `${sinConfirmar.length === 1 ? '1 llamada' : `${sinConfirmar.length} llamadas`} de hoy sin confirmar por WhatsApp: ${nombres(sinConfirmar.map((a) => a.lead?.nombre ?? 'Sin nombre'))}`, href: '/closers' });
 
   // Llamadas pasadas sin resultado cargado (últimos 14 días)
-  const sinMarcar = b.agendas.filter((a) => dia(a.fecha_llamada) < hoy && dia(a.fecha_llamada) >= sumarDias(hoy, -14) && a.asistio === 'Pendiente');
-  if (sinMarcar.length)
-    out.push({ nivel: 'yellow', texto: `${sinMarcar.length === 1 ? '1 llamada pasada' : `${sinMarcar.length} llamadas pasadas`} sin marcar si asistió`, href: '/closers' });
+  // Se saltean los duplicados: GHL a veces trae el lead con otro nombre ("gustavo") y la misma llamada
+  // ya está cargada con el nombre completo ("Gustavo Fernando Acosta") y su resultado.
+  const norm = (s?: string | null) => (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  const esDuplicada = (a: RawBundle['agendas'][number]) => {
+    const n = norm(a.lead?.nombre);
+    if (!n) return false;
+    const t = Date.parse(a.fecha_llamada);
+    return b.agendas.some((o) => {
+      if (o.id === a.id || o.asistio === 'Pendiente' || Math.abs(Date.parse(o.fecha_llamada) - t) > 3 * 3600000) return false;
+      const m = norm(o.lead?.nombre);
+      return !!m && (m.startsWith(`${n} `) || n.startsWith(`${m} `) || m === n);
+    });
+  };
+  const sinMarcar = b.agendas
+    .filter((a) => dia(a.fecha_llamada) < hoy && dia(a.fecha_llamada) >= sumarDias(hoy, -14) && a.asistio === 'Pendiente' && !esDuplicada(a))
+    .sort((x, y) => x.fecha_llamada.localeCompare(y.fecha_llamada));
+  if (sinMarcar.length) {
+    // El link abre el mes de la más vieja (Closers muestra un mes a la vez)
+    const mes = dia(sinMarcar[0].fecha_llamada).slice(0, 7);
+    const quienes = nombres(sinMarcar.map((a) => `${a.lead?.nombre ?? 'Sin nombre'} (${Number(dia(a.fecha_llamada).slice(8, 10))}/${Number(dia(a.fecha_llamada).slice(5, 7))})`));
+    out.push({ nivel: 'yellow', texto: `${sinMarcar.length === 1 ? '1 llamada pasada' : `${sinMarcar.length} llamadas pasadas`} sin marcar si asistió: ${quienes}`, href: `/closers?mes=${mes}&todo=1` });
+  }
 
   // Costo por resultado de anuncios: últimos 7 días vs. los 7 anteriores
   const ventanas = [
