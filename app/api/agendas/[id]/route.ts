@@ -41,9 +41,38 @@ async function manejarPATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ ok: true });
 }
 
+/**
+ * Borra una agenda que no tiene que existir (cita cancelada o borrada en GHL, carga duplicada).
+ * Solo admin o "Authorization: Bearer $CARGA_API_TOKEN". No borra si tiene cobros.
+ * Si el lead se queda sin agendas, se borra también.
+ */
+async function manejarDELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await exigir('admin', { permitirToken: true });
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  if (!UUID.test(params.id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+
+  const sb = supabase();
+  const { data: agenda } = await sb.from('agendas').select('id, lead_id').eq('id', params.id).maybeSingle();
+  if (!agenda) return NextResponse.json({ error: 'No existe esa agenda' }, { status: 404 });
+  const { count: cobros } = await sb.from('cobranzas').select('id', { count: 'exact', head: true }).eq('agenda_id', agenda.id);
+  if (cobros) return NextResponse.json({ error: 'Tiene cobros cargados: no se borra' }, { status: 409 });
+
+  const { error } = await sb.from('agendas').delete().eq('id', agenda.id);
+  if (error) return NextResponse.json({ error: 'No se pudo borrar' }, { status: 500 });
+  const { count: otras } = await sb.from('agendas').select('id', { count: 'exact', head: true }).eq('lead_id', agenda.lead_id);
+  if (!otras) await sb.from('leads').delete().eq('id', agenda.lead_id);
+  return NextResponse.json({ ok: true, lead_borrado: !otras });
+}
+
 /** Después de escribir se descarta la caché de datos, así el dashboard muestra lo nuevo al instante. */
 export async function PATCH(...args: Parameters<typeof manejarPATCH>) {
   const res = await manejarPATCH(...args);
+  refrescarDatos();
+  return res;
+}
+
+export async function DELETE(...args: Parameters<typeof manejarDELETE>) {
+  const res = await manejarDELETE(...args);
   refrescarDatos();
   return res;
 }
