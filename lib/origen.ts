@@ -45,5 +45,6 @@ export function origenSinUtm(a: Agenda): Origen {
   if (l.fuente === 'Referido' || /recomend|referid|mastermind|five st|syk/.test(primero)) return 'Referido';
   if (l.fuente === 'WhatsApp' || primero.includes('whatsapp')) return 'WhatsApp';
   if (primero.includes('outbound')) return 'Outbound';
+  if (/follow ?me|anuncio|\bads\b/.test(primero)) return 'Follow Me Ads';
   return 'Instagram';
 }

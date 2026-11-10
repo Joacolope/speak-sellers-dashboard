@@ -3,7 +3,9 @@ import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 
-const CAMPOS = ['pais', 'closer_en_actividad', 'rango_comisiones', 'dato_previo', 'primer_punto_contacto', 'manychat_url'] as const;
+const CAMPOS = ['pais', 'closer_en_actividad', 'rango_comisiones', 'dato_previo', 'primer_punto_contacto', 'manychat_url', 'fuente', 'seguidor_desde', 'como_agendo', 'recorrido', 'video_origen'] as const;
+const FUENTES = ['Instagram', 'WhatsApp', 'Webinar', 'YouTube', 'Referido', 'Otro'];
+const COMO_AGENDO = ['Setting', 'Link en bio', 'Directo con el closer', 'Webinar', 'Otro'];
 /** Solo links a una conversación de ManyChat (sin parámetros de búsqueda) */
 const limpiarManychat = (v: string) => (/^https:\/\/app\.manychat\.com\/fb\d+\/chat\/\d+/.exec(v)?.[0] ?? '');
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
@@ -13,7 +15,8 @@ const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
  * JSON con "Authorization: Bearer $CARGA_API_TOKEN" o sesión de editor:
  *   { "leads": [{ "nombre": "...", "pais": "...", "closer_en_actividad": "...", ..., "manychat_url": "https://app.manychat.com/fb.../chat/...", "nota": "..." }] }
  * El nombre tiene que coincidir completo (sin importar tildes ni mayúsculas).
- * Solo completa campos vacíos: nunca pisa lo cargado. La nota se agrega una sola vez.
+ * Solo completa campos vacíos, salvo que el lead venga con "pisar": true. La nota se agrega una sola vez.
+ * Trazabilidad de la venta: fuente, seguidor_desde (AAAA-MM-DD), como_agendo, intervino_setter (true/false), recorrido.
  */
 async function manejarPOST(req: NextRequest) {
   const auth = await exigir('editor', { permitirToken: true });
@@ -23,7 +26,7 @@ async function manejarPOST(req: NextRequest) {
   if (!lista.length) return NextResponse.json({ error: 'Mandá { leads: [...] }' }, { status: 400 });
 
   const sb = supabase();
-  const { data: todos, error } = await sb.from('leads').select('id, nombre, notas, ' + CAMPOS.join(', '));
+  const { data: todos, error } = await sb.from('leads').select('id, nombre, notas, intervino_setter, ' + CAMPOS.join(', '));
   if (error) return NextResponse.json({ error: 'No se pudo leer los leads' }, { status: 500 });
   const porNombre = new Map<string, Record<string, unknown>[]>();
   for (const l of (todos ?? []) as unknown as Record<string, unknown>[]) {
@@ -44,9 +47,15 @@ async function manejarPOST(req: NextRequest) {
     const patch: Record<string, unknown> = {};
     for (const c of CAMPOS) {
       const crudo = typeof item[c] === 'string' ? (item[c] as string).trim().slice(0, 300) : '';
-      const v = c === 'manychat_url' ? limpiarManychat(crudo) : crudo;
-      if (v && !(typeof lead[c] === 'string' && (lead[c] as string).trim())) patch[c] = v;
+      const v = c === 'manychat_url' ? limpiarManychat(crudo)
+        : c === 'fuente' ? (FUENTES.includes(crudo) ? crudo : '')
+        : c === 'como_agendo' ? (COMO_AGENDO.includes(crudo) ? crudo : '')
+        : c === 'seguidor_desde' ? (/^\d{4}-\d{2}-\d{2}$/.test(crudo) ? crudo : '')
+        : crudo;
+      // "pisar": true corrige lo que ya estaba (p. ej. el "Social media" genérico que manda GoHighLevel)
+      if (v && (item.pisar === true || !(typeof lead[c] === 'string' && (lead[c] as string).trim()))) patch[c] = v;
     }
+    if (typeof item.intervino_setter === 'boolean' && (item.pisar === true || lead.intervino_setter === null || lead.intervino_setter === undefined)) patch.intervino_setter = item.intervino_setter;
     const nota = typeof item.nota === 'string' ? item.nota.trim().slice(0, 2000) : '';
     const previas = typeof lead.notas === 'string' ? lead.notas : '';
     const marca = nota.split(':')[0];

@@ -61,6 +61,18 @@ export interface Lead {
   etapa_pipeline?: string | null;
   /** Link a la conversación de ManyChat (el DM donde se hizo el setting) */
   manychat_url?: string | null;
+  /** Desde cuándo nos sigue (aprox.: se muestra por mes) */
+  seguidor_desde?: string | null;
+  /** Cómo llegó a la agenda: Setting, Link en bio, Directo con el closer… null = se deduce del UTM */
+  como_agendo?: string | null;
+  intervino_setter?: boolean | null;
+  /** El camino de la venta en una línea (de dónde salió → qué lo movió → cómo agendó) */
+  recorrido?: string | null;
+  /** Etiquetas del contacto en ManyChat (las trae el sync) */
+  manychat_tags?: string[] | null;
+  /** Primer contacto con la cuenta por DM (alta en ManyChat) */
+  manychat_desde?: string | null;
+  manychat_ultima?: string | null;
   source: Source;
   notas?: string | null;
 }

@@ -66,6 +66,15 @@ create table if not exists leads (
 
 -- Link a la conversación de ManyChat del lead (para ver de dónde vino cada venta).
 alter table leads add column if not exists manychat_url text;
+-- Trazabilidad inversa de cada venta: desde cuándo nos sigue, cómo agendó, si hubo setter y el recorrido en una línea.
+alter table leads add column if not exists seguidor_desde date;
+alter table leads add column if not exists como_agendo text;
+alter table leads add column if not exists intervino_setter boolean;
+alter table leads add column if not exists recorrido text;
+-- Datos que trae el sync de ManyChat (solo lectura): etiquetas, alta y última interacción.
+alter table leads add column if not exists manychat_tags text[];
+alter table leads add column if not exists manychat_desde timestamptz;
+alter table leads add column if not exists manychat_ultima timestamptz;
 
 create table if not exists agendas (
   id uuid primary key default gen_random_uuid(),

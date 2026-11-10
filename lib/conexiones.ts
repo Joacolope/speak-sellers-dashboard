@@ -3,6 +3,7 @@ import { CLIENTE, ids } from './cliente';
 import { env, supabaseConfigurado } from './env';
 import { supabase } from './supabase';
 import { ghl } from './sync/ghl';
+import { manychat as apiManychat } from './sync/manychat';
 import { cuentaAds } from './sync/meta';
 import { cuentaInstagram } from './sync/cuentaIg';
 import { vencimientoMeta } from './sync/vencimiento';
@@ -192,9 +193,21 @@ export async function estadoConexiones(): Promise<Conexion[]> {
     };
   })();
 
+  const manychat: Promise<Conexion> = (async () => {
+    const arreglo = 'En ManyChat: Settings → API → Generate your API Key (hace falta plan Pro). La clave va en MANYCHAT_TOKEN en Vercel → Redeploy. Solo se usa para leer etiquetas y fechas de los contactos.';
+    if (!process.env.MANYCHAT_TOKEN) return { clave: 'manychat', nombre: 'ManyChat (etiquetas y recorrido de cada lead)', estado: 'falta', detalle: 'Falta MANYCHAT_TOKEN.', arreglo, opcional: true };
+    try {
+      const pagina = await conTiempo(apiManychat<{ name?: string }>('/fb/page/getInfo'));
+      const { count } = sb ? await sb.from('leads').select('id', { count: 'exact', head: true }).not('manychat_tags', 'is', null) : { count: 0 };
+      return { clave: 'manychat', nombre: 'ManyChat (etiquetas y recorrido de cada lead)', estado: 'ok', detalle: `${pagina.name ?? 'Cuenta conectada'} · ${count ?? 0} leads con etiquetas`, opcional: true };
+    } catch (e) {
+      return { clave: 'manychat', nombre: 'ManyChat (etiquetas y recorrido de cada lead)', estado: 'error', detalle: msg(e), arreglo, opcional: true };
+    }
+  })();
+
   const google: Conexion = { clave: 'google', nombre: 'Ingreso con Google', estado: 'ok', detalle: 'Funciona: entraste con tu cuenta de Google para ver esta página.' };
 
-  const lista = await Promise.all([base, usuarios, gohighlevel, webhook, meta, instagram, cron, resumen]);
-  const [b, u, g, w, m, i, c, r] = lista;
-  return [config, b, google, u, g, w, m, i, c, carga, r];
+  const lista = await Promise.all([base, usuarios, gohighlevel, webhook, meta, instagram, cron, resumen, manychat]);
+  const [b, u, g, w, m, i, c, r, mc] = lista;
+  return [config, b, google, u, g, w, m, i, mc, c, carga, r];
 }

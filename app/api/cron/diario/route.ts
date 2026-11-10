@@ -5,6 +5,7 @@ import { bearerValido, env } from '@/lib/env';
 import { syncGhl } from '@/lib/sync/ghl';
 import { syncMetaAds, syncMetaCampanas } from '@/lib/sync/meta';
 import { syncIgOrganico } from '@/lib/sync/ig';
+import { syncManychat } from '@/lib/sync/manychat';
 import { vencimientoMeta } from '@/lib/sync/vencimiento';
 
 export const maxDuration = 300;
@@ -38,10 +39,18 @@ async function manejarGET(req: NextRequest) {
     }
   };
 
+  // ?solo=manychat corre una sola fuente (para probar o refrescar sin esperar a la mañana)
+  const solo = req.nextUrl.searchParams.get('solo');
+  if (solo === 'manychat') {
+    await correr('ManyChat', () => syncManychat(sb, dry));
+    return NextResponse.json({ ok: errores.length === 0, dry, resultados, errores });
+  }
+
   await correr('GHL', () => syncGhl(sb, dry));
   await correr('Meta', () => syncMetaAds(sb, dry));
   await correr('Campañas', () => syncMetaCampanas(sb, dry));
   await correr('IG', () => syncIgOrganico(sb, dry));
+  if (process.env.MANYCHAT_TOKEN) await correr('ManyChat', () => syncManychat(sb, dry));
   // Tiempo de respuesta por DMs: Meta no lo permite sin "acceso avanzado"; sale de Business Suite (Setter)
 
   // El token de Meta de 60 días vence: avisar 10 días antes (queda en Avisos del Inicio)

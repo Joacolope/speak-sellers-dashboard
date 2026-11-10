@@ -113,6 +113,18 @@ function construirAgendasOctubre(): { leads: Lead[]; agendas: Agenda[] } {
       primer_punto_contacto: s.compro ? (fuente === 'Webinar' ? 'Webinar 4/10' : 'Reel') : null,
       ultimo_punto_contacto: s.compro ? 'Historias' : null,
       instagram: s.compro ? `@${s.nombre.toLowerCase().replace(/[^a-z]/g, '')}` : null,
+      // Recorrido en ManyChat de los que compraron (para la vista de ingeniería inversa)
+      ...(s.compro ? {
+        manychat_url: `https://app.manychat.com/fb0000000/chat/${100000 + i}`,
+        manychat_desde: `2026-${i % 3 === 0 ? '08' : '09'}-${String(1 + ((i * 7) % 27)).padStart(2, '0')}T15:00:00Z`,
+        manychat_tags: [
+          i % 2 ? 'Nuevo Seguidor Septiembre 26' : 'Nuevo Seguidor Agosto 26',
+          ['21/09/26 CTA INFO', '28/09/26 Precio al principio', '06/10/26 Pago en llamada'][i % 3],
+          ...(i % 2 ? ['Ranteo caso de éxito'] : []),
+          'apertura/m2',
+          'setteando',
+        ],
+      } : {}),
     });
     const hora = 13 + Math.floor(rand() * 7);
     agendas.push({
