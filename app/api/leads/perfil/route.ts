@@ -26,7 +26,7 @@ async function manejarPOST(req: NextRequest) {
   if (!lista.length) return NextResponse.json({ error: 'Mandá { leads: [...] }' }, { status: 400 });
 
   const sb = supabase();
-  const { data: todos, error } = await sb.from('leads').select('id, nombre, notas, intervino_setter, ' + CAMPOS.join(', '));
+  const { data: todos, error } = await sb.from('leads').select('id, nombre, notas, intervino_setter, instagram, ' + CAMPOS.join(', '));
   if (error) return NextResponse.json({ error: 'No se pudo leer los leads' }, { status: 500 });
   const porNombre = new Map<string, Record<string, unknown>[]>();
   for (const l of (todos ?? []) as unknown as Record<string, unknown>[]) {
@@ -55,6 +55,13 @@ async function manejarPOST(req: NextRequest) {
       // "pisar": true corrige lo que ya estaba (p. ej. el "Social media" genérico que manda GoHighLevel)
       if (v && (item.pisar === true || !(typeof lead[c] === 'string' && (lead[c] as string).trim()))) patch[c] = v;
     }
+    // Datos de ManyChat (los manda el sync o una carga a mano): siempre reemplazan a los anteriores
+    if (Array.isArray(item.manychat_tags)) patch.manychat_tags = item.manychat_tags.filter((t): t is string => typeof t === 'string').map((t) => t.slice(0, 120)).slice(0, 200);
+    for (const c of ['manychat_desde', 'manychat_ultima'] as const) {
+      if (typeof item[c] === 'string' && Number.isFinite(Date.parse(item[c] as string))) patch[c] = new Date(item[c] as string).toISOString();
+    }
+    const ig = typeof item.instagram === 'string' ? item.instagram.trim().slice(0, 60) : '';
+    if (ig && (item.pisar === true || !lead.instagram)) patch.instagram = ig.startsWith('@') ? ig : `@${ig}`;
     if (typeof item.intervino_setter === 'boolean' && (item.pisar === true || lead.intervino_setter === null || lead.intervino_setter === undefined)) patch.intervino_setter = item.intervino_setter;
     const nota = typeof item.nota === 'string' ? item.nota.trim().slice(0, 2000) : '';
     const previas = typeof lead.notas === 'string' ? lead.notas : '';
