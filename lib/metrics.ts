@@ -480,7 +480,7 @@ export interface FilaUtm {
   clave: string;
   /** Origen para el color (Instagram, WhatsApp, YouTube, Webinar…) */
   origen: Origen;
-  /** true = agendó sin UTM: el origen sale de lo que sabemos del lead */
+  /** true = agendó sin UTM (por setting, o referido): el origen sale de lo que sabemos del lead */
   sinUtm: boolean;
   /** Valores crudos del UTM que se agruparon en esta fila */
   codigos: string[];
@@ -495,14 +495,15 @@ export interface FilaUtm {
 
 /**
  * Agendas agrupadas por un parámetro UTM, con nombres legibles ("organico_ig" → "Link en bio de Instagram").
- * Las que no traen UTM se agrupan por lo que ya sabemos del lead (funnel, fuente, primer punto de contacto).
+ * Las que no traen UTM vienen de setting (el setter les pasó el calendario a mano), salvo los referidos.
  */
 export function agendasPorUtm(b: RawBundle, f: Filtros, nivel: NivelUtm): FilaUtm[] {
   const mapa = new Map<string, { origen: Origen; sinUtm: boolean; codigos: Set<string>; ag: Agenda[] }>();
   for (const a of agendasDelMes(b, f)) {
     const crudo = (a.lead?.[nivel] ?? '').trim();
     const { nombre, origen } = crudo ? nombreUtm(crudo) : { nombre: '', origen: origenSinUtm(a) };
-    const clave = crudo ? nombre : `Sin UTM · ${origen}`;
+    // Sin UTM = el setter mandó el calendario por DM (setting); los referidos se muestran aparte
+    const clave = crudo ? nombre : origen === 'Referido' ? 'Referido' : 'Setting';
     const g = mapa.get(clave) ?? { origen, sinUtm: !crudo, codigos: new Set<string>(), ag: [] };
     if (crudo) g.codigos.add(crudo);
     g.ag.push(a);

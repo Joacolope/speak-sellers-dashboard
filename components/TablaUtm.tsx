@@ -48,7 +48,7 @@ export default function TablaUtm({ datos, limite }: { datos: Record<string, Fila
               {filas.map((f) => (
                 <tr key={f.clave}>
                   <td className="min-w-[200px]">
-                    <div className="flex items-center gap-2" title={f.codigos.length ? `UTM: ${f.codigos.join(', ')}` : 'Sin UTM: origen según lo que sabemos del lead'}>
+                    <div className="flex items-center gap-2" title={f.codigos.length ? `UTM: ${f.codigos.join(', ')}` : 'Sin UTM: agendó con el calendario que le pasó el setter'}>
                       <span className="dot shrink-0" style={{ background: COLOR_ORIGEN[f.origen] }} />
                       <span className={f.sinUtm ? 'text-text-muted' : 'font-medium'}>{f.clave}</span>
                     </div>
@@ -74,7 +74,7 @@ export default function TablaUtm({ datos, limite }: { datos: Record<string, Fila
       ) : (
         <div className="rounded-xl bg-[var(--surface-2)] p-6 text-center text-[14px] text-text-muted">Sin agendas en este período.</div>
       )}
-      <div className="text-[12px] text-text-disabled">Los UTM salen del link con el que agendó cada lead (atribución de GoHighLevel). "Sin UTM" = agendó sin link con parámetros: el origen sale de lo que ya sabemos del lead (funnel, fuente, cómo llegó).</div>
+      <div className="text-[12px] text-text-disabled">Los UTM salen del link con el que agendó cada lead (atribución de GoHighLevel). "Setting" = agendó sin UTM, con el calendario que le pasó el setter por DM. Los referidos sin UTM van aparte.</div>
     </div>
   );
 }
