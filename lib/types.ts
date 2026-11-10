@@ -278,6 +278,9 @@ export interface Webinar {
   registrados?: number | null;
   registrados_calificados?: number | null;
   asistentes?: number | null;
+  /** Presupuesto de anuncios del webinar (USD) */
+  presupuesto?: number | null;
+  notas?: string | null;
   source: Source;
 }
 

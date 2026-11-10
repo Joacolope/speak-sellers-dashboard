@@ -55,9 +55,15 @@ async function manejarPOST(req: NextRequest) {
     if (registrados !== null) fila.registrados = registrados;
     if (calificados !== null) fila.registrados_calificados = calificados;
     if (asistentes !== null) fila.asistentes = asistentes;
+    if (data.presupuesto !== undefined && String(data.presupuesto) !== '') {
+      const p = Number(data.presupuesto);
+      if (!Number.isFinite(p) || p < 0 || p > 1e7) return volver({ error: 'Presupuesto inválido' });
+      fila.presupuesto = p;
+    }
+    if (data.notas) fila.notas = String(data.notas).slice(0, 2000);
     const { error } = await sb.from('webinars').upsert(fila, { onConflict: 'fecha' });
     if (error) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
-    return volver({ ok: `Webinar ${data.fecha} · ${registrados ?? '—'} registrados · ${calificados ?? '—'} calificados · ${asistentes ?? '—'} asistentes` });
+    return volver({ ok: `Webinar ${data.fecha} · ${registrados ?? '—'} registrados · ${calificados ?? '—'} calificados · ${asistentes ?? '—'} asistentes${fila.presupuesto !== undefined ? ` · presupuesto ${fila.presupuesto} USD` : ''}` });
   }
 
   const nombre = (data.nombre ?? '').trim().slice(0, 120);

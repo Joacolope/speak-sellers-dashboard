@@ -8,6 +8,8 @@ export interface FilaWebinar {
   registrados: number | null;
   calificados: number | null;
   asistentes: number | null;
+  /** Presupuesto de anuncios cargado (USD) */
+  presupuesto: number | null;
   agendas: number;
   presentadas: number;
   ventas: number;
@@ -45,6 +47,7 @@ export function resumenWebinars(b: RawBundle, f: Filtros): FilaWebinar[] {
         registrados: w.registrados ?? regMeta,
         calificados: w.registrados_calificados ?? null,
         asistentes: w.asistentes ?? null,
+        presupuesto: w.presupuesto == null ? null : Number(w.presupuesto),
         agendas: ag.length,
         presentadas: ag.filter((a) => a.asistio === 'Asistió').length,
         ventas: ventas.length,
@@ -52,6 +55,13 @@ export function resumenWebinars(b: RawBundle, f: Filtros): FilaWebinar[] {
       };
     })
     .filter((w) => enPeriodo(f, w.fecha));
+}
+
+/** El próximo webinar (hoy o después), con lo invertido hasta ahora. Se muestra sin importar el filtro de fechas. */
+export function proximoWebinar(b: RawBundle, hoy: string): FilaWebinar | null {
+  const sig = [...b.webinars].sort((x, y) => x.fecha.localeCompare(y.fecha)).find((w) => w.fecha >= hoy);
+  if (!sig) return null;
+  return resumenWebinars(b, { mes: sig.fecha.slice(0, 7), closer: 'todos', fuente: 'todas' }).find((w) => w.fecha === sig.fecha) ?? null;
 }
 
 /** Suma de los webinars del período (null si ningún webinar tiene el dato). */

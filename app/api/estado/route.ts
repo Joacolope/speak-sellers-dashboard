@@ -31,12 +31,13 @@ export async function GET(req: Request) {
   if (ventas && /^\d{4}-\d{2}-\d{2}$/.test(ventas)) return NextResponse.json(await ventasDesde(ventas));
   const sb = supabase();
   const hace40 = new Date(Date.now() - 40 * 86400000).toISOString().slice(0, 10);
-  const [log, ads, campanas, setter, ig] = await Promise.all([
+  const [log, ads, campanas, setter, ig, webinars] = await Promise.all([
     sb.from('log_agente').select('fecha, resumen, pendientes').order('fecha', { ascending: false }).limit(5),
     sb.from('ads_diario').select('fecha, campana, inversion, conversaciones, comentarios, seguidores, registros, source').gte('fecha', hace40).order('fecha', { ascending: false }),
     sb.from('campanas_meta').select('nombre, estado, tipo, inversion_7d, resultados_7d, updated_at').order('updated_at', { ascending: false }).limit(10),
     sb.from('setter_diario').select('fecha, conv_api, tr_mediana_min, source').gte('fecha', hace40).order('fecha', { ascending: false }).limit(10),
     sb.from('organico_diario').select('fecha').order('fecha', { ascending: false }).limit(1),
+    sb.from('webinars').select('fecha, nombre, presupuesto, registrados, asistentes, notas').order('fecha', { ascending: false }).limit(10),
   ]);
   // Leads repetidos por nombre (para detectar duplicados entre GHL y lo cargado a mano)
   const { data: leads } = await sb.from('leads').select('nombre, source, ghl_contact_id');
@@ -55,6 +56,7 @@ export async function GET(req: Request) {
     campanas: campanas.error ? { error: campanas.error.message } : campanas.data,
     setter: setter.data ?? [],
     organico_ultimo: ig.data?.[0]?.fecha ?? null,
+    webinars: webinars.data ?? [],
     leads_repetidos: repetidos,
   });
 }

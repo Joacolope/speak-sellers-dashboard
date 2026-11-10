@@ -4,9 +4,9 @@ import { DemoBanner, Seccion, SourceDot, Tag, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, periodoAnterior, type SearchParams } from '@/lib/filtros';
 import { mesesDisponibles, enPeriodo } from '@/lib/metrics';
-import { fechaCorta, fechaHora, mesAnterior, mesCorto, mesDe, num, pct, usd } from '@/lib/format';
+import { fechaCorta, fechaHora, hoyAR, mesAnterior, mesCorto, mesDe, num, pct, usd } from '@/lib/format';
 import type { CampanaMeta } from '@/lib/types';
-import { resumenWebinars, totalWebinars } from '@/lib/webinars';
+import { proximoWebinar, resumenWebinars, totalWebinars } from '@/lib/webinars';
 
 function Dato({ valor, label, sub, ayuda }: { valor: string; label: string; sub?: ReactNode; ayuda?: string }) {
   return (
@@ -99,6 +99,7 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
   const webTotalMes = sum(web, (a) => a.inversion);
   const webinars = resumenWebinars(bundle, f);
   const w = totalWebinars(webinars);
+  const prox = proximoWebinar(bundle, hoyAR());
 
   return (
     <>
@@ -156,6 +157,22 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
       </Seccion>
 
       <Seccion eyebrow={`Webinars · ${webinars.length === 1 ? webinars[0].nombre : `${webinars.length} webinars en el mes`}`}>
+        {prox && (
+          <div className="card flex flex-col gap-4">
+            <div className="text-[14px] text-text-muted">Próximo webinar · <span className="text-text">{prox.nombre}</span> · {fechaCorta(prox.fecha)}</div>
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
+              <div><div className="metric">{prox.presupuesto !== null ? usd(prox.presupuesto) : '—'}</div><div className="text-[13px] text-text-disabled">Presupuesto</div></div>
+              <div><div className="metric">{usd(prox.inversion, 2)}</div><div className="text-[13px] text-text-disabled">Invertido hasta hoy</div></div>
+              <div><div className="metric">{prox.presupuesto !== null ? usd(Math.max(0, prox.presupuesto - prox.inversion), 2) : '—'}</div><div className="text-[13px] text-text-disabled">Queda por invertir</div></div>
+              <div><div className="metric">{num(prox.registrados)}</div><div className="text-[13px] text-text-disabled">Registrados hasta hoy · {costo(prox.inversion, prox.registrados)} c/u</div></div>
+            </div>
+            {prox.presupuesto !== null && prox.presupuesto > 0 && (
+              <div className="h-1.5 rounded-full bg-[var(--surface-2)]">
+                <div className="h-1.5 rounded-full bg-[var(--accent)]" style={{ width: `${Math.min(100, (prox.inversion / prox.presupuesto) * 100)}%` }} />
+              </div>
+            )}
+          </div>
+        )}
         {webinars.length ? (
           <>
             <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
@@ -208,7 +225,7 @@ export default async function Anuncios({ searchParams }: { searchParams: SearchP
               Agendas y ventas: leads del funnel Webinar con llamada desde el vivo hasta el webinar siguiente.
             </p>
           </>
-        ) : <Vacio texto="No hubo webinars este mes. Se cargan en Cargar → Webinar." />}
+        ) : !prox && <Vacio texto="No hubo webinars este mes. Se cargan en Cargar → Webinar." />}
       </Seccion>
 
       <Seccion eyebrow="Daily Webinar Tracker" titulo="Anuncios de webinar · día por día">

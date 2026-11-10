@@ -288,6 +288,8 @@ create table if not exists webinars (
 );
 -- Registrados que cumplen el perfil (respuestas del formulario de registro).
 alter table webinars add column if not exists registrados_calificados int check (registrados_calificados >= 0);
+-- Presupuesto de anuncios del webinar (USD), para ver cuánto queda por invertir.
+alter table webinars add column if not exists presupuesto numeric(12,2) check (presupuesto >= 0);
 
 
 -- Quién puede entrar. El login es con Google; si el email no está acá (o está

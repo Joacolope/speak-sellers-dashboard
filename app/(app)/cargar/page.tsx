@@ -92,9 +92,10 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
           </Campo>
         </Bloque>
 
-        <Bloque titulo="Datos de un webinar" cuando="Después de cada webinar. Si el día ya estaba cargado, se corrige." boton="Guardar webinar" tipo="webinar">
+        <Bloque titulo="Datos de un webinar" cuando="Antes del webinar (fecha y presupuesto) y después (registrados y asistentes). Si el día ya estaba cargado, se corrige." boton="Guardar webinar" tipo="webinar">
           <Campo label="Fecha del webinar"><input className="input" name="fecha" type="date" required /></Campo>
           <Campo label="Nombre (opcional)"><input className="input" name="nombre_webinar" placeholder="Ej.: Webinar 4/10" /></Campo>
+          <Campo label="Presupuesto de anuncios (USD)" ayuda="Lo que piensan invertir en total. El dashboard muestra cuánto queda."><input className="input" name="presupuesto" type="number" min="0" step="any" inputMode="decimal" placeholder="Ej.: 5000" /></Campo>
           <Campo label="Registrados"><input className="input" name="registrados" type="number" min="0" inputMode="numeric" placeholder="0" /></Campo>
           <Campo label="Registrados calificados" ayuda="Los que cumplen el perfil."><input className="input" name="registrados_calificados" type="number" min="0" inputMode="numeric" placeholder="0" /></Campo>
           <Campo label="Asistentes al vivo"><input className="input" name="asistentes" type="number" min="0" inputMode="numeric" placeholder="0" /></Campo>
