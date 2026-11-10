@@ -3,13 +3,15 @@ import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 
-const CAMPOS = ['pais', 'closer_en_actividad', 'rango_comisiones', 'dato_previo', 'primer_punto_contacto'] as const;
+const CAMPOS = ['pais', 'closer_en_actividad', 'rango_comisiones', 'dato_previo', 'primer_punto_contacto', 'manychat_url'] as const;
+/** Solo links a una conversación de ManyChat (sin parámetros de búsqueda) */
+const limpiarManychat = (v: string) => (/^https:\/\/app\.manychat\.com\/fb\d+\/chat\/\d+/.exec(v)?.[0] ?? '');
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
 
 /**
  * Completa el perfil de varios leads de una vez (formulario de onboarding, país, etc.).
  * JSON con "Authorization: Bearer $CARGA_API_TOKEN" o sesión de editor:
- *   { "leads": [{ "nombre": "...", "pais": "...", "closer_en_actividad": "...", ..., "nota": "..." }] }
+ *   { "leads": [{ "nombre": "...", "pais": "...", "closer_en_actividad": "...", ..., "manychat_url": "https://app.manychat.com/fb.../chat/...", "nota": "..." }] }
  * El nombre tiene que coincidir completo (sin importar tildes ni mayúsculas).
  * Solo completa campos vacíos: nunca pisa lo cargado. La nota se agrega una sola vez.
  */
@@ -41,7 +43,8 @@ async function manejarPOST(req: NextRequest) {
     const lead = encontrados[0];
     const patch: Record<string, unknown> = {};
     for (const c of CAMPOS) {
-      const v = typeof item[c] === 'string' ? (item[c] as string).trim().slice(0, 300) : '';
+      const crudo = typeof item[c] === 'string' ? (item[c] as string).trim().slice(0, 300) : '';
+      const v = c === 'manychat_url' ? limpiarManychat(crudo) : crudo;
       if (v && !(typeof lead[c] === 'string' && (lead[c] as string).trim())) patch[c] = v;
     }
     const nota = typeof item.nota === 'string' ? item.nota.trim().slice(0, 2000) : '';

@@ -25,6 +25,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
     porFuente.set(k, (porFuente.get(k) ?? 0) + 1);
   }
   const sinPrimerToque = compradores.filter((a) => !a.lead?.primer_punto_contacto).length;
+  const sinChat = compradores.filter((a) => !a.lead?.manychat_url).length;
   const torta = Array.from(porFuente.entries()).map(([name, value]) => ({ name, value }));
   const utms = Object.fromEntries((['utm_campaign', 'utm_source', 'utm_content', 'utm_medium'] as const).map((n) => [n, agendasPorUtm(bundle, f, n)]));
 
@@ -49,7 +50,12 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
         <Seccion
           eyebrow="Compradores · trazabilidad inversa"
           titulo={`${num(compradores.length)} ventas`}
-          aside={sinPrimerToque ? <span className="tag tag-yellow">{num(sinPrimerToque)} sin primer punto de contacto</span> : undefined}
+          aside={
+            <div className="flex flex-wrap gap-2">
+              {sinPrimerToque > 0 && <span className="tag tag-yellow">{num(sinPrimerToque)} sin primer punto de contacto</span>}
+              {sinChat > 0 && <span className="tag tag-gray">{num(sinChat)} sin conversación de ManyChat</span>}
+            </div>
+          }
         >
           {compradores.length ? (
             <div className="card overflow-x-auto !p-0">
@@ -59,6 +65,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                     <th>Mes</th>
                     <th>Fecha de cierre</th>
                     <th>Nombre · Instagram</th>
+                    <th>Conversación</th>
                     <th className="num">Cobrado</th>
                     <th>Fuente</th>
                     <th>Primer punto de contacto</th>
@@ -73,6 +80,11 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                       <td className="text-text-muted">{mesCorto(mesDe(a.fecha_llamada))}</td>
                       <td>{fechaCorta(a.fecha_llamada)}</td>
                       <td className="font-medium">{a.lead?.nombre}{a.lead?.instagram && <span className="ml-2 text-text-muted">{a.lead.instagram}</span>}</td>
+                      <td>
+                        {a.lead?.manychat_url
+                          ? <a className="text-[var(--accent)] hover:underline" href={a.lead.manychat_url} target="_blank" rel="noopener noreferrer" title="Abrir la conversación en ManyChat">Ver chat ↗</a>
+                          : <span className="text-text-disabled">—</span>}
+                      </td>
                       <td className="num">{usd(a.cash_collected)}</td>
                       <td>{a.lead?.fuente ?? '—'}</td>
                       <td>{a.lead?.primer_punto_contacto ?? <span className="warn">Falta</span>}</td>

@@ -66,6 +66,7 @@ export default async function Cargar({ searchParams }: { searchParams: { ok?: st
           <Campo label="Valor total de la venta (USD)" ayuda="Si es en cuotas, lo que falta queda como pendiente."><input className="input" name="revenue" type="number" step="0.01" inputMode="decimal" placeholder="0" /></Campo>
           <Campo label="Plataforma de cobro"><select className="input" name="plataforma" defaultValue="Stripe">{OPC_PLATAFORMA}</select></Campo>
           <Campo label="Producto"><input className="input" name="producto" defaultValue={PRODUCTO} /></Campo>
+          <Campo label="Conversación de ManyChat (opcional)" ayuda="El link del chat donde se hizo el setting." ancho><input className="input" name="manychat_url" type="url" placeholder="https://app.manychat.com/fb.../chat/..." /></Campo>
         </Bloque>
 
         <Bloque titulo="Cobro de cuota o reembolso" cuando="Cuando entra una cuota de una venta anterior, o se devuelve plata." boton="Guardar cobro" tipo="cobranza">

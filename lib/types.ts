@@ -59,6 +59,8 @@ export interface Lead {
   primer_punto_contacto?: string | null;
   ultimo_punto_contacto?: string | null;
   etapa_pipeline?: string | null;
+  /** Link a la conversación de ManyChat (el DM donde se hizo el setting) */
+  manychat_url?: string | null;
   source: Source;
   notas?: string | null;
 }

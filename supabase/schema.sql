@@ -64,6 +64,9 @@ create table if not exists leads (
   etapa_pipeline text
 );
 
+-- Link a la conversación de ManyChat del lead (para ver de dónde vino cada venta).
+alter table leads add column if not exists manychat_url text;
+
 create table if not exists agendas (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),

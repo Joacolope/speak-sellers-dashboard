@@ -99,6 +99,13 @@ async function manejarPOST(req: NextRequest) {
     }).eq('id', lead.id);
   }
 
+  // Link de la conversación de ManyChat: se guarda en el lead (sirve para ver de dónde vino la venta)
+  if (data.manychat_url) {
+    const many = /^https:\/\/app\.manychat\.com\/fb\d+\/chat\/\d+/.exec(String(data.manychat_url).trim())?.[0];
+    if (!many) return volver({ error: 'El link de ManyChat tiene que ser https://app.manychat.com/fb.../chat/...' });
+    await sb.from('leads').update({ manychat_url: many, updated_at: new Date().toISOString() }).eq('id', lead.id);
+  }
+
   let q = sb.from('agendas').select('*').eq('lead_id', lead.id);
   if (fecha) q = q.gte('fecha_llamada', `${sumarDias(fecha, -3)}T00:00:00-03:00`).lte('fecha_llamada', `${sumarDias(fecha, 3)}T23:59:59-03:00`);
   const { data: agendas, error: eAg } = await q.order('fecha_llamada', { ascending: false }).limit(1);
