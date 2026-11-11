@@ -94,9 +94,8 @@ function toque(a?: Atribucion): string | null {
 }
 
 /** Respuestas del formulario de agenda: se buscan los campos personalizados por nombre, no por id. */
-type CampoForm = 'closer_en_actividad' | 'rango_comisiones' | 'nicho' | 'dato_previo' | 'video_origen';
+type CampoForm = 'closer_en_actividad' | 'rango_comisiones' | 'nicho' | 'dato_previo';
 const FORM_DEFECTO: Record<CampoForm, string> = {
-  video_origen: 'video|reel|te hizo seguir|nos conociste',
   closer_en_actividad: 'closer.*actividad|sos closer|en actividad',
   rango_comisiones: 'comision',
   nicho: 'nicho',

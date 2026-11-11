@@ -54,8 +54,6 @@ export interface Lead {
   rango_comisiones?: string | null;
   nicho?: string | null;
   dato_previo?: string | null;
-  /** "¿Qué video nuestro te hizo seguirnos?" (formulario de agenda) */
-  video_origen?: string | null;
   primer_punto_contacto?: string | null;
   ultimo_punto_contacto?: string | null;
   etapa_pipeline?: string | null;
@@ -332,6 +330,8 @@ export interface Angulo {
   hook?: string | null;
   /** Evidencia de que funciona (números, comentarios, ventas) */
   resultado?: string | null;
+  /** De dónde sale el dato: chat del equipo, ManyChat, Instagram… */
+  fuente?: string | null;
   url?: string | null;
   /** Para cruzar con las etiquetas de ManyChat y los títulos de los reels */
   palabras_clave: string[];

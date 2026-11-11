@@ -83,8 +83,7 @@
         "closer_en_actividad": { "type": "string" },
         "rango_comisiones": { "type": "string" },
         "nicho": { "type": "string" },
-        "dato_previo": { "type": "string" },
-        "video_origen": { "type": "string" }
+        "dato_previo": { "type": "string" }
       }
     }
   }

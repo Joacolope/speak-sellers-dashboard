@@ -5,8 +5,6 @@ import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { agendasPorUtm, esVenta, mesesDisponibles, enPeriodo } from '@/lib/metrics';
 import TablaUtm from '@/components/TablaUtm';
-import Angulos from '@/components/Angulos';
-import { getSesion, puede } from '@/lib/auth';
 import { ChartCard } from '@/components/ui';
 import { Iconos } from '@/components/StatCard';
 import { fechaCorta, mesCorto, num, usd } from '@/lib/format';
@@ -65,9 +63,8 @@ const mediana = (v: number[]) => {
   return o.length % 2 ? o[(o.length - 1) / 2] : (o[o.length / 2 - 1] + o[o.length / 2]) / 2;
 };
 
-export default async function PuntosDeContacto({ searchParams }: { searchParams: SearchParams & { ok?: string; error?: string } }) {
+export default async function PuntosDeContacto({ searchParams }: { searchParams: SearchParams }) {
   const bundle = await getBundle();
-  const editor = puede(await getSesion(), 'editor');
   const f = leerFiltros(searchParams);
   const meses = mesesDisponibles(bundle, f.mes);
   const compradores = bundle.agendas
@@ -245,8 +242,6 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
           </p>
         </Seccion>
       )}
-
-      <Angulos bundle={bundle} editor={editor} ok={typeof searchParams.ok === 'string' ? searchParams.ok : null} error={typeof searchParams.error === 'string' ? searchParams.error : null} />
 
       <ChartCard titulo="Agendas por UTM" sub="Todas las agendas del período, agrupadas por el link con que agendaron" icono={Iconos.tendencia} color="blue">
         <TablaUtm datos={utms} />

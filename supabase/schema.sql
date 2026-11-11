@@ -356,6 +356,9 @@ create table if not exists angulos (
   editado_por text
 );
 
+-- De dónde sale el dato del ángulo (chat del equipo, ManyChat, Instagram, lo dijo alguien)
+alter table angulos add column if not exists fuente text;
+
 create table if not exists log_agente (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),

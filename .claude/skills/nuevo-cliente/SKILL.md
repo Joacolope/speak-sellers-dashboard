@@ -33,7 +33,7 @@ Hacé estas preguntas en un solo mensaje. Con las respuestas se arma `cliente.js
 | 6 | ¿Usan GoHighLevel? ¿Nombre de la sub-cuenta? ¿Calendario(s) de llamadas de venta? ¿Pipeline comercial? | `ghl.*` |
 | 7 | ¿Corren anuncios en Meta? ¿Cuenta publicitaria? ¿Cómo se llaman las campañas que llevan al perfil (tipo "Follow Me") y las de webinar? | `meta.cuentaPublicitaria`, `meta.campanas` |
 | 8 | ¿Instagram del negocio y página de Facebook conectada? | `meta.instagram`, `meta.paginaId` |
-| 9 | ¿Qué preguntas tiene el formulario de agenda? (closer en actividad, comisiones, nicho, dato previo, "qué video te hizo seguirnos") | `formulario` (solo si los nombres difieren) |
+| 9 | ¿Qué preguntas tiene el formulario de agenda? (closer en actividad, comisiones, nicho, dato previo) | `formulario` (solo si los nombres difieren) |
 | 10 | ¿Emails de Google de quién administra, quién carga datos y quién solo mira? | env `ADMIN_EMAILS` / `EDITOR_EMAILS` / `LECTOR_EMAILS` |
 | 11 | ¿Email de contacto para Privacidad/Términos? | `contacto` |
 
@@ -84,9 +84,10 @@ Después de cada paso, abrí **`/conexiones`** (admin) y confirmá que la fila q
 
 **GoHighLevel**
 - El cliente crea una Private Integration (ver `docs/ACCESOS_CLIENTE.md`) y te pasa el token → `GHL_TOKEN`.
-- Si el formulario de agenda no tiene la pregunta **"¿Qué video nuestro te hizo seguirnos?"**, creala con el MCP de GHL
-  (`locations.create-custom-field`, `dataType: LARGE_TEXT`, `model: contact`) y pedile al cliente que la agregue al formulario del calendario como obligatoria.
-  Lo mismo con "¿Sos closer en actividad?", "¿Cuánto comisionás por mes?" y "¿En qué nicho?" si quieren la cualificación.
+- Si quieren la cualificación y el formulario de agenda no tiene las preguntas, crealas con el MCP de GHL
+  (`locations.create-custom-field`, `dataType: LARGE_TEXT`, `model: contact`) y pedile al cliente que las agregue al formulario del calendario:
+  "¿Sos closer en actividad?", "¿Cuánto comisionás por mes?" y "¿En qué nicho?".
+- La trazabilidad de las ventas no sale del formulario: sale de ManyChat (`MANYCHAT_TOKEN` + link de la conversación de cada lead) y de los chats del equipo.
 - Webhook de citas: `GHL_WEBHOOK_SECRET` en Vercel; en GHL un workflow con disparador Cita → Webhook POST a `https://<dominio>/api/webhooks/ghl?token=<secreto>`.
 
 **Meta Ads e Instagram**

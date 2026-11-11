@@ -35,7 +35,7 @@ export interface ConfigCliente {
     instagram?: string;
     campanas?: { follow_me?: string[]; webinar?: string[] };
   };
-  formulario?: Partial<Record<'closer_en_actividad' | 'rango_comisiones' | 'nicho' | 'dato_previo' | 'video_origen', string>>;
+  formulario?: Partial<Record<'closer_en_actividad' | 'rango_comisiones' | 'nicho' | 'dato_previo', string>>;
 }
 
 /** Errores de configuración, en lenguaje de quien la edita. Vacío = todo bien. */

@@ -19,7 +19,7 @@ También necesitamos saber:
 - qué **calendario(s)** usan para las llamadas de venta y cuál es el **pipeline** comercial (con el nombre alcanza);
 - qué **closer** atiende cada calendario, o si se reparten (round robin).
 
-Si quieren medir qué contenido trae ventas, agregar al formulario de agenda la pregunta obligatoria **"¿Qué video nuestro te hizo seguirnos?"** (la creamos nosotros; ellos la suman al formulario).
+De dónde viene cada venta no se pregunta en el formulario: sale de la conversación de ManyChat de cada lead (etiquetas) y de lo que el equipo pasa por chat.
 
 ## 3. Meta (anuncios e Instagram)
 

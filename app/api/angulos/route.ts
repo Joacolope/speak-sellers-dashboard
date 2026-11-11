@@ -14,9 +14,9 @@ const palabras = (v: unknown): string[] =>
     .slice(0, 15);
 
 /**
- * Ángulos de comunicación (sección de Contacto). Form-data con sesión de editor, o JSON con
+ * Ángulos de comunicación (pestaña Marketing). Form-data con sesión de editor, o JSON con
  * "Authorization: Bearer $CARGA_API_TOKEN".
- *  accion=alta    → nombre, etapa (TOFU/MOFU/BOFU), estado, tipo, formato, hook, resultado, url, palabras_clave, notas
+ *  accion=alta    → nombre, etapa (TOFU/MOFU/BOFU), estado, tipo, formato, hook, resultado, fuente, url, palabras_clave, notas
  *  accion=editar  → id + los mismos campos (los que vienen vacíos se borran)
  *  accion=estado  → id, estado
  *  accion=borrar  → id
@@ -29,9 +29,8 @@ async function manejarPOST(req: NextRequest) {
 
   const volver = (q: Record<string, string>) => {
     if (!esForm) return NextResponse.json(q, { status: q.error ? 400 : 200 });
-    const url = new URL('/puntos-de-contacto', req.url);
+    const url = new URL('/marketing', req.url);
     for (const [k, v] of Object.entries(q)) url.searchParams.set(k, v);
-    url.hash = 'angulos';
     return NextResponse.redirect(url, 303);
   };
 
@@ -68,7 +67,7 @@ async function manejarPOST(req: NextRequest) {
   const fila = {
     nombre, etapa, estado,
     tipo: texto(d.tipo, 60), formato: texto(d.formato, 60), hook: texto(d.hook, 500), resultado: texto(d.resultado, 1000),
-    url, palabras_clave: palabras(d.palabras_clave), notas: texto(d.notas, 2000),
+    url, palabras_clave: palabras(d.palabras_clave), notas: texto(d.notas, 2000), fuente: texto(d.fuente, 200),
     source: 'manual', editado_por: auth.quien, updated_at: new Date().toISOString(),
   };
   const { error } = accion === 'editar'

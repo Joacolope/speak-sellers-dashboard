@@ -440,7 +440,7 @@ export function sampleBundle(): RawBundle {
       { id: 'web-1', fecha: '2026-09-06', nombre: 'Webinar 6/9', registrados: 320, registrados_calificados: 130, asistentes: 95, source: 'manual' },
       { id: 'web-2', fecha: '2026-10-04', nombre: 'Webinar 4/10', registrados: 975, registrados_calificados: 410, asistentes: 240, source: 'manual' },
     ],
-    // Ángulos de comunicación de ejemplo (en la real se cargan en Contacto → Ángulos)
+    // Ángulos de comunicación de ejemplo (en la real se cargan en Marketing)
     angulos: [
       { id: 'ang-1', nombre: 'Cobrar el precio al principio de la llamada', etapa: 'MOFU', estado: 'Funcionando', tipo: 'Solución', formato: 'Reel', hook: '«Si decís el precio al final, ya perdiste la venta»', resultado: '3 ventas con la etiqueta · reel con 170 comentarios', palabras_clave: ['precio al principio'], source: 'manual' },
       { id: 'ang-2', nombre: 'CTA INFO: pedí el recurso por DM', etapa: 'BOFU', estado: 'Funcionando', tipo: 'Oferta', formato: 'Post', hook: 'Comentá INFO y te paso cómo trabajamos', palabras_clave: ['cta info'], source: 'manual' },
