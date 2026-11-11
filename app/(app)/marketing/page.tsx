@@ -68,16 +68,18 @@ const Fila = ({ titulo, children }: { titulo: string; children: React.ReactNode 
 function Evidencia({ a, c }: { a: Angulo; c: CruceAngulo }) {
   const compraron = c.leads.filter((l) => l.compro);
   const agendaron = c.leads.filter((l) => !l.compro);
+  // "$150 de $600": la parte que le toca a este ángulo y lo que pagó el lead
+  const monto = (l: CruceAngulo['leads'][number]) => (l.entre > 1 ? `${usd(l.cash)} de ${usd(l.total)}` : usd(l.cash));
   const Lead = ({ l }: { l: CruceAngulo['leads'][number] }) =>
     l.chat
-      ? <a className="text-[var(--accent)] hover:underline" href={l.chat} target="_blank" rel="noopener noreferrer" title="Abrir la conversación en ManyChat">{l.nombre}{l.compro ? ` · ${usd(l.cash)}` : ''} ↗</a>
-      : <span className="text-text-muted">{l.nombre}{l.compro ? ` · ${usd(l.cash)}` : ''}</span>;
+      ? <a className="text-[var(--accent)] hover:underline" href={l.chat} target="_blank" rel="noopener noreferrer" title="Abrir la conversación en ManyChat">{l.nombre}{l.compro ? ` · ${monto(l)}` : ''} ↗</a>
+      : <span className="text-text-muted">{l.nombre}{l.compro ? ` · ${monto(l)}` : ''}</span>;
   const hay = c.leads.length > 0 || c.listaReels.length > 0 || a.url || a.fuente || a.resultado;
   if (!hay) return <div className="text-[13px] text-text-disabled">Todavía sin conversaciones ni reels que coincidan con: {a.palabras_clave.join(', ') || 'sin palabras clave'}.</div>;
   return (
     <div className="flex flex-col gap-4 rounded-xl bg-[var(--surface-2)] p-5">
       <div className="text-[13px] text-text-muted">En qué se basa</div>
-      {compraron.length > 0 && <Fila titulo="Compraron">{compraron.map((l) => <Lead key={l.nombre} l={l} />)}</Fila>}
+      {compraron.length > 0 && <Fila titulo="Compraron (su parte)">{compraron.map((l) => <Lead key={l.nombre} l={l} />)}</Fila>}
       {agendaron.length > 0 && <Fila titulo="Agendaron">{agendaron.map((l) => <Lead key={l.nombre} l={l} />)}</Fila>}
       {c.origenes.length > 0 && (
         <Fila titulo="Origen del lead">{c.origenes.map((t) => <span key={t} className="tag tag-gray">{t}</span>)}</Fila>
@@ -166,7 +168,7 @@ export default async function Marketing({ searchParams }: { searchParams: { ok?:
           })}
         </div>
         <p className="text-[13px] text-text-disabled">
-          Tocá la flecha de cada etapa para ver sus ángulos. Views: reels de Instagram con las palabras clave del ángulo. Agendas, ventas y cobrado: leads con esas palabras en sus etiquetas de ManyChat o en su origen (fuente, primer contacto, UTM). Una venta puede contar en más de un ángulo.
+          Tocá la flecha de cada etapa para ver sus ángulos. Views: reels de Instagram con las palabras clave del ángulo. Agendas, ventas y cobrado: leads con esas palabras en sus etiquetas de ManyChat o en su origen (fuente, primer contacto, UTM). Si un lead tocó varios ángulos, lo que pagó se reparte en partes iguales entre ellos: la venta cuenta en cada uno, pero la plata no se repite.
         </p>
       </Seccion>
 
@@ -201,7 +203,7 @@ export default async function Marketing({ searchParams }: { searchParams: { ok?:
               </header>
 
               <div className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
-                <Numero valor={c.ventas ? usd(c.cash) : '—'} label="cobrado" />
+                <Numero valor={c.ventas ? usd(c.cash) : '—'} label="cobrado (su parte)" />
                 <Numero valor={c.ventas ? num(c.ventas) : '—'} label="ventas" />
                 <Numero valor={c.agendas ? num(c.agendas) : '—'} label="agendas" />
                 <Numero valor={c.reels ? num(c.views) : '—'} label="views" />
