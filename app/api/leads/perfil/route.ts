@@ -3,7 +3,7 @@ import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 
-const CAMPOS = ['pais', 'closer_en_actividad', 'rango_comisiones', 'dato_previo', 'primer_punto_contacto', 'manychat_url', 'fuente', 'seguidor_desde', 'como_agendo', 'recorrido', 'video_origen'] as const;
+const CAMPOS = ['pais', 'closer_en_actividad', 'rango_comisiones', 'dato_previo', 'primer_punto_contacto', 'manychat_url', 'fuente', 'seguidor_desde', 'como_agendo', 'recorrido'] as const;
 const FUENTES = ['Instagram', 'WhatsApp', 'Webinar', 'YouTube', 'Referido', 'Otro'];
 const COMO_AGENDO = ['Setting', 'Link en bio', 'Directo con el closer', 'Webinar', 'Otro'];
 /** Solo links a una conversación de ManyChat (sin parámetros de búsqueda) */

@@ -315,6 +315,31 @@ export interface UltimaActualizacion {
 }
 
 /** Todo lo que el dashboard necesita, crudo, sin filtrar por mes. */
+export const ETAPAS = ['TOFU', 'MOFU', 'BOFU'] as const;
+export type Etapa = (typeof ETAPAS)[number];
+export const ESTADOS_ANGULO = ['Funcionando', 'Probando', 'Descartado'] as const;
+export type EstadoAngulo = (typeof ESTADOS_ANGULO)[number];
+/** Ángulo de comunicación: el mensaje, en qué etapa del embudo va y si está funcionando. */
+export interface Angulo {
+  id: string;
+  nombre: string;
+  etapa: Etapa;
+  estado: EstadoAngulo;
+  /** Problema, Solución, Prueba social, Oferta, Objeción, Identidad… */
+  tipo?: string | null;
+  /** Reel, Historia, Anuncio, Carrusel, Post, DM, Webinar… */
+  formato?: string | null;
+  hook?: string | null;
+  /** Evidencia de que funciona (números, comentarios, ventas) */
+  resultado?: string | null;
+  url?: string | null;
+  /** Para cruzar con las etiquetas de ManyChat y los títulos de los reels */
+  palabras_clave: string[];
+  notas?: string | null;
+  updated_at?: string;
+  source: Source;
+}
+
 export interface RawBundle {
   demo: boolean;
   leads: Lead[];
@@ -331,6 +356,7 @@ export interface RawBundle {
   comisionesPlataformas: ComisionPlataforma[];
   webinars: Webinar[];
   respuestaSemanal: RespuestaSemanal[];
+  angulos: Angulo[];
   log: LogAgente[];
   actualizaciones: UltimaActualizacion[];
 }

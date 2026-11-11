@@ -440,6 +440,14 @@ export function sampleBundle(): RawBundle {
       { id: 'web-1', fecha: '2026-09-06', nombre: 'Webinar 6/9', registrados: 320, registrados_calificados: 130, asistentes: 95, source: 'manual' },
       { id: 'web-2', fecha: '2026-10-04', nombre: 'Webinar 4/10', registrados: 975, registrados_calificados: 410, asistentes: 240, source: 'manual' },
     ],
+    // Ángulos de comunicación de ejemplo (en la real se cargan en Contacto → Ángulos)
+    angulos: [
+      { id: 'ang-1', nombre: 'Cobrar el precio al principio de la llamada', etapa: 'MOFU', estado: 'Funcionando', tipo: 'Solución', formato: 'Reel', hook: '«Si decís el precio al final, ya perdiste la venta»', resultado: '3 ventas con la etiqueta · reel con 170 comentarios', palabras_clave: ['precio al principio'], source: 'manual' },
+      { id: 'ang-2', nombre: 'CTA INFO: pedí el recurso por DM', etapa: 'BOFU', estado: 'Funcionando', tipo: 'Oferta', formato: 'Post', hook: 'Comentá INFO y te paso cómo trabajamos', palabras_clave: ['cta info'], source: 'manual' },
+      { id: 'ang-3', nombre: 'Closer que cobra 10k al mes: un día normal', etapa: 'TOFU', estado: 'Probando', tipo: 'Identidad', formato: 'Reel', palabras_clave: ['clase'], source: 'manual' },
+      { id: 'ang-4', nombre: 'Pago en la llamada', etapa: 'BOFU', estado: 'Probando', tipo: 'Objeción', formato: 'Historia', palabras_clave: ['pago en llamada'], source: 'manual' },
+      { id: 'ang-5', nombre: 'Vender sin presión', etapa: 'TOFU', estado: 'Descartado', tipo: 'Problema', formato: 'Anuncio', resultado: 'CPM alto y pocos seguidores', palabras_clave: [], source: 'manual' },
+    ],
     // Tiempo de respuesta semanal de ejemplo (en la real se copia de Meta Business Suite)
     respuestaSemanal: [
       { semana: '2026-10-04', hasta: '2026-10-31', contactos: 756, contactos_nuevos: 553, conversaciones: 917, conv_organicas: 355, conv_pagadas: 401, pct_respuesta: 0.879, tr_promedio_min: 131 },

@@ -42,7 +42,7 @@ export async function cargarBundle(): Promise<RawBundle> {
   desde.setUTCMonth(desde.getUTCMonth() - 14);
   const desdeIso = desde.toISOString().slice(0, 10);
 
-  const [leads, agendas, cobranzas, setter, ads, campanas, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log, semanal] = await Promise.all([
+  const [leads, agendas, cobranzas, setter, ads, campanas, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log, semanal, angulos] = await Promise.all([
     sb.from('leads').select('*'),
     sb.from('agendas').select('*').gte('fecha_llamada', desdeIso),
     sb.from('cobranzas').select('*').gte('fecha_cobro', desdeIso),
@@ -59,6 +59,8 @@ export async function cargarBundle(): Promise<RawBundle> {
     sb.from('log_agente').select('*').order('fecha', { ascending: false }).limit(30),
     // Tabla nueva: si todavía no existe (antes de aplicar la migración), se sigue sin ella
     sb.from('respuesta_semanal').select('*').order('semana'),
+    // Ídem: ángulos de marketing
+    sb.from('angulos').select('*').order('updated_at', { ascending: false }),
   ]);
 
   const errores = [leads, agendas, cobranzas, setter, ads, campanas, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log].map((r) => r.error).filter(Boolean);
@@ -112,6 +114,7 @@ export async function cargarBundle(): Promise<RawBundle> {
       pct_respuesta: r.pct_respuesta == null ? null : Number(r.pct_respuesta),
     })) as RawBundle['respuestaSemanal'],
     comisionesPlataformas: (comPlat.data ?? []).map((c) => ({ ...c, porcentaje: Number(c.porcentaje), fijo: Number(c.fijo) })) as RawBundle['comisionesPlataformas'],
+    angulos: (angulos.error ? [] : angulos.data ?? []).map((a) => ({ ...a, palabras_clave: a.palabras_clave ?? [] })) as RawBundle['angulos'],
     log: logs,
     actualizaciones,
   };

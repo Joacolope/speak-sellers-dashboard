@@ -336,6 +336,26 @@ create table if not exists costos (
   check (fecha_baja is null or fecha_baja >= fecha_alta)
 );
 
+-- Ángulos de comunicación (marketing): qué mensaje se está usando, en qué etapa del embudo y si funciona.
+create table if not exists angulos (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  source source_t not null default 'manual',
+  notas text,
+  nombre text not null,
+  etapa text not null default 'TOFU' check (etapa in ('TOFU','MOFU','BOFU')),
+  estado text not null default 'Probando' check (estado in ('Funcionando','Probando','Descartado')),
+  tipo text,
+  formato text,
+  hook text,
+  resultado text,
+  url text,
+  -- Palabras para cruzar con las etiquetas de ManyChat y los reels (p. ej. "precio al principio", "CTA INFO")
+  palabras_clave text[] not null default '{}',
+  editado_por text
+);
+
 create table if not exists log_agente (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
@@ -411,7 +431,7 @@ begin new.updated_at = now(); return new; end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','campanas_meta','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','webinars','usuarios','log_agente'] loop
+  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','campanas_meta','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','webinars','usuarios','log_agente','angulos'] loop
     execute format('drop trigger if exists %I_updated_at on %I', t, t);
     execute format('create trigger %I_updated_at before update on %I for each row execute function set_updated_at()', t, t);
   end loop;
@@ -593,7 +613,7 @@ $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','campanas_meta','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','webinars','log_agente'] loop
+  foreach t in array array['leads','agendas','cobranzas','setter_diario','ads_diario','campanas_meta','organico_diario','organico_piezas','ajustes_mensuales','costos','comisiones','comisiones_plataformas','webinars','log_agente','angulos'] loop
     execute format('alter table %I enable row level security', t);
     execute format('alter table %I force row level security', t);
     execute format('drop policy if exists %I_anon_lee on %I', t, t);           -- política vieja, insegura

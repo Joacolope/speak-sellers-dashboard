@@ -4,7 +4,7 @@ import { DemoBanner, Seccion, SourceDot, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { mesesDisponibles, enPeriodo } from '@/lib/metrics';
-import { fechaCorta, mesDe, num, pct, usd } from '@/lib/format';
+import { fechaCorta, mesDe, num, pct } from '@/lib/format';
 import type { OrganicoPieza } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -51,18 +51,6 @@ export default async function Organico({ searchParams }: { searchParams: SearchP
     .sort((a, b) => (b.seguidores ?? 0) - (a.seguidores ?? 0) || (b.visitas_perfil ?? 0) - (a.visitas_perfil ?? 0))
     .slice(0, 10);
 
-  // Qué video declararon los que compraron (pregunta del formulario de agenda)
-  const ventasPorVideo = new Map<string, { ventas: number; cash: number; nombres: string[] }>();
-  for (const a of bundle.agendas) {
-    const video = a.lead?.video_origen?.trim();
-    if (!video || (a.compro !== 'Si' && a.compro !== 'Reserva')) continue;
-    const v = ventasPorVideo.get(video) ?? { ventas: 0, cash: 0, nombres: [] };
-    v.ventas++;
-    v.cash += a.cash_collected ?? 0;
-    if (a.lead?.nombre) v.nombres.push(a.lead.nombre);
-    ventasPorVideo.set(video, v);
-  }
-  const videos = [...ventasPorVideo.entries()].sort((a, b) => b[1].cash - a[1].cash);
 
   return (
     <>
@@ -170,26 +158,6 @@ export default async function Organico({ searchParams }: { searchParams: SearchP
           ) : <Vacio texto="Todavía sin datos de seguidores por reel: se cargan con el próximo sync diario de Instagram (repasa los últimos 120 días)." />}
         </Seccion>
 
-        <Seccion eyebrow="Trazabilidad" titulo="Ventas por el video que los trajo">
-          {videos.length ? (
-            <div className="card overflow-x-auto !p-0">
-              <table className="table">
-                <thead>
-                  <tr><th>Video que dijeron</th><th className="num">Ventas</th><th className="num">Cash</th></tr>
-                </thead>
-                <tbody>
-                  {videos.map(([video, v]) => (
-                    <tr key={video}>
-                      <td title={v.nombres.join(', ')}>{/^https?:\/\//.test(video) ? <a href={video} target="_blank" rel="noreferrer" className="hover:text-accent">{video.replace(/^https?:\/\/(www\.)?/, '').slice(0, 48)}</a> : video}</td>
-                      <td className="num">{num(v.ventas)}</td>
-                      <td className="num">{usd(v.cash)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : <Vacio texto="Sin respuestas todavía. Se llena con la pregunta del formulario de agenda “¿Qué video nuestro te hizo seguirnos?”." />}
-        </Seccion>
       </div>
     </>
   );
