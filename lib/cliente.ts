@@ -36,7 +36,6 @@ export interface ConfigCliente {
     campanas?: { follow_me?: string[]; webinar?: string[] };
   };
   formulario?: Partial<Record<'closer_en_actividad' | 'rango_comisiones' | 'nicho' | 'dato_previo' | 'video_origen', string>>;
-  resumen?: { remitente?: string };
 }
 
 /** Errores de configuración, en lenguaje de quien la edita. Vacío = todo bien. */
@@ -94,7 +93,6 @@ export const ids = {
   },
   metaPagina: () => process.env.META_PAGE_ID || CLIENTE.meta.paginaId || '',
   appUrl: () => process.env.APP_URL || CLIENTE.url || '',
-  remitenteResumen: () => process.env.RESUMEN_DESDE || CLIENTE.resumen?.remitente || `${CLIENTE.nombre} <onboarding@resend.dev>`,
   googleVerificacion: () => process.env.GOOGLE_SITE_VERIFICATION || CLIENTE.googleSiteVerification || undefined,
 };
 

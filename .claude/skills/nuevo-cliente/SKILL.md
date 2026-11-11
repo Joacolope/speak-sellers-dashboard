@@ -35,7 +35,7 @@ Hacé estas preguntas en un solo mensaje. Con las respuestas se arma `cliente.js
 | 8 | ¿Instagram del negocio y página de Facebook conectada? | `meta.instagram`, `meta.paginaId` |
 | 9 | ¿Qué preguntas tiene el formulario de agenda? (closer en actividad, comisiones, nicho, dato previo, "qué video te hizo seguirnos") | `formulario` (solo si los nombres difieren) |
 | 10 | ¿Emails de Google de quién administra, quién carga datos y quién solo mira? | env `ADMIN_EMAILS` / `EDITOR_EMAILS` / `LECTOR_EMAILS` |
-| 11 | ¿Email de contacto para Privacidad/Términos? ¿Quién recibe el resumen semanal? | `contacto`, env `RESUMEN_EMAILS` |
+| 11 | ¿Email de contacto para Privacidad/Términos? | `contacto` |
 
 Los IDs de GHL (sub-cuenta, calendarios, pipeline, usuarios) se pueden **descubrir** con el MCP de GHL
 (`list_locations`, `search_operations` → calendarios / pipelines / users) en vez de pedirlos. Si no hay IDs de
@@ -58,7 +58,7 @@ Después, en el repo nuevo:
    Sacá `googleSiteVerification` (es de Speak Sellers) hasta tener el del cliente.
 2. Borrá lo que es solo de Speak Sellers: `docs/clientes/speak-sellers/`, `public/google*.html`, `scripts/migrar.ts` si no van a migrar un spreadsheet.
 3. `vercel.json`: el cron diario está en `0 9 * * *` UTC (= 6:00 Argentina). Ajustalo a las ~6:00 de la zona horaria del cliente
-   (México: `0 12 * * *`, España: `0 5 * * *`). El resumen semanal (`0 21 * * 5`) es viernes 18:00 Argentina: misma idea.
+   (México: `0 12 * * *`, España: `0 5 * * *`).
 4. `node scripts/db-setup.mjs` sin base tiene que imprimir `Cliente: <marca> · N closer(s)`. Si falla, dice qué falta.
 5. `npm install && npx tsc --noEmit && npm run dev` → entrá a `/`, `/closers`, `/conexiones` con datos de ejemplo. Sacá una captura.
 6. Commit y push a `main`.
@@ -73,7 +73,7 @@ Con el MCP de Vercel (o la UI):
 3. Variables (`create_project_env`, target production + preview, tipo sensitive para los secretos):
    - `ADMIN_EMAILS`, `EDITOR_EMAILS`, `LECTOR_EMAILS`
    - `CRON_SECRET` y `CARGA_API_TOKEN`: generalos con `openssl rand -hex 32` **cada uno distinto**. Guardalos vos (el de carga lo vas a usar para verificar); no los pegues en el chat.
-   - `GHL_TOKEN`, `GHL_WEBHOOK_SECRET` (otro `openssl rand -hex 32`), `META_TOKEN`, `RESEND_API_KEY`, `RESUMEN_EMAILS` a medida que los tengas.
+   - `GHL_TOKEN`, `GHL_WEBHOOK_SECRET` (otro `openssl rand -hex 32`), `META_TOKEN`, `MANYCHAT_TOKEN` a medida que los tengas.
 4. Redeploy. En el log del build tiene que decir `[db-setup] Cliente: <marca>` y `[db-setup] Schema aplicado. Usuarios activos: N`.
 5. **Login con Google**: seguir el paso 4 de `docs/PUESTA_EN_MARCHA.md` (Google Cloud → credencial OAuth, Supabase → Providers → Google, URL Configuration con el dominio de Vercel). Es manual, 10 minutos.
 6. Pedile al cliente que entre con su Google. Si ve el dashboard vacío, el login anda.

@@ -7,7 +7,6 @@ import { manychat as apiManychat } from './sync/manychat';
 import { cuentaAds } from './sync/meta';
 import { cuentaInstagram } from './sync/cuentaIg';
 import { vencimientoMeta } from './sync/vencimiento';
-import { destinatarios } from './resumen-envio';
 import { fechaHora } from './format';
 
 /**
@@ -182,17 +181,6 @@ export async function estadoConexiones(): Promise<Conexion[]> {
     ? { clave: 'carga', nombre: 'Carga por API (Claude y scripts)', estado: 'ok', detalle: 'CARGA_API_TOKEN configurado: se pueden cargar ventas, cobros y asistencias por API.' }
     : { clave: 'carga', nombre: 'Carga por API (Claude y scripts)', estado: 'falta', detalle: 'Falta CARGA_API_TOKEN (32+ caracteres).', arreglo: 'openssl rand -hex 32 → CARGA_API_TOKEN en Vercel → Redeploy.', opcional: true };
 
-  const resumen: Promise<Conexion> = (async () => {
-    const arreglo = 'Cuenta en resend.com → API key → RESEND_API_KEY en Vercel. Sin dominio verificado, Resend solo manda al dueño de la cuenta: poné ese mail en RESUMEN_EMAILS. Con dominio verificado, cliente.json → resumen.remitente.';
-    if (!process.env.RESEND_API_KEY) return { clave: 'resumen', nombre: 'Resumen semanal por mail', estado: 'falta', detalle: 'Falta RESEND_API_KEY.', arreglo, opcional: true };
-    const para = await destinatarios().catch(() => [] as string[]);
-    return {
-      clave: 'resumen', nombre: 'Resumen semanal por mail', estado: para.length ? 'ok' : 'aviso',
-      detalle: para.length ? `Se manda a ${para.length} destinatario${para.length === 1 ? '' : 's'} (${ids.remitenteResumen()})` : 'Resend configurado pero no hay destinatarios (RESUMEN_EMAILS vacío y ningún admin).',
-      arreglo, opcional: true,
-    };
-  })();
-
   const manychat: Promise<Conexion> = (async () => {
     const arreglo = 'En ManyChat: Settings → API → Generate your API Key (hace falta plan Pro). La clave va en MANYCHAT_TOKEN en Vercel → Redeploy. Solo se usa para leer etiquetas y fechas de los contactos.';
     if (!process.env.MANYCHAT_TOKEN) return { clave: 'manychat', nombre: 'ManyChat (etiquetas y recorrido de cada lead)', estado: 'falta', detalle: 'Falta MANYCHAT_TOKEN.', arreglo, opcional: true };
@@ -207,7 +195,7 @@ export async function estadoConexiones(): Promise<Conexion[]> {
 
   const google: Conexion = { clave: 'google', nombre: 'Ingreso con Google', estado: 'ok', detalle: 'Funciona: entraste con tu cuenta de Google para ver esta página.' };
 
-  const lista = await Promise.all([base, usuarios, gohighlevel, webhook, meta, instagram, cron, resumen, manychat]);
-  const [b, u, g, w, m, i, c, r, mc] = lista;
-  return [config, b, google, u, g, w, m, i, mc, c, carga, r];
+  const lista = await Promise.all([base, usuarios, gohighlevel, webhook, meta, instagram, cron, manychat]);
+  const [b, u, g, w, m, i, c, mc] = lista;
+  return [config, b, google, u, g, w, m, i, mc, c, carga];
 }

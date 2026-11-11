@@ -106,7 +106,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           <div className="flex items-baseline justify-between gap-4">
             <div className="eyebrow">Para mirar hoy</div>
             <div className="flex flex-wrap items-center gap-4">
-              <Link href="/resumen" className="text-[13px] text-text-muted hover:text-text">Resumen del viernes →</Link>
+              <Link href="/resumen" className="text-[13px] text-text-muted hover:text-text">Resumen de la semana →</Link>
             </div>
           </div>
           <Alertas alertas={lista} />

@@ -27,7 +27,5 @@
     "paginaId": "",
     "instagram": "",
     "campanas": { "follow_me": ["follow me", "perfil"], "webinar": ["webinar", "masterclass"] }
-  },
-
-  "resumen": { "remitente": "Academia Ejemplo <onboarding@resend.dev>" }
+  }
 }

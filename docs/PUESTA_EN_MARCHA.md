@@ -33,7 +33,6 @@ Si trabajás con Claude Code, la skill **`/nuevo-cliente`** hace de guía paso a
 | `GHL_TOKEN` | Token de Private Integration de GoHighLevel (`pit-…`) |
 | `GHL_WEBHOOK_SECRET` | Otro texto aleatorio: va en la URL del webhook de citas |
 | `META_TOKEN` | Token de usuario del sistema de Meta |
-| `RESEND_API_KEY`, `RESUMEN_EMAILS` | Para el resumen semanal por mail (opcional) |
 
 Qué tiene que hacer el cliente para conseguir los tokens: **`docs/ACCESOS_CLIENTE.md`**.
 Los IDs (sub-cuenta de GHL, cuenta publicitaria, página de Facebook) van en `cliente.json`, no acá.

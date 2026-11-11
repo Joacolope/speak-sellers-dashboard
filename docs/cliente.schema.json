@@ -7,10 +7,10 @@
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
-    "nombre": { "type": "string", "minLength": 2, "description": "Nombre de la marca. Aparece en el título ('<nombre> Dashboard'), el login y el mail semanal." },
+    "nombre": { "type": "string", "minLength": 2, "description": "Nombre de la marca. Aparece en el título ('<nombre> Dashboard'), y el login." },
     "empresa": { "type": "string", "description": "Razón social, para Privacidad y Términos. Si falta se usa el nombre." },
     "producto": { "type": "string", "description": "Nombre del producto que se vende (valor por defecto del campo Producto al cargar una venta)." },
-    "url": { "type": "string", "format": "uri", "description": "URL pública del dashboard (links del mail semanal). APP_URL la pisa." },
+    "url": { "type": "string", "format": "uri", "description": "URL pública del dashboard. APP_URL la pisa." },
     "contacto": { "type": "string", "format": "email", "description": "Email de contacto que se muestra en Bienvenida, Privacidad y Términos." },
     "zonaHoraria": { "type": "string", "description": "Zona horaria IANA del negocio (ej.: America/Argentina/Buenos_Aires, America/Mexico_City, Europe/Madrid). Define qué es 'hoy' y los cortes de mes." },
     "locale": { "type": "string", "default": "es-AR", "description": "Formato de números (es-AR: 1.200,50)." },
@@ -85,14 +85,6 @@
         "nicho": { "type": "string" },
         "dato_previo": { "type": "string" },
         "video_origen": { "type": "string" }
-      }
-    },
-
-    "resumen": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "remitente": { "type": "string", "description": "Remitente del mail semanal: 'Marca <resumen@dominio.com>'. RESUMEN_DESDE la pisa." }
       }
     }
   }

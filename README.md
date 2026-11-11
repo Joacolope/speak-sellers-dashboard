@@ -28,7 +28,7 @@ Nada del cliente vive en el código: los secretos van en variables de entorno de
 | `/anuncios` | Inversión, costo por resultado, campañas activas |
 | `/organico` | Reels e historias: views, comentarios, seguidores por reel, ventas por video |
 | `/costos` | Software, comisiones de closers y de plataformas de cobro |
-| `/resumen` | El mail semanal, tal como llega |
+| `/resumen` | La semana comparada con la anterior |
 | `/cargar` | Formulario manual (venta, cobro, asistencia, webinar) |
 | `/conexiones` | Estado de cada integración (admin) |
 
@@ -39,7 +39,6 @@ Filtro global por mes, closer y fuente en la URL. Modo oscuro/claro.
 - **Cron diario** (`/api/cron/diario`, horario en `vercel.json` en UTC): agendas y leads de GHL, inversión y campañas de Meta, reels/historias/seguidores de Instagram.
 - **Webhook de GHL**: cada cita nueva, confirmada o cancelada entra al instante.
 - **Cargas manuales**: desde `/cargar` o dictándole a Claude (`docs/CARGA_POR_CLAUDE.md`). Lo manual nunca lo pisa el cron.
-- **Resumen semanal** por mail los viernes (`/api/cron/resumen`, Resend).
 
 Origen de cada número: ● automático · ◐ agente · ○ manual o migración.
 

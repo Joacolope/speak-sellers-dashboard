@@ -48,13 +48,6 @@ En Claude Code → menú del entorno (barra de título de la sesión) → **Edit
 - [ ] El `META_TOKEN` (usuario de sistema) necesita los permisos `instagram_manage_messages`, `instagram_basic`, `pages_show_list`, `pages_read_engagement`, `pages_manage_metadata` y `business_management`, con la página y la cuenta de Instagram asignadas como activos
 - [ ] En la app de Instagram: Configuración → Mensajes → Herramientas conectadas → "Permitir acceso a los mensajes" activado
 
-## 4b. Resumen semanal por mail (viernes 18:00 AR)
-- [ ] Crear cuenta en resend.com con `joaquin@salesspawn.com` → API Keys → Create (permiso "Sending access")
-- [ ] En Vercel → Settings → Environment Variables: `RESEND_API_KEY` = esa key
-- [ ] `RESUMEN_EMAILS` = `joaquin@salesspawn.com` (sin dominio verificado, Resend solo manda al dueño de la cuenta)
-- [ ] Para mandarlo a más gente: verificar `salesspawn.com` en Resend → Domains, y poner `RESUMEN_DESDE=Speak Sellers <resumen@salesspawn.com>`
-- [ ] Redeploy y probar con "Mandarme una prueba" en `/resumen`
-
 ## 5. Datos que tiene que pasar Joaco
 - [ ] Metas del mes (se cargan en Inicio → Meta del mes)
 - [ ] Lista de softwares que pagan y cuánto (o cargarlos en `/costos`)

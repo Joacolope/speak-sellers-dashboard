@@ -3,10 +3,6 @@
     {
       "path": "/api/cron/diario",
       "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/resumen",
-      "schedule": "0 21 * * 5"
     }
   ]
 }
