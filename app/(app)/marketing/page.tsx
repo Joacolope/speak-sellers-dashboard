@@ -129,25 +129,44 @@ export default async function Marketing({ searchParams }: { searchParams: { ok?:
 
       <Seccion eyebrow="Embudo" titulo="Por etapa">
         <div className="card flex flex-col items-center gap-3 !p-6">
-          {embudo.map((e) => (
-            <div key={e.etapa} className="rounded-2xl px-7 py-6" style={{ width: ETAPA[e.etapa].ancho, minWidth: 'min(100%, 620px)', background: `color-mix(in srgb, ${ETAPA[e.etapa].color} 14%, transparent)`, borderLeft: `4px solid ${ETAPA[e.etapa].color}` }}>
-              <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5">
-                <div>
-                  <div className="h3">{e.etapa}</div>
-                  <div className="mt-1 text-[13px] text-text-muted">{num(e.angulos)} {e.angulos === 1 ? 'ángulo' : 'ángulos'} · {num(e.funcionando)} funcionando</div>
+          {embudo.map((e) => {
+            const deEtapa = ranking.filter((a) => a.etapa === e.etapa && a.estado !== 'Descartado');
+            return (
+              <details key={e.etapa} className="group rounded-2xl px-7 py-6" style={{ width: ETAPA[e.etapa].ancho, minWidth: 'min(100%, 620px)', background: `color-mix(in srgb, ${ETAPA[e.etapa].color} 14%, transparent)`, borderLeft: `4px solid ${ETAPA[e.etapa].color}` }}>
+                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-x-10 gap-y-5 [&::-webkit-details-marker]:hidden" title="Ver los ángulos de esta etapa">
+                  <div className="flex items-center gap-4">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] text-[13px] text-text transition-transform group-open:rotate-90" aria-hidden>▶</span>
+                    <div>
+                      <div className="h3">{e.etapa}</div>
+                      <div className="mt-1 text-[13px] text-text-muted">{num(e.angulos)} {e.angulos === 1 ? 'ángulo' : 'ángulos'} · {num(e.funcionando)} funcionando</div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-x-10 gap-y-4">
+                    <Numero valor={num(e.views)} label={`views · ${num(e.reels)} reels`} />
+                    <Numero valor={num(e.agendas)} label="agendas" />
+                    <Numero valor={num(e.ventas)} label="ventas" />
+                    <Numero valor={usd(e.cash)} label="cobrado" />
+                  </div>
+                </summary>
+                <div className="mt-6 flex flex-col gap-1 border-t border-[color-mix(in_srgb,var(--text)_14%,transparent)] pt-5">
+                  {deEtapa.length ? deEtapa.map((a) => {
+                    const c = cruce.get(a.id)!;
+                    return (
+                      <a key={a.id} href={`#angulo-${a.id}`} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 rounded-lg px-3 py-2.5 text-[14px] hover:bg-[var(--surface)]">
+                        <span className="flex min-w-0 items-center gap-2 text-text"><span className={`tag ${TAG_ESTADO[a.estado]}`}>{a.estado}</span><span className="truncate">{a.nombre}</span></span>
+                        <span className="shrink-0 tabular-nums text-text-muted">
+                          {c.ventas ? `${num(c.ventas)} venta${c.ventas === 1 ? '' : 's'} · ${usd(c.cash)}` : c.agendas ? `${num(c.agendas)} agenda${c.agendas === 1 ? '' : 's'}` : c.reels ? `${num(c.views)} views` : 'sin datos todavía'} →
+                        </span>
+                      </a>
+                    );
+                  }) : <span className="px-3 text-[14px] text-text-disabled">Todavía no hay ángulos en esta etapa.</span>}
                 </div>
-                <div className="flex flex-wrap gap-x-10 gap-y-4">
-                  <Numero valor={num(e.views)} label={`views · ${num(e.reels)} reels`} />
-                  <Numero valor={num(e.agendas)} label="agendas" />
-                  <Numero valor={num(e.ventas)} label="ventas" />
-                  <Numero valor={usd(e.cash)} label="cobrado" />
-                </div>
-              </div>
-            </div>
-          ))}
+              </details>
+            );
+          })}
         </div>
         <p className="text-[13px] text-text-disabled">
-          Views: reels de Instagram con las palabras clave del ángulo. Agendas, ventas y cobrado: leads con esas palabras en sus etiquetas de ManyChat o en su origen (fuente, primer contacto, UTM). Una venta puede contar en más de un ángulo.
+          Tocá la flecha de cada etapa para ver sus ángulos. Views: reels de Instagram con las palabras clave del ángulo. Agendas, ventas y cobrado: leads con esas palabras en sus etiquetas de ManyChat o en su origen (fuente, primer contacto, UTM). Una venta puede contar en más de un ángulo.
         </p>
       </Seccion>
 
@@ -165,7 +184,7 @@ export default async function Marketing({ searchParams }: { searchParams: { ok?:
         {ranking.length ? ranking.map((a, i) => {
           const c = cruce.get(a.id)!;
           return (
-            <article key={a.id} className={`card flex flex-col gap-6 !p-7 ${a.estado === 'Descartado' ? 'opacity-60' : ''}`}>
+            <article key={a.id} id={`angulo-${a.id}`} className={`card flex scroll-mt-6 flex-col gap-6 !p-7 ${a.estado === 'Descartado' ? 'opacity-60' : ''}`}>
               <header className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex min-w-0 items-start gap-4">
                   <div className="mt-0.5 text-[15px] tabular-nums text-text-disabled">{String(i + 1).padStart(2, '0')}</div>
