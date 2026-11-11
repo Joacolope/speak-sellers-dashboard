@@ -134,6 +134,7 @@ function construirAgendasOctubre(): { leads: Lead[]; agendas: Agenda[] } {
       closer: s.closer,
       fecha_llamada: `2026-10-${String(s.dia).padStart(2, '0')}T${String(hora).padStart(2, '0')}:00:00Z`,
       fecha_agendada: `2026-10-${String(Math.max(1, s.dia - 1 - Math.floor(rand() * 3))).padStart(2, '0')}T12:00:00Z`,
+      fathom_url: s.compro ? 'https://fathom.video/share/ejemplo' : null,
       estado_ghl: s.estado ?? (s.asistio === 'Asistió' ? 'showed' : s.asistio === 'No show' ? 'noshow' : s.asistio === 'Canceló' ? 'cancelled' : 'confirmed'),
       confirmada_whatsapp: s.confirmada ?? rand() > 0.3,
       asistio: s.asistio,

@@ -18,6 +18,7 @@ const sumarDias = (f: string, d: number) => new Date(Date.parse(`${f}T12:00:00Z`
  * Con "fecha" (AAAA-MM-DD) usa la agenda de ±3 días de esa fecha; sin fecha, la más reciente.
  * Venta con "crear": true crea el lead y/o la agenda si no existen (pide closer).
  * Un cobro igual (misma agenda, fecha y monto) no se carga dos veces.
+ * "fathom_url" guarda el link de la grabación en la llamada (solo eso con tipo "fathom").
  */
 async function manejarPOST(req: NextRequest) {
   const esForm = req.headers.get('content-type')?.includes('form');
@@ -125,6 +126,15 @@ async function manejarPOST(req: NextRequest) {
     agenda = nueva;
   }
   if (!agenda) return volver({ error: `${lead.nombre} no tiene agendas` });
+
+  // Link a la grabación de la llamada (Fathom): se guarda en la llamada. Con tipo "fathom" no se toca nada más.
+  if (data.fathom_url) {
+    const fathom = /^https:\/\/([a-z0-9-]+\.)?fathom\.video\/\S+$/i.test(String(data.fathom_url).trim()) ? String(data.fathom_url).trim().slice(0, 300) : null;
+    if (!fathom) return volver({ error: 'El link de Fathom tiene que ser https://fathom.video/...' });
+    const { error } = await sb.from('agendas').update({ fathom_url: fathom, updated_at: new Date().toISOString() }).eq('id', agenda.id);
+    if (error) return volver({ error: 'No se pudo guardar el link de Fathom.' });
+    if (data.tipo === 'fathom') return volver({ ok: `${lead.nombre} · link de la llamada guardado` });
+  } else if (data.tipo === 'fathom') return volver({ error: 'Falta el link de Fathom' });
 
   /** true si ya hay un cobro igual (para no duplicar si se carga dos veces lo mismo) */
   const cobroRepetido = async (fechaCobro: string, monto: number) => {

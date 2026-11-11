@@ -94,6 +94,8 @@ export interface Agenda {
   reprogramada_desde?: string | null;
   source: Source;
   notas?: string | null;
+  /** Link a la grabación de la llamada (Fathom) */
+  fathom_url?: string | null;
   lead?: Lead;
 }
 

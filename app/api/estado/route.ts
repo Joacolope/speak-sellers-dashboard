@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 async function ventasDesde(desde: string) {
   const sb = supabase();
   const { data: ags, error } = await sb.from('agendas')
-    .select('id, lead_id, closer, fecha_llamada, asistio, compro, cash_collected, revenue, metodo_pago, notas, source')
+    .select('id, lead_id, closer, fecha_llamada, fecha_agendada, asistio, compro, cash_collected, revenue, metodo_pago, notas, source, fathom_url')
     .gte('fecha_llamada', `${desde}T00:00:00-03:00`).order('fecha_llamada');
   if (error) return { error: error.message };
   const ids = Array.from(new Set((ags ?? []).map((a) => a.lead_id)));

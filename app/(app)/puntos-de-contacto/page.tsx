@@ -10,6 +10,9 @@ import { Iconos } from '@/components/StatCard';
 import { fechaCorta, mesCorto, num, usd } from '@/lib/format';
 import { COLOR_ORIGEN, nombreUtm, origenSinUtm } from '@/lib/origen';
 import { clavePieza, leerTags, tiempoEntre } from '@/lib/manychat';
+import { enPalabras, tramosDeCompra, velocidad, velocidadPorOrigen } from '@/lib/velocidad';
+import { esCloser, rangoComisiones, RANGOS, tablaPerfil, type FilaPerfil } from '@/lib/perfil';
+import { pct } from '@/lib/format';
 import type { Agenda } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -56,6 +59,49 @@ function Reparto({ titulo, ayuda, grupos }: { titulo: string; ayuda: string; gru
     </div>
   );
 }
+
+function TablaPerfil({ titulo, filas }: { titulo: string; filas: FilaPerfil[] }) {
+  return (
+    <div className="card flex flex-col gap-4 !p-6">
+      <div className="text-[15px] text-text">{titulo}</div>
+      <table className="w-full text-[14px]">
+        <thead>
+          <tr className="text-left text-[12px] text-text-disabled">
+            <th className="pb-3 font-normal">Perfil</th>
+            <th className="pb-3 text-right font-normal">Llamadas</th>
+            <th className="pb-3 text-right font-normal">Ventas</th>
+            <th className="pb-3 text-right font-normal">% cierre</th>
+            <th className="pb-3 text-right font-normal">Ticket</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((f) => (
+            <tr key={f.segmento} className={`border-t border-[color-mix(in_srgb,var(--text)_10%,transparent)] ${f.segmento === 'Sin dato' ? 'text-text-disabled' : ''}`}>
+              <td className="py-3 pr-3">{f.segmento}</td>
+              <td className="py-3 text-right tabular-nums">{num(f.presentadas)}</td>
+              <td className="py-3 text-right tabular-nums">{num(f.ventas)}</td>
+              <td className="py-3 text-right tabular-nums">{f.presentadas >= 3 ? pct(f.pctCierre) : '—'}</td>
+              <td className="py-3 text-right tabular-nums">{f.ticket === null ? '—' : usd(f.ticket)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const Paso = ({ nombre, tramo, n }: { nombre: string; tramo?: string; n?: number }) => (
+  <>
+    {tramo !== undefined && (
+      <div className="flex min-w-[130px] flex-1 flex-col items-center gap-1 px-2 text-center">
+        <div className="text-[20px] leading-none tabular-nums text-text [font-family:var(--font-polysans)]">{tramo}</div>
+        <div className="h-px w-full bg-[color-mix(in_srgb,var(--text)_25%,transparent)]" />
+        <div className="text-[12px] text-text-disabled">{n ? `mediana de ${n}` : 'sin datos'}</div>
+      </div>
+    )}
+    <div className="rounded-full bg-[var(--surface-2)] px-4 py-2 text-[14px] text-text">{nombre}</div>
+  </>
+);
 
 const mediana = (v: number[]) => {
   if (!v.length) return null;
@@ -104,6 +150,15 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
     for (const r of t.ranteos) sumar('Material enviado', r, null, a);
     for (const ap of t.aperturas) sumar('Apertura', ap, null, a);
   }
+  // Velocidad del proceso y perfil: con todo el historial cargado, no solo el período del filtro
+  const todas = bundle.agendas.filter((a) => f.closer === 'todos' || a.closer === f.closer);
+  const vel = velocidad(todas);
+  const velOrigen = velocidadPorOrigen(todas).filter((o) => o.v.dmAAgenda.n + o.v.agendaALlamada.n + o.v.dmACompra.n > 0);
+  const tramos = tramosDeCompra(todas);
+  const perfilComisiones = tablaPerfil(todas, (a) => rangoComisiones(a.lead?.rango_comisiones), RANGOS);
+  const perfilCloser = tablaPerfil(todas, (a) => esCloser(a.lead?.closer_en_actividad));
+  const perfilPais = tablaPerfil(todas, (a) => a.lead?.pais);
+
   const filasToques = Array.from(toques.values()).sort((x, y) => y.ventas - x.ventas || y.cash - x.cash);
   const conTags = compradores.filter((a) => a.lead?.manychat_tags?.length).length;
 
@@ -148,6 +203,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                   <tr>
                     <th>Cierre</th>
                     <th>Quién</th>
+                    <th>Links</th>
                     <th className="num">Cobrado</th>
                     <th>Origen</th>
                     <th>Nos sigue desde</th>
@@ -169,9 +225,16 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                         <td className="whitespace-nowrap">{fechaCorta(a.fecha_llamada)}</td>
                         <td className="min-w-[180px]">
                           <div className="font-medium">{l?.nombre}</div>
-                          <div className="flex flex-wrap gap-x-3 text-[12px] text-text-muted">
-                            {l?.instagram && <span>{l.instagram}</span>}
-                            {l?.manychat_url && <a className="text-[var(--accent)] hover:underline" href={l.manychat_url} target="_blank" rel="noopener noreferrer" title="Abrir la conversación en ManyChat">Ver chat ↗</a>}
+                          {l?.instagram && <div className="text-[12px] text-text-muted">{l.instagram}</div>}
+                        </td>
+                        <td className="whitespace-nowrap text-[13px]">
+                          <div className="flex flex-col gap-1">
+                            {l?.manychat_url
+                              ? <a className="text-[var(--accent)] hover:underline" href={l.manychat_url} target="_blank" rel="noopener noreferrer" title="Abrir la conversación en ManyChat">Chat ↗</a>
+                              : <span className="text-text-disabled">Sin chat</span>}
+                            {a.fathom_url
+                              ? <a className="text-[var(--accent)] hover:underline" href={a.fathom_url} target="_blank" rel="noopener noreferrer" title="Ver la grabación de la llamada en Fathom">Llamada ↗</a>
+                              : <span className="text-text-disabled">Sin llamada</span>}
                           </div>
                         </td>
                         <td className="num">{usd(a.cash_collected)}</td>
@@ -242,6 +305,73 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
           </p>
         </Seccion>
       )}
+
+      <Seccion eyebrow="Proceso de venta · todo el historial" titulo="Cuánto tarda">
+        <div className="card flex flex-col gap-7 !p-7">
+          <div className="flex flex-wrap items-center gap-y-4">
+            <Paso nombre="Primer DM" />
+            <Paso nombre="Agenda" tramo={enPalabras(vel.dmAAgenda.mediana)} n={vel.dmAAgenda.n} />
+            <Paso nombre="Llamada" tramo={enPalabras(vel.agendaALlamada.mediana)} n={vel.agendaALlamada.n} />
+          </div>
+          <div className="flex flex-wrap items-end gap-x-12 gap-y-5">
+            <div>
+              <div className="metric">{enPalabras(vel.dmACompra.mediana)}</div>
+              <div className="text-[13px] text-text-disabled">del primer DM a la compra · mediana de {num(vel.dmACompra.n)} ventas</div>
+            </div>
+            <div className="flex flex-wrap gap-x-8 gap-y-3">
+              {tramos.map((t) => (
+                <div key={t.label}>
+                  <div className="text-[20px] leading-none tabular-nums text-text [font-family:var(--font-polysans)]">{num(t.n)}</div>
+                  <div className="mt-1 text-[12px] text-text-disabled">{t.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {velOrigen.length > 0 && (
+          <div className="card overflow-x-auto !p-0">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Origen</th>
+                  <th className="num">Agendas</th>
+                  <th className="num">Ventas</th>
+                  <th className="num">Primer DM → agenda</th>
+                  <th className="num">Agenda → llamada</th>
+                  <th className="num">Primer DM → compra</th>
+                </tr>
+              </thead>
+              <tbody>
+                {velOrigen.map((o) => (
+                  <tr key={o.origen}>
+                    <td><span className="flex items-center gap-2"><span className="dot shrink-0" style={{ background: COLOR_ORIGEN[o.origen] }} />{o.origen}</span></td>
+                    <td className="num">{num(o.agendas)}</td>
+                    <td className="num">{num(o.ventas)}</td>
+                    <td className="num">{enPalabras(o.v.dmAAgenda.mediana)}{o.v.dmAAgenda.n > 0 && <span className="ml-1 text-[12px] text-text-disabled">({o.v.dmAAgenda.n})</span>}</td>
+                    <td className="num">{enPalabras(o.v.agendaALlamada.mediana)}{o.v.agendaALlamada.n > 0 && <span className="ml-1 text-[12px] text-text-disabled">({o.v.agendaALlamada.n})</span>}</td>
+                    <td className="num">{enPalabras(o.v.dmACompra.mediana)}{o.v.dmACompra.n > 0 && <span className="ml-1 text-[12px] text-text-disabled">({o.v.dmACompra.n})</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-[13px] text-text-disabled">
+          Medianas. Entre paréntesis, cuántas llamadas tienen el dato. &quot;Primer DM&quot; es el alta del contacto en ManyChat (solo leads con su conversación cargada);
+          la fecha en que agendó viene de GoHighLevel.
+        </p>
+      </Seccion>
+
+      <Seccion eyebrow="Perfil · todo el historial" titulo="Qué perfil compra">
+        <div className="grid gap-5 lg:grid-cols-3">
+          <TablaPerfil titulo="Cuánto comisiona por mes (USD)" filas={perfilComisiones} />
+          <TablaPerfil titulo="¿Es closer?" filas={perfilCloser} />
+          <TablaPerfil titulo="País" filas={perfilPais} />
+        </div>
+        <p className="text-[13px] text-text-disabled">
+          Llamadas = las que se presentaron. % cierre = ventas / llamadas presentadas (se muestra con 3 llamadas o más). Sale de las respuestas del formulario de agenda y del teléfono.
+        </p>
+      </Seccion>
 
       <ChartCard titulo="Agendas por UTM" sub="Todas las agendas del período, agrupadas por el link con que agendaron" icono={Iconos.tendencia} color="blue">
         <TablaUtm datos={utms} />

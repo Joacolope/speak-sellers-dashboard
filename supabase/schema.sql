@@ -64,6 +64,9 @@ create table if not exists leads (
   etapa_pipeline text
 );
 
+-- Link a la grabación de la llamada (Fathom).
+alter table agendas add column if not exists fathom_url text;
+
 -- Link a la conversación de ManyChat del lead (para ver de dónde vino cada venta).
 alter table leads add column if not exists manychat_url text;
 -- Trazabilidad inversa de cada venta: desde cuándo nos sigue, cómo agendó, si hubo setter y el recorrido en una línea.
