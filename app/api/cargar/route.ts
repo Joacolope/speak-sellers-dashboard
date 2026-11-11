@@ -107,14 +107,14 @@ async function manejarPOST(req: NextRequest) {
     await sb.from('leads').update({ manychat_url: many, updated_at: new Date().toISOString() }).eq('id', lead.id);
   }
 
-  let q = sb.from('agendas').select('*').eq('lead_id', lead.id);
+  let q = sb.from('agendas').select('*').eq('lead_id', lead.id).eq('ignorada', false);
   if (fecha) q = q.gte('fecha_llamada', `${sumarDias(fecha, -3)}T00:00:00-03:00`).lte('fecha_llamada', `${sumarDias(fecha, 3)}T23:59:59-03:00`);
   const { data: agendas, error: eAg } = await q.order('fecha_llamada', { ascending: false }).limit(1);
   if (eAg) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
   let agenda = agendas?.[0];
   if (!agenda && fecha && !crear) {
     // Sin agenda cerca de esa fecha: se usa la más reciente (ej.: una cuota de una venta vieja)
-    const { data: ult } = await sb.from('agendas').select('*').eq('lead_id', lead.id).order('fecha_llamada', { ascending: false }).limit(1);
+    const { data: ult } = await sb.from('agendas').select('*').eq('lead_id', lead.id).eq('ignorada', false).order('fecha_llamada', { ascending: false }).limit(1);
     agenda = ult?.[0];
   }
   if (!agenda && crear) {

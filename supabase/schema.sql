@@ -64,6 +64,10 @@ create table if not exists leads (
   etapa_pipeline text
 );
 
+-- Cita que no es una llamada de venta (p. ej. un cliente que agendó su onboarding por el link de ventas).
+-- No se borra porque GoHighLevel la volvería a traer: se marca y el dashboard no la cuenta.
+alter table agendas add column if not exists ignorada boolean not null default false;
+
 -- Link a la grabación de la llamada (Fathom).
 alter table agendas add column if not exists fathom_url text;
 

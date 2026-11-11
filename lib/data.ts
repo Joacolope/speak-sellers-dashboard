@@ -44,7 +44,7 @@ export async function cargarBundle(): Promise<RawBundle> {
 
   const [leads, agendas, cobranzas, setter, ads, campanas, organico, piezas, ajustes, costos, comisiones, comPlat, webinars, log, semanal, angulos] = await Promise.all([
     sb.from('leads').select('*'),
-    sb.from('agendas').select('*').gte('fecha_llamada', desdeIso),
+    sb.from('agendas').select('*').eq('ignorada', false).gte('fecha_llamada', desdeIso),
     sb.from('cobranzas').select('*').gte('fecha_cobro', desdeIso),
     sb.from('setter_diario').select('*').gte('fecha', desdeIso),
     sb.from('ads_diario').select('*').gte('fecha', desdeIso),

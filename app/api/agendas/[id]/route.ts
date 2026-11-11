@@ -42,9 +42,10 @@ async function manejarPATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 /**
- * Borra una agenda que no tiene que existir (cita cancelada o borrada en GHL, carga duplicada).
- * Solo admin o "Authorization: Bearer $CARGA_API_TOKEN". No borra si tiene cobros.
- * Si el lead se queda sin agendas, se borra también.
+ * Saca una agenda que no tiene que contar (no era una llamada de venta, carga duplicada).
+ * Solo admin o "Authorization: Bearer $CARGA_API_TOKEN". No la saca si tiene cobros.
+ * Si vino de GoHighLevel no se borra (el sync la volvería a traer): queda marcada como ignorada y el dashboard no la cuenta.
+ * Si se cargó a mano, se borra; y si el lead se queda sin agendas, se borra también.
  */
 async function manejarDELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const auth = await exigir('admin', { permitirToken: true });
@@ -52,10 +53,16 @@ async function manejarDELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!UUID.test(params.id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
 
   const sb = supabase();
-  const { data: agenda } = await sb.from('agendas').select('id, lead_id').eq('id', params.id).maybeSingle();
+  const { data: agenda } = await sb.from('agendas').select('id, lead_id, ghl_event_id').eq('id', params.id).maybeSingle();
   if (!agenda) return NextResponse.json({ error: 'No existe esa agenda' }, { status: 404 });
   const { count: cobros } = await sb.from('cobranzas').select('id', { count: 'exact', head: true }).eq('agenda_id', agenda.id);
   if (cobros) return NextResponse.json({ error: 'Tiene cobros cargados: no se borra' }, { status: 409 });
+
+  if (agenda.ghl_event_id) {
+    const { error: eIg } = await sb.from('agendas').update({ ignorada: true, updated_at: new Date().toISOString() }).eq('id', agenda.id);
+    if (eIg) return NextResponse.json({ error: 'No se pudo sacar' }, { status: 500 });
+    return NextResponse.json({ ok: true, ignorada: true });
+  }
 
   const { error } = await sb.from('agendas').delete().eq('id', agenda.id);
   if (error) return NextResponse.json({ error: 'No se pudo borrar' }, { status: 500 });

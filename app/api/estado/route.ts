@@ -13,7 +13,7 @@ async function ventasDesde(desde: string) {
   const sb = supabase();
   const { data: ags, error } = await sb.from('agendas')
     .select('id, lead_id, closer, fecha_llamada, fecha_agendada, asistio, compro, cash_collected, revenue, metodo_pago, notas, source, fathom_url')
-    .gte('fecha_llamada', `${desde}T00:00:00-03:00`).order('fecha_llamada');
+    .eq('ignorada', false).gte('fecha_llamada', `${desde}T00:00:00-03:00`).order('fecha_llamada');
   if (error) return { error: error.message };
   const ids = Array.from(new Set((ags ?? []).map((a) => a.lead_id)));
   const [{ data: leads }, { data: cobs }] = await Promise.all([
