@@ -39,7 +39,7 @@ function CamposAngulo({ a }: { a?: Angulo }) {
       <Campo label="Tipo"><input className="input" name="tipo" list="tipos-angulo" defaultValue={a?.tipo ?? ''} placeholder="Problema, Solución, Objeción…" /></Campo>
       <Campo label="Formato"><input className="input" name="formato" list="formatos-angulo" defaultValue={a?.formato ?? ''} placeholder="Reel, Historia, Anuncio…" /></Campo>
       <Campo label="Hook / frase" ancho><input className="input" name="hook" defaultValue={a?.hook ?? ''} placeholder="La frase con la que abre" /></Campo>
-      <Campo label="Palabras clave" ayuda="Separadas por coma. Con esto se cruza solo con los reels y con las etiquetas de ManyChat." ancho>
+      <Campo label="Palabras clave" ayuda="Separadas por coma. Con esto se cruza solo con los reels, las etiquetas de ManyChat y el origen de los leads." ancho>
         <input className="input" name="palabras_clave" defaultValue={a?.palabras_clave.join(', ') ?? ''} placeholder="precio al principio, cta info" />
       </Campo>
       <Campo label="De dónde sale el dato"><input className="input" name="fuente" list="fuentes-angulo" defaultValue={a?.fuente ?? ''} placeholder="Chat del equipo, ManyChat…" /></Campo>
@@ -79,6 +79,9 @@ function Evidencia({ a, c }: { a: Angulo; c: CruceAngulo }) {
       <div className="text-[13px] text-text-muted">En qué se basa</div>
       {compraron.length > 0 && <Fila titulo="Compraron">{compraron.map((l) => <Lead key={l.nombre} l={l} />)}</Fila>}
       {agendaron.length > 0 && <Fila titulo="Agendaron">{agendaron.map((l) => <Lead key={l.nombre} l={l} />)}</Fila>}
+      {c.origenes.length > 0 && (
+        <Fila titulo="Origen del lead">{c.origenes.map((t) => <span key={t} className="tag tag-gray">{t}</span>)}</Fila>
+      )}
       {c.etiquetas.length > 0 && (
         <Fila titulo="Etiquetas de ManyChat">{c.etiquetas.map((t) => <span key={t} className="tag tag-gray">{t}</span>)}</Fila>
       )}
@@ -144,7 +147,7 @@ export default async function Marketing({ searchParams }: { searchParams: { ok?:
           ))}
         </div>
         <p className="text-[13px] text-text-disabled">
-          Views: reels de Instagram con las palabras clave del ángulo. Agendas, ventas y cobrado: leads con esas palabras en sus etiquetas de ManyChat. Una venta puede contar en más de un ángulo.
+          Views: reels de Instagram con las palabras clave del ángulo. Agendas, ventas y cobrado: leads con esas palabras en sus etiquetas de ManyChat o en su origen (fuente, primer contacto, UTM). Una venta puede contar en más de un ángulo.
         </p>
       </Seccion>
 

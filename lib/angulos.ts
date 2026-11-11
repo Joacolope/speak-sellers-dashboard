@@ -16,6 +16,8 @@ export interface CruceAngulo {
   quienes: string[];
   /** En qué se basa: etiquetas de ManyChat que coincidieron, leads (con su conversación) y reels */
   etiquetas: string[];
+  /** Datos de origen del lead que coincidieron (fuente, funnel, primer contacto, UTM): p. ej. "Webinar" */
+  origenes: string[];
   leads: { nombre: string; chat: string | null; compro: boolean; cash: number }[];
   listaReels: { titulo: string; url: string | null; views: number }[];
   /** Para sumar por etapa sin contar dos veces */
@@ -23,12 +25,12 @@ export interface CruceAngulo {
   idsAgendas: string[];
 }
 
-const VACIO = (): CruceAngulo => ({ reels: 0, views: 0, comentarios: 0, seguidores: 0, agendas: 0, ventas: 0, cash: 0, quienes: [], etiquetas: [], leads: [], listaReels: [], idsReels: [], idsAgendas: [] });
+const VACIO = (): CruceAngulo => ({ reels: 0, views: 0, comentarios: 0, seguidores: 0, agendas: 0, ventas: 0, cash: 0, quienes: [], etiquetas: [], origenes: [], leads: [], listaReels: [], idsReels: [], idsAgendas: [] });
 
 /**
  * Cruza cada ángulo con lo que ya hay en el dashboard, por sus palabras clave:
  * - reels de Instagram (título) → views, comentarios y seguidores;
- * - etiquetas de ManyChat de los leads → agendas, ventas y cobrado.
+ * - etiquetas de ManyChat y origen de los leads (fuente, funnel, primer contacto, UTM) → agendas, ventas y cobrado.
  */
 export function cruzarAngulos(b: RawBundle): Map<string, CruceAngulo> {
   const reels = b.piezas.filter((p) => p.tipo === 'reel');
@@ -49,8 +51,13 @@ export function cruzarAngulos(b: RawBundle): Map<string, CruceAngulo> {
       }
       c.listaReels.sort((x, y) => y.views - x.views);
       for (const ag of b.agendas) {
-        const coinciden = (ag.lead?.manychat_tags ?? []).filter(toca);
-        if (!coinciden.length) continue;
+        const l = ag.lead;
+        const coinciden = (l?.manychat_tags ?? []).filter(toca);
+        // También por de dónde vino el lead: así "webinar" junta a todos los que entraron por un webinar
+        const origen = [l?.fuente, l?.funnel, l?.primer_punto_contacto, l?.utm_campaign, l?.utm_content]
+          .filter((v): v is NonNullable<typeof v> => Boolean(v)).map(String).filter(toca);
+        if (!coinciden.length && !origen.length) continue;
+        for (const o of origen) if (!c.origenes.includes(o)) c.origenes.push(o);
         c.agendas++;
         c.idsAgendas.push(ag.id);
         for (const t of coinciden) if (!c.etiquetas.includes(t)) c.etiquetas.push(t);
