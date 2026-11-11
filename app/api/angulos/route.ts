@@ -19,6 +19,8 @@ const palabras = (v: unknown): string[] =>
  *  accion=alta    → nombre, etapa (TOFU/MOFU/BOFU), estado, tipo, formato, hook, resultado, fuente, url, palabras_clave, notas
  *  accion=editar  → id + los mismos campos (los que vienen vacíos se borran)
  *  accion=estado  → id, estado
+ *  accion=etapa   → id, etapa (TOFU/MOFU/BOFU)
+ * GET (mismo permiso) → lista de ángulos con su id
  *  accion=borrar  → id
  */
 async function manejarPOST(req: NextRequest) {
@@ -48,6 +50,14 @@ async function manejarPOST(req: NextRequest) {
     return volver({ ok: 'Ángulo borrado' });
   }
 
+  if (accion === 'etapa') {
+    const etapaNueva = String(d.etapa ?? '').toUpperCase();
+    if (!(ETAPAS as readonly string[]).includes(etapaNueva)) return volver({ error: 'La etapa tiene que ser TOFU, MOFU o BOFU' });
+    const { error } = await sb.from('angulos').update({ etapa: etapaNueva, editado_por: auth.quien, updated_at: new Date().toISOString() }).eq('id', id);
+    if (error) return volver({ error: 'No se pudo guardar. Probá de nuevo.' });
+    return volver({ ok: `Ángulo pasado a ${etapaNueva}` });
+  }
+
   const estado = String(d.estado ?? 'Probando');
   if (!(ESTADOS_ANGULO as readonly string[]).includes(estado)) return volver({ error: 'Estado inválido' });
 
@@ -75,6 +85,15 @@ async function manejarPOST(req: NextRequest) {
     : accion === 'alta' ? await sb.from('angulos').insert(fila) : { error: { message: 'accion' } };
   if (error) return volver({ error: accion === 'alta' || accion === 'editar' ? 'No se pudo guardar. Probá de nuevo.' : `Acción desconocida: ${accion}` });
   return volver({ ok: `${nombre} · ${etapa} · ${estado.toLowerCase()}` });
+}
+
+/** Lista de ángulos (para corregirlos por API). */
+export async function GET() {
+  const auth = await exigir('editor', { permitirToken: true });
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const { data, error } = await supabase().from('angulos').select('id, nombre, etapa, estado, tipo, formato, palabras_clave, fuente').order('nombre');
+  if (error) return NextResponse.json({ error: 'No se pudo leer' }, { status: 500 });
+  return NextResponse.json(data ?? []);
 }
 
 /** Después de escribir se descarta la caché de datos, así el dashboard muestra lo nuevo al instante. */
