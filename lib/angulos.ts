@@ -14,12 +14,16 @@ export interface CruceAngulo {
   ventas: number;
   cash: number;
   quienes: string[];
+  /** En qué se basa: etiquetas de ManyChat que coincidieron, leads (con su conversación) y reels */
+  etiquetas: string[];
+  leads: { nombre: string; chat: string | null; compro: boolean; cash: number }[];
+  listaReels: { titulo: string; url: string | null; views: number }[];
   /** Para sumar por etapa sin contar dos veces */
   idsReels: string[];
   idsAgendas: string[];
 }
 
-const VACIO = (): CruceAngulo => ({ reels: 0, views: 0, comentarios: 0, seguidores: 0, agendas: 0, ventas: 0, cash: 0, quienes: [], idsReels: [], idsAgendas: [] });
+const VACIO = (): CruceAngulo => ({ reels: 0, views: 0, comentarios: 0, seguidores: 0, agendas: 0, ventas: 0, cash: 0, quienes: [], etiquetas: [], leads: [], listaReels: [], idsReels: [], idsAgendas: [] });
 
 /**
  * Cruza cada ángulo con lo que ya hay en el dashboard, por sus palabras clave:
@@ -41,17 +45,28 @@ export function cruzarAngulos(b: RawBundle): Map<string, CruceAngulo> {
         c.comentarios += r.comentarios ?? 0;
         c.seguidores += r.seguidores ?? 0;
         c.idsReels.push(r.ig_media_id);
+        c.listaReels.push({ titulo: r.titulo ?? 'Reel', url: r.url ?? null, views: r.views ?? 0 });
       }
+      c.listaReels.sort((x, y) => y.views - x.views);
       for (const ag of b.agendas) {
-        if (!(ag.lead?.manychat_tags ?? []).some(toca)) continue;
+        const coinciden = (ag.lead?.manychat_tags ?? []).filter(toca);
+        if (!coinciden.length) continue;
         c.agendas++;
         c.idsAgendas.push(ag.id);
-        if (!esVenta(ag)) continue;
+        for (const t of coinciden) if (!c.etiquetas.includes(t)) c.etiquetas.push(t);
+        const quien = ag.lead?.nombre ?? '—';
+        const venta = esVenta(ag);
+        const previo = c.leads.find((l) => l.nombre === quien);
+        if (previo) {
+          previo.compro = previo.compro || venta;
+          if (venta) previo.cash += ag.cash_collected ?? 0;
+        } else c.leads.push({ nombre: quien, chat: ag.lead?.manychat_url ?? null, compro: venta, cash: venta ? ag.cash_collected ?? 0 : 0 });
+        if (!venta) continue;
         c.ventas++;
         c.cash += ag.cash_collected ?? 0;
-        const quien = ag.lead?.nombre ?? '—';
         if (!c.quienes.includes(quien)) c.quienes.push(quien);
       }
+      c.leads.sort((x, y) => Number(y.compro) - Number(x.compro) || y.cash - x.cash || x.nombre.localeCompare(y.nombre));
     }
     out.set(a.id, c);
   }
