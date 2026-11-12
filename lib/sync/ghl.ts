@@ -79,7 +79,7 @@ function utms(c: GhlContact | null) {
   const a = c?.lastAttributionSource?.utmSource || c?.lastAttributionSource?.utmCampaign ? c?.lastAttributionSource : c?.attributionSource;
   const limpio = (v?: string) => (v ? String(v).trim().slice(0, 200) || null : null);
   return {
-    utm_source: limpio(a?.utmSource) ?? limpio(a?.sessionSource),
+    utm_source: limpio(a?.utmSource),
     utm_medium: limpio(a?.utmMedium),
     utm_campaign: limpio(a?.utmCampaign),
     utm_content: limpio(a?.utmContent),

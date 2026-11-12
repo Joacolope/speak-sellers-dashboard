@@ -8,7 +8,7 @@ import TablaUtm from '@/components/TablaUtm';
 import { ChartCard } from '@/components/ui';
 import { Iconos } from '@/components/StatCard';
 import { fechaCorta, mesCorto, num, usd } from '@/lib/format';
-import { COLOR_ORIGEN, nombreUtm, origenSinUtm } from '@/lib/origen';
+import { COLOR_ORIGEN, comoAgendoPorUtm, origenSinUtm } from '@/lib/origen';
 import { clavePieza, leerTags, tiempoEntre } from '@/lib/manychat';
 import { enPalabras, tramosDeCompra, velocidad, velocidadPorOrigen } from '@/lib/velocidad';
 import { esCloser, rangoComisiones, RANGOS, tablaPerfil, type FilaPerfil } from '@/lib/perfil';
@@ -17,13 +17,8 @@ import type { Agenda } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-/** Cómo llegó a la agenda: lo cargado a mano; si no, el link con el que agendó; sin link = se lo pasó el setter. */
-function comoAgendo(a: Agenda): string {
-  const l = a.lead;
-  if (l?.como_agendo) return l.como_agendo;
-  const utm = l?.utm_campaign || l?.utm_content || l?.utm_medium;
-  return utm ? nombreUtm(utm).nombre : 'Setting';
-}
+/** Cómo llegó a la agenda: sin UTM = Setting (el setter le pasó el calendario); con UTM = el link que usó (el de Instagram es el link en bio). */
+const comoAgendo = (a: Agenda): string => comoAgendoPorUtm(a.lead).nombre;
 const huboSetter = (a: Agenda): boolean | null => a.lead?.intervino_setter ?? (comoAgendo(a) === 'Setting' ? true : null);
 
 interface Grupo { clave: string; ventas: number; cash: number; color?: string }
@@ -116,7 +111,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
   const compradores = bundle.agendas
     .filter((a) => esVenta(a) && enPeriodo(f, a.fecha_llamada) && (f.closer === 'todos' || a.closer === f.closer) && (f.fuente === 'todas' || a.lead?.fuente === f.fuente))
     .sort((a, b) => b.fecha_llamada.localeCompare(a.fecha_llamada));
-  const utms = Object.fromEntries((['utm_campaign', 'utm_source', 'utm_content', 'utm_medium'] as const).map((n) => [n, agendasPorUtm(bundle, f, n)]));
+  const utms = agendasPorUtm(bundle, f);
 
   const sinChat = compradores.filter((a) => !a.lead?.manychat_url).length;
   const porOrigen = agrupar(compradores, origenSinUtm, (a) => COLOR_ORIGEN[origenSinUtm(a)]);
@@ -184,7 +179,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
           <>
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
               <Reparto titulo="Por origen" ayuda="De dónde salió el lead · ventas y cobrado" grupos={porOrigen} />
-              <Reparto titulo="Cómo agendó" ayuda="Setting = el setter le pasó el calendario" grupos={porAgenda} />
+              <Reparto titulo="Cómo agendó" ayuda="Setting = sin UTM · Link en bio = con UTM de Instagram" grupos={porAgenda} />
               <Reparto titulo="Setter" ayuda="Si hubo conversación con el setter antes de agendar" grupos={porSetter} />
               <div className="card flex flex-col gap-2">
                 <div className="text-[15px] text-text">Del primer DM a la compra</div>
@@ -373,7 +368,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
         </p>
       </Seccion>
 
-      <ChartCard titulo="Agendas por UTM" sub="Todas las agendas del período, agrupadas por el link con que agendaron" icono={Iconos.tendencia} color="blue">
+      <ChartCard titulo="Cómo agendaron" sub="Todas las agendas del período: por setting o por el link en bio" icono={Iconos.tendencia} color="blue">
         <TablaUtm datos={utms} />
       </ChartCard>
     </>

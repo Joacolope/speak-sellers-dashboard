@@ -1,6 +1,6 @@
 import type { Agenda, Closer, Cobranza, Filtros, Funnel, RawBundle } from './types';
 import { CLOSERS, CLOSER_POR_DEFECTO, FUNNELS, funnelDeLead } from './types';
-import { nombreUtm, origenSinUtm, type Origen } from './origen';
+import { comoAgendoPorUtm } from './origen';
 import { periodoAnterior } from './filtros';
 import { costosDelMes } from './costos';
 import { comisionesDelMes } from './comisiones';
@@ -484,13 +484,10 @@ export function ventasPorPais(b: RawBundle, f: Filtros): { pais: string; ventas:
   return Array.from(map.entries()).map(([pais, v]) => ({ pais, ...v })).sort((x, y) => y.ventas - x.ventas);
 }
 
-export type NivelUtm = 'utm_source' | 'utm_campaign' | 'utm_content' | 'utm_medium';
-
 export interface FilaUtm {
   clave: string;
-  /** Origen para el color (Instagram, WhatsApp, YouTube, Webinar…) */
-  origen: Origen;
-  /** true = agendó sin UTM (por setting, o referido): el origen sale de lo que sabemos del lead */
+  color: string;
+  /** true = agendó sin UTM: el setter le pasó el calendario */
   sinUtm: boolean;
   /** Valores crudos del UTM que se agruparon en esta fila */
   codigos: string[];
@@ -504,20 +501,17 @@ export interface FilaUtm {
 }
 
 /**
- * Agendas agrupadas por un parámetro UTM, con nombres legibles ("organico_ig" → "Link en bio de Instagram").
- * Las que no traen UTM vienen de setting (el setter les pasó el calendario a mano), salvo los referidos.
+ * Agendas según cómo agendaron: sin UTM = Setting (el setter pasó el calendario por Instagram);
+ * con UTM = el link que usaron (el de Instagram es el link en bio).
  */
-export function agendasPorUtm(b: RawBundle, f: Filtros, nivel: NivelUtm): FilaUtm[] {
-  const mapa = new Map<string, { origen: Origen; sinUtm: boolean; codigos: Set<string>; ag: Agenda[] }>();
+export function agendasPorUtm(b: RawBundle, f: Filtros): FilaUtm[] {
+  const mapa = new Map<string, { color: string; sinUtm: boolean; codigos: Set<string>; ag: Agenda[] }>();
   for (const a of agendasDelMes(b, f)) {
-    const crudo = (a.lead?.[nivel] ?? '').trim();
-    const { nombre, origen } = crudo ? nombreUtm(crudo) : { nombre: '', origen: origenSinUtm(a) };
-    // Sin UTM = el setter mandó el calendario por DM (setting); los referidos se muestran aparte
-    const clave = crudo ? nombre : origen === 'Referido' ? 'Referido' : 'Setting';
-    const g = mapa.get(clave) ?? { origen, sinUtm: !crudo, codigos: new Set<string>(), ag: [] };
-    if (crudo) g.codigos.add(crudo);
+    const c = comoAgendoPorUtm(a.lead);
+    const g = mapa.get(c.nombre) ?? { color: c.color, sinUtm: c.sinUtm, codigos: new Set<string>(), ag: [] };
+    if (c.codigo) g.codigos.add(c.codigo);
     g.ag.push(a);
-    mapa.set(clave, g);
+    mapa.set(c.nombre, g);
   }
   return Array.from(mapa.entries())
     .map(([clave, g]) => {
@@ -527,7 +521,7 @@ export function agendasPorUtm(b: RawBundle, f: Filtros, nivel: NivelUtm): FilaUt
       const ventas = ag.filter(esVenta);
       return {
         clave,
-        origen: g.origen,
+        color: g.color,
         sinUtm: g.sinUtm,
         codigos: Array.from(g.codigos),
         agendas: ag.length,
@@ -539,7 +533,7 @@ export function agendasPorUtm(b: RawBundle, f: Filtros, nivel: NivelUtm): FilaUt
         pctCierreSinNoShow: ratio(ventas.length, ag.length - noShow),
       };
     })
-    .sort((x, y) => Number(x.sinUtm) - Number(y.sinUtm) || y.agendas - x.agendas);
+    .sort((x, y) => y.agendas - x.agendas);
 }
 
 export interface SerieKpi {

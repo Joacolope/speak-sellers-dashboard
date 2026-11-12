@@ -42,7 +42,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
   const meses = mesesDisponibles(bundle, f.mes);
   const { actual, anterior } = metricasConAnterior(bundle, f);
   const embudos = embudosPorFuente(bundle, f);
-  const utms = Object.fromEntries((['utm_campaign', 'utm_source', 'utm_content', 'utm_medium'] as const).map((n) => [n, agendasPorUtm(bundle, f, n)]));
+  const utms = agendasPorUtm(bundle, f);
   const serie = serieMeses(bundle, f, 6);
   const anual = acumuladoAnual(bundle, f);
   const paises = ventasPorPais(bundle, f);
@@ -213,7 +213,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       </section>
 
       {/* UTM: de qué link vienen las agendas */}
-      <ChartCard titulo="Agendas por UTM" sub={`${periodo} · de qué campaña, fuente o contenido vienen las agendas y cuánto venden`} icono={Iconos.tendencia} color="blue">
+      <ChartCard titulo="Cómo agendaron" sub={`${periodo} · por setting o por el link en bio, y cuánto vende cada uno`} icono={Iconos.tendencia} color="blue">
         <TablaUtm datos={utms} limite={8} />
       </ChartCard>
       </Bloque>
