@@ -123,7 +123,6 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
           variacion={variacion(actual.cash_collected, anterior.cash_collected)}
           icono={Iconos.cash}
           color="green"
-          nota={actual.costo_software === null ? 'Después de ads · falta software' : undefined}
           serie={{ data: sk.cash, labels: sk.labels, formato: 'usd' }}
         />
         <StatCard contra={contra} label="Ventas" valor={num(actual.ventas)} variacion={variacion(actual.ventas, anterior.ventas)} icono={Iconos.ventas} color="green" serie={{ data: sk.ventas, labels: sk.labels, formato: 'num' }} />
@@ -153,13 +152,13 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       {/* Fila 2 · rentabilidad, revenue y cash */}
       <Bloque titulo="Plata" sub="Lo que entra, lo que cuesta y lo que queda">
       <section className="grid gap-5 lg:grid-cols-3">
-        <ChartCard titulo="Rentabilidad" sub="Cuánto queda de cada dólar vendido" icono={Iconos.margen} color="green">
-          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} cash={actual.cash_collected} />
+        <ChartCard titulo="Rentabilidad" sub="Cuánto queda de cada dólar cobrado" icono={Iconos.margen} color="green">
+          <AnilloRentabilidad cash={actual.cash_collected} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} ganancia={actual.ganancia} />
         </ChartCard>
         <ChartCard
           titulo="Facturación"
           color="blue"
-          sub={`Lo que entró: ventas nuevas + cuotas − reembolsos${enCurso ? ' · mes en curso punteado' : ''}`}
+          sub={`Valor de lo vendido en el período, con las cuotas por cobrar${enCurso ? ' · mes en curso punteado' : ''}`}
           icono={Iconos.revenue}
           valor={usd(actual.revenue)}
           comparacion={vsAnterior(anterior.revenue)}
@@ -169,7 +168,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <ChartCard
           titulo="Cash Collected"
           color="green"
-          sub={`Facturación − ads − software − comisiones de closers${actual.comisiones_plataformas ? ' − comisiones de plataformas' : ''}`}
+          sub="Lo que entró: ventas nuevas + cuotas cobradas − reembolsos"
           icono={Iconos.cash}
           valor={usd(actual.cash_collected)}
           comparacion={vsAnterior(anterior.cash_collected)}

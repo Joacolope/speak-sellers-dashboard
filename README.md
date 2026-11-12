@@ -44,10 +44,12 @@ Origen de cada número: ● automático · ◐ agente · ○ manual o migración
 
 ## Fórmulas
 
-- `Cash Collected = Revenue − inversión en ads − software del mes − comisiones de closers − comisiones de plataformas`
+- `Facturación` = valor de lo vendido en el período, con las cuotas por cobrar.
+- `Cash Collected` = lo que entró: ventas nuevas + cuotas cobradas − reembolsos.
+- `Ganancia = Cash Collected − inversión en ads − software del mes − comisiones de closers − comisiones de plataformas`. El margen se calcula sobre el Cash Collected.
 - Venta = compró. Las señas no cuentan como venta, pero su plata sí cuenta como cobrada.
 - % cierre s/ no-show = ventas / (agendas − no-shows); % cierre / presentadas = ventas / llamadas presentadas.
-- Conversaciones = inbound (orgánicas + pagadas) + outbound con respuesta. Es el primer nivel del embudo.
+- Conversaciones = inbound (orgánicas + pagadas) + outbound con respuesta. Es el primer nivel del embudo por fuente; el embudo general arranca en Agendas.
 - Embudos por fuente: **Orgánico** (incluye las campañas que llevan al perfil), **Webinar**, **YouTube**.
 
 ## Stack

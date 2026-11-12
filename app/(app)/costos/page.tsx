@@ -32,7 +32,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
   const plat = comisionesPlataformasDelMes(bundle.comisionesPlataformas, cobranzasDelMes(bundle, f), f.mes);
   const costosTotales = actual.inversion_ads + cm.total + (actual.comisiones ?? 0) + (actual.comisiones_plataformas ?? 0);
   const anteriorTotales = anterior.inversion_ads + (anterior.costo_software ?? 0) + (anterior.comisiones ?? 0) + (anterior.comisiones_plataformas ?? 0);
-  const margen = actual.revenue > 0 ? actual.cash_collected / actual.revenue : null;
+  const margen = actual.cash_collected > 0 ? actual.ganancia / actual.cash_collected : null;
   // Para los formularios: herramientas vigentes hoy (sin baja o con baja futura)
   const hoy = new Date().toISOString().slice(0, 10);
   const vigentes = bundle.costos.filter((c) => c.frecuencia !== 'Único' && (!c.fecha_baja || c.fecha_baja >= hoy));
@@ -67,15 +67,15 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
           nota={actual.comisiones_plataformas === null ? 'Falta cargar la tarifa de cada plataforma' : actual.comisiones_plataformas === 0 ? 'Por ahora no se paga comisión' : undefined} />
         <StatCard label="Costos totales" valor={usd(costosTotales)} variacion={variacion(costosTotales, anteriorTotales)} icono={Iconos.cash} invertir color="red" />
         <StatCard label="Cash Collected" valor={usd(actual.cash_collected)} variacion={variacion(actual.cash_collected, anterior.cash_collected)} icono={Iconos.revenue} color="green"
-          nota={margen === null ? undefined : `Margen ${pct(margen)} sobre facturación`} />
+          nota={margen === null ? undefined : `Quedan ${usd(actual.ganancia)} · margen ${pct(margen)}`} />
       </section>
 
       <section className="grid gap-5 lg:grid-cols-3">
-        <ChartCard titulo="Costos vs. Cash Collected" sub="Ads, software, comisiones y plataformas vs. lo que queda (cash, verde)" icono={Iconos.tendencia} color="red" className="lg:col-span-2">
+        <ChartCard titulo="Costos vs. Cash Collected" sub="Ads, software, comisiones y plataformas vs. lo que entró (cash, verde)" icono={Iconos.tendencia} color="red" className="lg:col-span-2">
           <CostosMes data={serie} />
         </ChartCard>
         <ChartCard titulo="Rentabilidad" sub={nombreMes(f.mes)} icono={Iconos.margen} color="green">
-          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} cash={actual.cash_collected} />
+          <AnilloRentabilidad cash={actual.cash_collected} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} ganancia={actual.ganancia} />
         </ChartCard>
       </section>
 

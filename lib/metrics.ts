@@ -36,6 +36,7 @@ export interface MetricasMes {
   /** Ventas / llamadas presentadas */
   pct_cierre_asistencia: number | null;
   pct_cierre_oferta: number | null;
+  /** Valor total de lo vendido en el período (incluye cuotas por cobrar) */
   revenue: number;
   reembolsos: number;
   inversion_ads: number;
@@ -44,7 +45,10 @@ export interface MetricasMes {
   comisiones: number | null;
   /** Comisiones de plataformas de pago (Stripe, Wise…); null si no hay tarifas cargadas */
   comisiones_plataformas: number | null;
+  /** Lo que entró: ventas nuevas + cuotas − reembolsos */
   cash_collected: number;
+  /** Lo que queda: Cash Collected − ads − software − comisiones */
+  ganancia: number;
   new_cash: number;
   old_cash: number;
   // Conversión
@@ -134,8 +138,10 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
     sum(cob.filter((c) => !c.es_reembolso && idsVentas.has(c.agenda_id)), (c) => c.monto_cobrado) +
     sum(pagaron.filter((a) => !conCobro.has(a.id)), (a) => a.cash_collected);
   const oldCash = sum(cob.filter((c) => !c.es_reembolso && !idsVentas.has(c.agenda_id)), (c) => c.monto_cobrado);
-  // Facturación = lo que entró de verdad (las cuotas pendientes no cuentan hasta cobrarse) − reembolsos
-  const revenue = newCash + oldCash - reembolsos;
+  // Facturación = valor total de lo vendido en el período (incluye lo que falta cobrar en cuotas)
+  const revenue = sum(pagaron, (a) => Math.max(a.revenue ?? 0, a.cash_collected ?? 0));
+  // Cash Collected = lo que entró de verdad: ventas nuevas + cuotas cobradas − reembolsos
+  const cash = newCash + oldCash - reembolsos;
   const inversion = sum(ads, (a) => a.inversion);
   // Software: sale de la tabla de costos; si todavía no se cargó ninguno, del ajuste mensual.
   const softwareMes = b.costos.length ? costosDelMes(b.costos, f.mes).total : ajuste?.costo_software ?? null;
@@ -145,8 +151,8 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const comisiones = com.sinConfigurar ? null : com.total;
   const plat = comisionesPlataformasDelMes(b.comisionesPlataformas, cob, f.mes);
   const comisionesPlataformas = plat.sinConfigurar ? null : plat.total;
-  // Cash Collected (lo que queda) = Facturación − ads − software − comisiones de closers − comisiones de plataformas
-  const cash = revenue - inversion - (software ?? 0) - (comisiones ?? 0) - (comisionesPlataformas ?? 0);
+  // Ganancia (lo que queda) = Cash Collected − ads − software − comisiones de closers − comisiones de plataformas
+  const ganancia = cash - inversion - (software ?? 0) - (comisiones ?? 0) - (comisionesPlataformas ?? 0);
 
 
   const convOrgSetter = sumNullable(setter, (s) => s.conv_organicas);
@@ -197,6 +203,7 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
     comisiones,
     comisiones_plataformas: comisionesPlataformas,
     cash_collected: cash,
+    ganancia,
     new_cash: newCash,
     old_cash: oldCash,
     pct_agenda_conversacion: conversaciones ? ratio(ag.length, conversaciones) : null,
@@ -252,7 +259,7 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
     ];
   }
 
-  // General / Orgánico / YouTube: Conversaciones → Agendas → Llamadas → Cierres
+  // Orgánico / YouTube: Conversaciones → Agendas → Llamadas → Cierres. General: arranca en Agendas.
   const setter = b.setter.filter((x) => enPeriodo(f, x.fecha));
   const sumN = (vals: (number | null | undefined)[]) => (vals.some((v) => v !== null && v !== undefined) ? vals.reduce<number>((acc, v) => acc + (v ?? 0), 0) : null);
   const conversaciones =
@@ -261,7 +268,8 @@ export function funnelMes(b: RawBundle, f: Filtros, funnel?: Funnel): NivelFunne
     : funnel === 'Orgánico' ? sumN(setter.map((x) => (x.conv_organicas ?? 0) + (x.conv_pagadas ?? 0) + (x.respuestas ?? 0) + (x.respuestas_wa ?? 0)))
     : null; // YouTube: todavía sin fuente de conversaciones
   return [
-    { nombre: 'Conversaciones', valor: conversaciones },
+    // En el embudo general no va: mezcla orgánico, pago y outbound, y la tasa no dice nada
+    ...(funnel ? [{ nombre: 'Conversaciones', valor: conversaciones }] : []),
     ...nivelesFinales,
     { nombre: 'Llamadas presentadas', valor: ag.filter((a) => a.asistio === 'Asistió').length, porCloser: porCloser((a) => a.asistio === 'Asistió') },
     { nombre: 'Cierres', valor: ventas.length, porCloser: porCloser(esVenta) },
@@ -403,6 +411,7 @@ export interface PuntoMensual {
   label: string;
   revenue: number;
   cash: number;
+  ganancia: number;
   inversion: number;
   agendas: number;
   ventas: number;
@@ -423,6 +432,7 @@ function punto(b: RawBundle, f: Filtros, mes: string): PuntoMensual {
     label: mesCorto(mes).slice(0, 3),
     revenue: m.revenue,
     cash: m.cash_collected,
+    ganancia: m.ganancia,
     inversion: m.inversion_ads,
     agendas: m.agendas,
     ventas: m.ventas,
