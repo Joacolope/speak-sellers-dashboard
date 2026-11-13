@@ -21,9 +21,9 @@ export const getBundle = cache(async (): Promise<RawBundle> => {
 /**
  * Los datos cambian pocas veces al día (cron de la mañana, cargas a mano): se guardan en la caché de Next
  * y no se vuelven a leer de Supabase en cada clic. Cada escritura llama a refrescarDatos() y la caché se
- * descarta al instante; igual vence sola a los 5 minutos por si algo cambió por fuera (SQL directo).
+ * descarta al instante; igual vence sola a la hora por si algo cambió por fuera (SQL directo).
  */
-const bundleEnCache = unstable_cache(() => cargarBundle(), ['bundle-v1'], { revalidate: 300, tags: ['bundle'] });
+const bundleEnCache = unstable_cache(() => cargarBundle(), ['bundle-v1'], { revalidate: 3600, tags: ['bundle'] });
 
 /** Llamar después de cualquier escritura en la base para que el dashboard muestre lo nuevo al instante. */
 export function refrescarDatos() {

@@ -51,6 +51,43 @@ async function insightsPieza(id: string, esReel: boolean): Promise<Insights | nu
   return null;
 }
 
+/**
+ * Historial de publicaciones (fecha, tipo, palabra clave y link), sin métricas: para que las piezas viejas que
+ * comentó un comprador (etiquetas de ManyChat de hace meses) también tengan su link. No pisa las métricas ya cargadas.
+ */
+export async function historialPublicaciones(sb: SupabaseClient, dias: number, dry = false): Promise<string> {
+  const igUser = await cuentaInstagram();
+  const desde = new Date(Date.now() - dias * 86400000).toISOString();
+  let pagina = await graph<{ data: Media[]; paging?: { next?: string } }>(`${igUser}/media`, {
+    fields: 'id,media_product_type,media_type,timestamp,caption,comments_count,permalink',
+    since: String(Math.floor(new Date(desde).getTime() / 1000)),
+    limit: '100',
+  });
+  const media: Media[] = [];
+  for (let i = 0; i < 20; i++) {
+    media.push(...(pagina.data ?? []).filter((m) => m.timestamp >= desde));
+    const sig = pagina.paging?.next;
+    if (!sig || (pagina.data ?? []).some((m) => m.timestamp < desde)) break;
+    const r = await fetch(sig, { cache: 'no-store' });
+    if (!r.ok) break;
+    pagina = await r.json();
+  }
+  const filas = media.map((m) => {
+    const esReel = m.media_product_type === 'REELS' || m.media_type === 'VIDEO';
+    return {
+      ig_media_id: m.id, fecha: m.timestamp.slice(0, 10), tipo: 'reel',
+      titulo: `${esReel ? 'Reel' : m.media_type === 'CAROUSEL_ALBUM' ? 'Carrusel' : 'Imagen'}${palabraClave(m.caption) ? ` «${palabraClave(m.caption)}»` : ''}`,
+      comentarios: m.comments_count ?? null, url: m.permalink ?? null, updated_at: new Date().toISOString(),
+    };
+  });
+  if (!dry && filas.length) {
+    const { error } = await sb.from('organico_piezas').upsert(filas, { onConflict: 'ig_media_id' });
+    if (error) throw new Error(error.message);
+  }
+  const masVieja = filas.map((f) => f.fecha).sort()[0];
+  return `${filas.length} publicaciones${masVieja ? ` desde ${masVieja}` : ''}`;
+}
+
 /** Historias de las últimas 24 h, reels de los últimos 7 días y mensajería de ayer. */
 export async function syncIgOrganico(sb: SupabaseClient, dry = false): Promise<string> {
   const igUser = await cuentaInstagram();

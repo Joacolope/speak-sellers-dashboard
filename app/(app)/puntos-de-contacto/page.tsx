@@ -22,6 +22,24 @@ export const dynamic = 'force-dynamic';
 const comoAgendo = (a: Agenda): string => comoAgendoPorUtm(a.lead).nombre;
 const huboSetter = (a: Agenda): boolean | null => a.lead?.intervino_setter ?? (comoAgendo(a) === 'Setting' ? true : null);
 
+/** Cuando no comentó ninguna pieza: cómo llegó igual a la compra (setting, seguimiento, webinar, referido…). */
+function contextoSinPieza(a: Agenda, etiquetas: string[]): string {
+  const tags = etiquetas.join(' · ').toLowerCase();
+  const fuente = (a.lead?.fuente ?? '').toLowerCase();
+  const como = comoAgendo(a);
+  const partes: string[] = [];
+  if (/outbound/.test(tags)) partes.push('Outbound: le escribimos nosotros');
+  else if (fuente === 'webinar' || /webinar/.test(tags)) partes.push('Llegó por el webinar');
+  else if (fuente === 'referido') partes.push('Llegó referido');
+  else if (/nuevo seguidor/.test(tags)) partes.push('Nuevo seguidor: arrancó con el mensaje de bienvenida');
+  if (como === 'Setting') partes.push(/setteando|pitch agenda/.test(tags) ? 'el setter le hizo seguimiento por DM y lo agendó' : 'lo agendó el setter');
+  else if (como === 'Link en bio') partes.push('agendó solo por el link en bio');
+  else if (como) partes.push(como.toLowerCase());
+  if (/fivestars|five stars/.test(tags)) partes.push('estuvo en Five Stars');
+  const txt = partes.join(', ');
+  return txt ? txt.charAt(0).toUpperCase() + txt.slice(1) + '.' : 'Sin datos de cómo llegó.';
+}
+
 interface Grupo { clave: string; ventas: number; cash: number; color?: string }
 function agrupar(ventas: Agenda[], clave: (a: Agenda) => string, color?: (a: Agenda) => string): Grupo[] {
   const m = new Map<string, Grupo>();
@@ -211,7 +229,8 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
               </div>
             </div>
 
-            <div className="card overflow-x-auto !p-0">
+            {/* Más ancha que el resto de la página para que se lea todo sin scroll de costado */}
+            <div className="card relative left-1/2 w-[min(calc(100vw-32px),1720px)] -translate-x-1/2 overflow-x-auto !p-0">
               <table className="table">
                 <thead>
                   <tr>
@@ -224,7 +243,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                     <th>Primer DM</th>
                     <th>Cómo agendó</th>
                     <th>Setter</th>
-                    <th>Primera y última pieza que comentó</th>
+                    <th>Primera y última pieza que comentó (o cómo llegó)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -266,14 +285,19 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                         </td>
                         <td className="whitespace-nowrap">{comoAgendo(a)}</td>
                         <td>{setter === null ? <span className="text-text-disabled">—</span> : setter ? 'Sí' : 'No'}</td>
-                        <td className="min-w-[320px] max-w-[480px] whitespace-normal">
+                        <td className="min-w-[420px] whitespace-normal">
                           <div className="flex flex-col gap-3">
                             {pu.primera && <Pieza rotulo={pu.ultima ? 'Primera' : 'Única pieza'} p={pu.primera} />}
                             {pu.ultima && <Pieza rotulo="Última antes de comprar" p={pu.ultima} />}
                             {pu.total > 2 && <div className="text-[12px] text-text-disabled" title={piezas.map((x) => `${fechaCorta(x.fecha)} ${x.nombre}`).join(' · ')}>+ {num(pu.total - 2)} en el medio</div>}
                             {pu.despues && <div className="text-[12px] text-text-disabled">Las comentó después de comprar.</div>}
                             {l?.recorrido && <div className="text-[13px] text-text-muted">{l.recorrido}</div>}
-                            {!pu.primera && !l?.recorrido && <span className="text-text-disabled">—</span>}
+                            {!pu.primera && (
+                              <div className="flex flex-col gap-1">
+                                <div className="text-[11px] uppercase tracking-wide text-text-disabled">Sin reel comentado</div>
+                                <div className="text-[13px] text-text">{contextoSinPieza(a, l?.manychat_tags ?? [])}</div>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>

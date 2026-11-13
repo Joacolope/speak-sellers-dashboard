@@ -4,7 +4,7 @@ import { supabase, supabaseConfigurado } from '@/lib/supabase';
 import { bearerValido, env } from '@/lib/env';
 import { syncGhl } from '@/lib/sync/ghl';
 import { syncMetaAds, syncMetaCampanas } from '@/lib/sync/meta';
-import { syncIgOrganico } from '@/lib/sync/ig';
+import { historialPublicaciones, syncIgOrganico } from '@/lib/sync/ig';
 import { syncManychat } from '@/lib/sync/manychat';
 import { vencimientoMeta } from '@/lib/sync/vencimiento';
 
@@ -43,6 +43,12 @@ async function manejarGET(req: NextRequest) {
   const solo = req.nextUrl.searchParams.get('solo');
   if (solo === 'manychat') {
     await correr('ManyChat', () => syncManychat(sb, dry));
+    return NextResponse.json({ ok: errores.length === 0, dry, resultados, errores });
+  }
+  // ?solo=historial&dias=365 trae los links de publicaciones viejas (sin métricas), para el recorrido de los compradores
+  if (solo === 'historial') {
+    const dias = Math.min(1095, Math.max(7, Number(req.nextUrl.searchParams.get('dias')) || 365));
+    await correr('Historial IG', () => historialPublicaciones(sb, dias, dry));
     return NextResponse.json({ ok: errores.length === 0, dry, resultados, errores });
   }
 
