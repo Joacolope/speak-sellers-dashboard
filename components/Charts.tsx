@@ -102,19 +102,19 @@ function EjeMeses({ labels }: { labels: string[] }) {
   );
 }
 
-/** Margen sobre lo cobrado: de cada dólar que entró, cuánto queda después de ads, software y comisiones. */
-export function AnilloRentabilidad({ cash, ads, software, comisiones, plataformas = null, ganancia }: { cash: number; ads: number; software: number | null; comisiones: number | null; plataformas?: number | null; ganancia: number }) {
-  const margen = cash > 0 ? Math.max(0, Math.min(1, ganancia / cash)) : null;
+/** De cada dólar facturado (cobrado), cuánto queda como Cash Collected después de ads, software y comisiones. */
+export function AnilloRentabilidad({ revenue, ads, software, comisiones, plataformas = null, cash }: { revenue: number; ads: number; software: number | null; comisiones: number | null; plataformas?: number | null; cash: number }) {
+  const margen = revenue > 0 ? Math.max(0, Math.min(1, cash / revenue)) : null;
   const datos = margen === null ? [{ v: 1 }] : [{ v: margen }, { v: 1 - margen }];
   // Semáforo del margen: ≥ 50 % verde, 20–50 % amarillo, < 20 % rojo
   const colorMargen = margen === null ? MUTED : margen >= 0.5 ? G : margen >= 0.2 ? Y : R;
   const items = [
-    { nombre: 'Cash Collected', valor: usd(cash), color: B, clase: '' },
+    { nombre: 'Facturación', valor: usd(revenue), color: B, clase: '' },
     { nombre: 'Ads', valor: `-${usd(ads)}`, color: R, clase: 'bad' },
     { nombre: 'Software', valor: software === null ? '—' : `-${usd(software)}`, color: 'color-mix(in srgb, var(--red) 50%, var(--surface))', clase: 'bad' },
     { nombre: 'Comisiones', valor: comisiones === null ? '—' : `-${usd(comisiones)}`, color: Y, clase: 'bad' },
     { nombre: 'Plataformas', valor: plataformas === null ? '—' : `-${usd(plataformas)}`, color: 'color-mix(in srgb, var(--yellow) 50%, var(--surface))', clase: 'bad' },
-    { nombre: 'Ganancia', valor: usd(ganancia), color: G, clase: ganancia < 0 ? 'bad' : 'ok' },
+    { nombre: 'Cash Collected', valor: usd(cash), color: G, clase: cash < 0 ? 'bad' : 'ok' },
   ];
   return (
     <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">

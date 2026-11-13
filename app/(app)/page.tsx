@@ -116,13 +116,14 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       {/* Fila 1 · números grandes: plata y volumen arriba, tasas abajo */}
       <Bloque titulo="Resultados" sub={periodo}>
       <section className="grid grid-cols-2 gap-5 md:grid-cols-4">
-        <StatCard contra={contra} label="Facturación" valor={usd(actual.revenue)} variacion={variacion(actual.revenue, anterior.revenue)} icono={Iconos.revenue} color="blue" serie={{ data: sk.revenue, labels: sk.labels, formato: 'usd' }} />
+        <StatCard contra={contra} label="Facturación" valor={usd(actual.revenue)} variacion={variacion(actual.revenue, anterior.revenue)} icono={Iconos.revenue} color="blue" nota={`Front end ${usd(actual.new_cash)} · back end ${usd(actual.old_cash)}`} serie={{ data: sk.revenue, labels: sk.labels, formato: 'usd' }} />
         <StatCard contra={contra}
           label="Cash Collected"
           valor={usd(actual.cash_collected)}
           variacion={variacion(actual.cash_collected, anterior.cash_collected)}
           icono={Iconos.cash}
           color="green"
+          nota={actual.costo_software === null ? 'Después de ads · falta software' : 'Después de ads, software y comisiones'}
           serie={{ data: sk.cash, labels: sk.labels, formato: 'usd' }}
         />
         <StatCard contra={contra} label="Ventas" valor={num(actual.ventas)} variacion={variacion(actual.ventas, anterior.ventas)} icono={Iconos.ventas} color="green" serie={{ data: sk.ventas, labels: sk.labels, formato: 'num' }} />
@@ -153,12 +154,12 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       <Bloque titulo="Plata" sub="Lo que entra, lo que cuesta y lo que queda">
       <section className="grid gap-5 lg:grid-cols-3">
         <ChartCard titulo="Rentabilidad" sub="Cuánto queda de cada dólar cobrado" icono={Iconos.margen} color="green">
-          <AnilloRentabilidad cash={actual.cash_collected} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} ganancia={actual.ganancia} />
+          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} cash={actual.cash_collected} />
         </ChartCard>
         <ChartCard
           titulo="Facturación"
           color="blue"
-          sub={`Valor de lo vendido en el período, con las cuotas por cobrar${enCurso ? ' · mes en curso punteado' : ''}`}
+          sub={`Lo que se cobró: front end ${usd(actual.new_cash)} + back end ${usd(actual.old_cash)}${actual.reembolsos ? ` − reembolsos ${usd(actual.reembolsos)}` : ''}${enCurso ? ' · mes en curso punteado' : ''}`}
           icono={Iconos.revenue}
           valor={usd(actual.revenue)}
           comparacion={vsAnterior(anterior.revenue)}
@@ -168,7 +169,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <ChartCard
           titulo="Cash Collected"
           color="green"
-          sub={`Front end ${usd(actual.new_cash)} + back end ${usd(actual.old_cash)}${actual.reembolsos ? ` − reembolsos ${usd(actual.reembolsos)}` : ''}`}
+          sub={`Lo que queda: facturación − ads − software − comisiones de closers${actual.comisiones_plataformas ? ' − comisiones de plataformas' : ''}`}
           icono={Iconos.cash}
           valor={usd(actual.cash_collected)}
           comparacion={vsAnterior(anterior.cash_collected)}
@@ -204,7 +205,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <ChartCard titulo="ROAS" sub="Veces que vuelve lo invertido en ads" icono={Iconos.tendencia} color="green">
           <BarrasMes data={serie} a={{ key: 'roas_cash', nombre: 'ROAS cash', color: 'green' }} b={{ key: 'roas_revenue', nombre: 'ROAS facturación', color: 'blue' }} formato="x" />
         </ChartCard>
-        <ChartCard titulo="Front end vs. back end" sub="Cash de ventas cerradas en el mes (front end) vs. cuotas de ventas anteriores (back end)" icono={Iconos.cash} color="green">
+        <ChartCard titulo="Front end vs. back end" sub="Cobrado de ventas cerradas en el mes (front end) vs. cuotas de ventas anteriores (back end)" icono={Iconos.cash} color="green">
           <BarrasMes data={serie} a={{ key: 'new_cash', nombre: 'Front end', color: 'green' }} b={{ key: 'old_cash', nombre: 'Back end', color: 'yellow' }} formato="usd" />
         </ChartCard>
         <ChartCard titulo="Ventas por país" sub={nombreMes(f.mes)} icono={Iconos.globo} color="green">

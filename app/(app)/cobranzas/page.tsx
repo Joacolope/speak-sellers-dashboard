@@ -52,9 +52,9 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
 
       <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <div className="card flex flex-col gap-2">
-          <div className="metric ok">{usd(plata.cash)}</div>
-          <div className="text-[14px] text-text-muted">Cash Collected</div>
-          <div className="text-[13px] text-text-disabled">Lo que entró en el período: front end + back end{plata.reembolsos ? ' − reembolsos' : ''}</div>
+          <div className="metric ok">{usd(plata.facturacion)}</div>
+          <div className="text-[14px] text-text-muted">Facturación</div>
+          <div className="text-[13px] text-text-disabled">Lo que se cobró en el período: front end + back end{plata.reembolsos ? ' − reembolsos' : ''}</div>
         </div>
         <div className="card flex flex-col gap-2">
           <div className="metric">{usd(plata.frontEnd)}</div>

@@ -58,9 +58,9 @@ export async function GET(req: Request) {
     return NextResponse.json({
       mes: mesPedido,
       facturacion: m.revenue, cash_collected: m.cash_collected, front_end: m.new_cash, back_end: m.old_cash, reembolsos: m.reembolsos,
-      inversion_ads: m.inversion_ads, software: m.costo_software, comisiones: m.comisiones, comisiones_plataformas: m.comisiones_plataformas, ganancia: m.ganancia,
+      inversion_ads: m.inversion_ads, software: m.costo_software, comisiones: m.comisiones, comisiones_plataformas: m.comisiones_plataformas,
       ventas: m.ventas, agendas: m.agendas,
-      closers: CLOSERS.map((c) => { const r = resumenCloser(b, f, c); return { closer: c, facturacion: r.revenue, cash_collected: r.cash, front_end: r.front_end, back_end: r.back_end, ventas: r.cierres, agendas: r.agendas }; }),
+      closers: CLOSERS.map((c) => { const r = resumenCloser(b, f, c); return { closer: c, facturacion: r.revenue, front_end: r.front_end, back_end: r.back_end, ventas: r.cierres, agendas: r.agendas }; }),
     });
   }
 

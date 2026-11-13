@@ -31,7 +31,7 @@ export function progresoMetas(b: RawBundle, f: Filtros, hoy: string): { items: P
 
   const base: Omit<ProgresoMeta, 'avance' | 'estado'>[] = [
     { clave: 'revenue', label: 'Facturación', esUsd: true, meta: ajuste?.meta_revenue ?? null, actual: m.revenue, proyeccion: proy(m.revenue) },
-    { clave: 'cash', label: 'Cash Collected', esUsd: true, meta: ajuste?.meta_cash ?? null, actual: m.cash_collected, proyeccion: proy(m.cash_collected) },
+    { clave: 'cash', label: 'Cash Collected', esUsd: true, meta: ajuste?.meta_cash ?? null, actual: m.cash_collected, proyeccion: proy(m.cash_collected, true) },
     { clave: 'ventas', label: 'Ventas', esUsd: false, meta: ajuste?.meta_ventas ?? null, actual: m.ventas, proyeccion: proy(m.ventas) },
     { clave: 'agendas', label: 'Agendas', esUsd: false, meta: ajuste?.meta_agendas ?? null, actual: m.agendas, proyeccion: proy(m.agendas) },
   ];

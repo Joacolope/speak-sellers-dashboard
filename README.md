@@ -44,9 +44,8 @@ Origen de cada número: ● automático · ◐ agente · ○ manual o migración
 
 ## Fórmulas
 
-- `Facturación` = valor de lo vendido en el período, con las cuotas por cobrar.
-- `Cash Collected` = lo que entró: ventas nuevas + cuotas cobradas − reembolsos.
-- `Ganancia = Cash Collected − inversión en ads − software del mes − comisiones de closers − comisiones de plataformas`. El margen se calcula sobre el Cash Collected.
+- `Facturación` = lo que se cobró en el período: front end (ventas cerradas en el período) + back end (cuotas de ventas anteriores) − reembolsos. Lo que falta cobrar no cuenta: se ve en Cobranzas.
+- `Cash Collected = Facturación − inversión en ads − software del mes − comisiones de closers − comisiones de plataformas`. El margen es Cash Collected / Facturación.
 - Venta = compró. Las señas no cuentan como venta, pero su plata sí cuenta como cobrada.
 - % cierre s/ no-show = ventas / (agendas − no-shows); % cierre / presentadas = ventas / llamadas presentadas.
 - Conversaciones = inbound (orgánicas + pagadas) + outbound con respuesta. Es el primer nivel del embudo por fuente; el embudo general arranca en Agendas.

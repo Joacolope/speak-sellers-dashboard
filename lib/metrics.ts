@@ -36,7 +36,7 @@ export interface MetricasMes {
   /** Ventas / llamadas presentadas */
   pct_cierre_asistencia: number | null;
   pct_cierre_oferta: number | null;
-  /** Valor total de lo vendido en el período (incluye cuotas por cobrar) */
+  /** Facturación: lo que se cobró en el período (front end + back end − reembolsos). Lo pendiente no cuenta. */
   revenue: number;
   reembolsos: number;
   inversion_ads: number;
@@ -45,10 +45,9 @@ export interface MetricasMes {
   comisiones: number | null;
   /** Comisiones de plataformas de pago (Stripe, Wise…); null si no hay tarifas cargadas */
   comisiones_plataformas: number | null;
-  /** Lo que entró: ventas nuevas + cuotas − reembolsos */
+  /** Lo que queda: Facturación − ads − software − comisiones de closers − comisiones de plataformas */
   cash_collected: number;
-  /** Lo que queda: Cash Collected − ads − software − comisiones */
-  ganancia: number;
+  /** Front end: lo cobrado de ventas cerradas en el período */
   new_cash: number;
   old_cash: number;
   // Conversión
@@ -116,23 +115,22 @@ export function esPago(a: Agenda): boolean {
 }
 
 export interface Plata {
-  /** Facturación: valor total de lo vendido en el período (incluye lo que falta cobrar en cuotas) */
+  /** Facturación: lo que se cobró en el período = front end + back end − reembolsos. Lo que falta cobrar NO cuenta. */
   facturacion: number;
-  /** Front end: lo que entró en el período de ventas cerradas en el período */
+  /** Front end: lo cobrado en el período de ventas cerradas en el período */
   frontEnd: number;
-  /** Back end: lo que entró en el período de ventas anteriores (cuotas) */
+  /** Back end: lo cobrado en el período de ventas anteriores (cuotas) */
   backEnd: number;
   reembolsos: number;
-  /** Cash Collected: front end + back end − reembolsos */
-  cash: number;
   /** Llamadas del período que dejaron plata: sus cobros son front end */
   idsFrontEnd: Set<string>;
 }
 
 /**
  * La plata de un período, igual en todas las páginas (Inicio, Closers, Cobranzas, Métricas).
- * Se cuenta por fecha de cobro, no por lo acumulado en cada llamada: así una cuota que entra en noviembre
- * de una venta de octubre es back end de noviembre y no infla octubre.
+ * Solo cuenta la plata que ya entró, por fecha de cobro: lo que falta cobrar de una venta en cuotas no es
+ * facturación hasta que se cobra (se ve en Cobranzas). Una cuota que entra en noviembre de una venta de octubre
+ * es back end de noviembre.
  */
 export function plataDelPeriodo(b: RawBundle, f: Filtros): Plata {
   const ag = agendasDelMes(b, f);
@@ -147,8 +145,7 @@ export function plataDelPeriodo(b: RawBundle, f: Filtros): Plata {
     sum(cob.filter((c) => !c.es_reembolso && idsFrontEnd.has(c.agenda_id)), (c) => c.monto_cobrado) +
     sum(pagaron.filter((a) => !conCobro.has(a.id)), (a) => a.cash_collected);
   const backEnd = sum(cob.filter((c) => !c.es_reembolso && !idsFrontEnd.has(c.agenda_id)), (c) => c.monto_cobrado);
-  const facturacion = sum(pagaron, (a) => Math.max(a.revenue ?? 0, a.cash_collected ?? 0));
-  return { facturacion, frontEnd, backEnd, reembolsos, cash: frontEnd + backEnd - reembolsos, idsFrontEnd };
+  return { facturacion: frontEnd + backEnd - reembolsos, frontEnd, backEnd, reembolsos, idsFrontEnd };
 }
 
 export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
@@ -163,9 +160,9 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const ofertas = ag.filter((a) => a.oferta_hecha).length;
   const ventasAg = ag.filter(esVenta);
   const reservas = ag.filter((a) => a.compro === 'Reserva').length;
-  // Facturación, front end, back end y Cash Collected: la misma cuenta que usan Closers y Cobranzas
+  // Facturación (lo cobrado), front end y back end: la misma cuenta que usan Closers y Cobranzas
   const plata = plataDelPeriodo(b, f);
-  const { reembolsos, cash } = plata;
+  const { reembolsos } = plata;
   const newCash = plata.frontEnd;
   const oldCash = plata.backEnd;
   const revenue = plata.facturacion;
@@ -178,8 +175,8 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const comisiones = com.sinConfigurar ? null : com.total;
   const plat = comisionesPlataformasDelMes(b.comisionesPlataformas, cob, f.mes);
   const comisionesPlataformas = plat.sinConfigurar ? null : plat.total;
-  // Ganancia (lo que queda) = Cash Collected − ads − software − comisiones de closers − comisiones de plataformas
-  const ganancia = cash - inversion - (software ?? 0) - (comisiones ?? 0) - (comisionesPlataformas ?? 0);
+  // Cash Collected (lo que queda) = Facturación − ads − software − comisiones de closers − comisiones de plataformas
+  const cash = revenue - inversion - (software ?? 0) - (comisiones ?? 0) - (comisionesPlataformas ?? 0);
 
 
   const convOrgSetter = sumNullable(setter, (s) => s.conv_organicas);
@@ -230,7 +227,6 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
     comisiones,
     comisiones_plataformas: comisionesPlataformas,
     cash_collected: cash,
-    ganancia,
     new_cash: newCash,
     old_cash: oldCash,
     pct_agenda_conversacion: conversaciones ? ratio(ag.length, conversaciones) : null,
@@ -370,9 +366,9 @@ export interface ResumenCloser {
   pct_cierre: number | null;
   /** cierres / (agendas − no-shows) */
   pct_cierre_sin_noshow: number | null;
-  /** Cash Collected del período: front end + back end − reembolsos (por fecha de cobro) */
+  /** Lo que cobró en el período: front end + back end − reembolsos (igual a `revenue`) */
   cash: number;
-  /** Facturación: valor de lo vendido en el período */
+  /** Facturación del closer: lo que se cobró de sus ventas en el período */
   revenue: number;
   /** Lo que entró de ventas cerradas en el período */
   front_end: number;
@@ -400,7 +396,7 @@ export function resumenCloser(b: RawBundle, f: Filtros, closer: Closer | 'todos'
     senas: ag.filter((a) => a.compro === 'Reserva').length,
     pct_cierre: ratio(cierres, asistencias), // cierres sobre llamadas presentadas
     pct_cierre_sin_noshow: ratio(cierres, ag.length - noShow),
-    cash: plata.cash,
+    cash: plata.facturacion,
     revenue: plata.facturacion,
     front_end: plata.frontEnd,
     back_end: plata.backEnd,
@@ -447,7 +443,6 @@ export interface PuntoMensual {
   label: string;
   revenue: number;
   cash: number;
-  ganancia: number;
   inversion: number;
   agendas: number;
   ventas: number;
@@ -468,7 +463,6 @@ function punto(b: RawBundle, f: Filtros, mes: string): PuntoMensual {
     label: mesCorto(mes).slice(0, 3),
     revenue: m.revenue,
     cash: m.cash_collected,
-    ganancia: m.ganancia,
     inversion: m.inversion_ads,
     agendas: m.agendas,
     ventas: m.ventas,

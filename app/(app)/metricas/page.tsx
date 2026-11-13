@@ -43,7 +43,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
               <tr className="group-head">
                 <th></th>
                 <th colSpan={8}>Setter</th>
-                <th colSpan={14 + FUNNELS.length}>Closer</th>
+                <th colSpan={13 + FUNNELS.length}>Closer</th>
                 <th colSpan={4}>Costos</th>
                 <th colSpan={4}>Conversión</th>
               </tr>
@@ -67,9 +67,8 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num" title="Ventas / agendas">% cierre total</th>
                 <th className="num" title="Ventas / (agendas − no-shows)">% cierre s/ no-show</th>
                 <th className="num" title="Ventas / llamadas presentadas">% cierre / presentadas</th>
-                <th className="num" title="Lo que entró en el mes: ventas nuevas + cuotas cobradas − reembolsos">Cash Collected</th>
-                <th className="num" title="Valor de lo vendido en el mes, con las cuotas por cobrar">Facturación</th>
-                <th className="num" title="Cash Collected − ads − software − comisiones">Ganancia</th>
+                <th className="num" title="Lo que queda: Facturación − ads − software − comisiones">Cash Collected</th>
+                <th className="num" title="Lo que se cobró en el mes: front end + back end − reembolsos">Facturación</th>
                 <th className="num" title="Cash de ventas cerradas en el mes">Front end</th>
                 <th className="num" title="Cash de cuotas de ventas de meses anteriores">Back end</th>
                 <th className="num">Inversión ads</th>
@@ -104,9 +103,8 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                   <td className="num">{pct(m.pct_cierre_total)}</td>
                   <td className="num"><Semaforo valor={m.pct_cierre_sin_noshow} objetivo={aj?.objetivo_cierre_oferta ?? OBJETIVOS.cierre} /></td>
                   <td className="num"><Semaforo valor={m.pct_cierre_asistencia} objetivo={aj?.objetivo_cierre_oferta ?? OBJETIVOS.cierre} /></td>
-                  <td className="num">{usd(m.cash_collected)}</td>
+                  <td className="num" title={m.costo_software === null ? 'Falta costo de software' : undefined}>{usd(m.cash_collected)}{m.costo_software === null && <span className="text-text-disabled">*</span>}</td>
                   <td className="num">{usd(m.revenue)}</td>
-                  <td className="num" title={m.costo_software === null ? 'Falta costo de software' : undefined}>{usd(m.ganancia)}{m.costo_software === null && <span className="text-text-disabled">*</span>}</td>
                   <td className="num">{usd(m.new_cash)}</td>
                   <td className="num">{usd(m.old_cash)}</td>
                   <td className="num">{usd(m.inversion_ads)}</td>
@@ -123,7 +121,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
           </table>
         </div>
         <div className="text-[14px] text-text-muted">
-          Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Facturación = valor de lo vendido en el mes, con las cuotas por cobrar. Cash Collected = lo que entró en el mes (ventas nuevas + cuotas cobradas) − reembolsos. Ganancia = Cash Collected − inversión en ads − software − comisiones de closers − comisiones de plataformas de pago (todo se carga en Costos). <span className="text-text-disabled">*</span> sin software cargado.
+          Conversaciones = charlas con ida y vuelta: inbound (orgánicas + pagadas) más outbound que tuvo respuesta. Facturación = lo que se cobró en el mes: front end (ventas cerradas en el mes) + back end (cuotas de ventas anteriores) − reembolsos; lo que falta cobrar no cuenta hasta que entra y se ve en Cobranzas. Cash Collected = Facturación − inversión en ads − software − comisiones de closers − comisiones de plataformas de pago (todo se carga en Costos). <span className="text-text-disabled">*</span> sin software cargado.
           Venta = compró (las señas no cuentan como venta, pero su plata sí cuenta como cobrada). % cierre total = ventas / agendas; s/ no-show = ventas / (agendas − no-shows); / presentadas = ventas / llamadas presentadas. Semáforo: % Asistencia ≥ {pct(OBJETIVOS.asistencia)} y % cierre ≥ {pct(OBJETIVOS.cierre)}. % Agenda inbound = agendas de gente que escribió / conversaciones inbound; outbound = agendas de mensajes en frío / respuestas outbound (configurable en <code className="mono text-[12px]">ajustes_mensuales</code>).
         </div>
       </Seccion>
