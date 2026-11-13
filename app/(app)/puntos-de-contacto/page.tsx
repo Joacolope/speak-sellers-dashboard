@@ -13,6 +13,7 @@ import { clavePieza, leerTags, tiempoEntre } from '@/lib/manychat';
 import { enPalabras, tramosDeCompra, velocidad, velocidadPorOrigen } from '@/lib/velocidad';
 import { esCloser, rangoComisiones, RANGOS, tablaPerfil, type FilaPerfil } from '@/lib/perfil';
 import { pct } from '@/lib/format';
+import { piezasDelLead, primeraYUltima, type PiezaDelLead } from '@/lib/recorrido';
 import type { Agenda } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -97,6 +98,24 @@ const Paso = ({ nombre, tramo, n }: { nombre: string; tramo?: string; n?: number
     <div className="rounded-full bg-[var(--surface-2)] px-4 py-2 text-[14px] text-text">{nombre}</div>
   </>
 );
+
+const TAG_ETAPA = { TOFU: 'tag-blue', MOFU: 'tag-yellow', BOFU: 'tag-green' } as const;
+
+function Pieza({ rotulo, p }: { rotulo: string; p: PiezaDelLead }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="text-[11px] uppercase tracking-wide text-text-disabled">{rotulo}</div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
+        {p.etapa && <span className={`tag ${TAG_ETAPA[p.etapa]}`}>{p.etapa}</span>}
+        <span className="text-text">{p.nombre}</span>
+        <span className="text-text-disabled">{fechaCorta(p.fecha)}</span>
+        {p.url
+          ? <a className="text-[var(--accent)] hover:underline" href={p.url} target="_blank" rel="noopener noreferrer" title={p.encontradaPor === 'fecha' ? 'Es la única publicación de ese día: puede no ser exactamente esta pieza' : 'Coincide la palabra clave del reel'}>{p.encontradaPor === 'fecha' ? 'Publicación de ese día ↗' : 'Ver en Instagram ↗'}</a>
+          : <span className="text-text-disabled" title="No se encontró la publicación de ese día">sin link</span>}
+      </div>
+    </div>
+  );
+}
 
 const mediana = (v: number[]) => {
   if (!v.length) return null;
@@ -205,13 +224,15 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                     <th>Primer DM</th>
                     <th>Cómo agendó</th>
                     <th>Setter</th>
-                    <th>Qué tocó antes de comprar</th>
+                    <th>Primera y última pieza que comentó</th>
                   </tr>
                 </thead>
                 <tbody>
                   {compradores.map((a) => {
                     const l = a.lead;
                     const t = leerTags(l?.manychat_tags);
+                    const piezas = piezasDelLead(l, bundle.piezas, bundle.angulos);
+                    const pu = primeraYUltima(piezas, a.fecha_llamada);
                     const sigue = l?.seguidor_desde?.slice(0, 7) ?? t.seguidorDesde;
                     const setter = huboSetter(a);
                     const origen = origenSinUtm(a);
@@ -245,15 +266,15 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                         </td>
                         <td className="whitespace-nowrap">{comoAgendo(a)}</td>
                         <td>{setter === null ? <span className="text-text-disabled">—</span> : setter ? 'Sí' : 'No'}</td>
-                        <td className="min-w-[280px] max-w-[460px] whitespace-normal">
-                          {l?.recorrido && <div className="text-[13px]">{l.recorrido}</div>}
-                          {(t.piezas.length > 0 || t.ranteos.length > 0) && (
-                            <div className="mt-1 flex flex-wrap gap-1.5">
-                              {t.piezas.map((p) => <span key={p.fecha + p.nombre} className="tag tag-blue" title="Pieza o recurso al que respondió">{fechaCorta(p.fecha)} {p.nombre}</span>)}
-                              {t.ranteos.map((r) => <span key={r} className="tag tag-gray" title="Material que se le mandó">{r}</span>)}
-                            </div>
-                          )}
-                          {!l?.recorrido && !t.piezas.length && !t.ranteos.length && <span className="text-text-disabled">—</span>}
+                        <td className="min-w-[320px] max-w-[480px] whitespace-normal">
+                          <div className="flex flex-col gap-3">
+                            {pu.primera && <Pieza rotulo={pu.ultima ? 'Primera' : 'Única pieza'} p={pu.primera} />}
+                            {pu.ultima && <Pieza rotulo="Última antes de comprar" p={pu.ultima} />}
+                            {pu.total > 2 && <div className="text-[12px] text-text-disabled" title={piezas.map((x) => `${fechaCorta(x.fecha)} ${x.nombre}`).join(' · ')}>+ {num(pu.total - 2)} en el medio</div>}
+                            {pu.despues && <div className="text-[12px] text-text-disabled">Las comentó después de comprar.</div>}
+                            {l?.recorrido && <div className="text-[13px] text-text-muted">{l.recorrido}</div>}
+                            {!pu.primera && !l?.recorrido && <span className="text-text-disabled">—</span>}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -262,7 +283,8 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
               </table>
             </div>
             <p className="text-[13px] text-text-disabled">
-              &quot;Nos sigue desde&quot; y las piezas salen de las etiquetas de ManyChat (&quot;Nuevo Seguidor…&quot; y las que empiezan con fecha). &quot;Primer DM&quot; es el alta del contacto en ManyChat.
+              &quot;Nos sigue desde&quot; y las piezas salen de las etiquetas de ManyChat (&quot;Nuevo Seguidor…&quot; y las que empiezan con fecha). El link a Instagram se busca solo entre los reels publicados ese día,
+              y la etapa (TOFU, MOFU, BOFU) es la del ángulo de Marketing de esa pieza. &quot;Primer DM&quot; es el alta del contacto en ManyChat.
               Se actualiza solo cada mañana para las ventas que tienen su conversación de ManyChat cargada.
             </p>
           </>

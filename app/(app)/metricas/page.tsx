@@ -70,8 +70,8 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num" title="Lo que entró en el mes: ventas nuevas + cuotas cobradas − reembolsos">Cash Collected</th>
                 <th className="num" title="Valor de lo vendido en el mes, con las cuotas por cobrar">Facturación</th>
                 <th className="num" title="Cash Collected − ads − software − comisiones">Ganancia</th>
-                <th className="num" title="Cobrado de ventas cerradas en el mes">Ventas nuevas</th>
-                <th className="num" title="Cuotas cobradas de ventas de meses anteriores">Cuotas cobradas</th>
+                <th className="num" title="Cash de ventas cerradas en el mes">Front end</th>
+                <th className="num" title="Cash de cuotas de ventas de meses anteriores">Back end</th>
                 <th className="num">Inversión ads</th>
                 <th className="num">Software</th>
                 <th className="num">Comisiones</th>

@@ -168,7 +168,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <ChartCard
           titulo="Cash Collected"
           color="green"
-          sub="Lo que entró: ventas nuevas + cuotas cobradas − reembolsos"
+          sub={`Front end ${usd(actual.new_cash)} + back end ${usd(actual.old_cash)}${actual.reembolsos ? ` − reembolsos ${usd(actual.reembolsos)}` : ''}`}
           icono={Iconos.cash}
           valor={usd(actual.cash_collected)}
           comparacion={vsAnterior(anterior.cash_collected)}
@@ -204,8 +204,8 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <ChartCard titulo="ROAS" sub="Veces que vuelve lo invertido en ads" icono={Iconos.tendencia} color="green">
           <BarrasMes data={serie} a={{ key: 'roas_cash', nombre: 'ROAS cash', color: 'green' }} b={{ key: 'roas_revenue', nombre: 'ROAS facturación', color: 'blue' }} formato="x" />
         </ChartCard>
-        <ChartCard titulo="Ventas nuevas vs. Cuotas cobradas" sub="Plata de ventas cerradas en el mes vs. cuotas de ventas de meses anteriores" icono={Iconos.cash} color="green">
-          <BarrasMes data={serie} a={{ key: 'new_cash', nombre: 'Ventas nuevas', color: 'green' }} b={{ key: 'old_cash', nombre: 'Cuotas cobradas', color: 'yellow' }} formato="usd" />
+        <ChartCard titulo="Front end vs. back end" sub="Cash de ventas cerradas en el mes (front end) vs. cuotas de ventas anteriores (back end)" icono={Iconos.cash} color="green">
+          <BarrasMes data={serie} a={{ key: 'new_cash', nombre: 'Front end', color: 'green' }} b={{ key: 'old_cash', nombre: 'Back end', color: 'yellow' }} formato="usd" />
         </ChartCard>
         <ChartCard titulo="Ventas por país" sub={nombreMes(f.mes)} icono={Iconos.globo} color="green">
           {paises.length ? <VentasPorPais data={paises} /> : <Vacio texto="Sin ventas este mes." />}

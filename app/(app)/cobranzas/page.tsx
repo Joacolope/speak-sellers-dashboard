@@ -5,7 +5,8 @@ import { BarrasCategoria } from '@/components/Charts';
 import { Iconos } from '@/components/StatCard';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
-import { cobranzasDelMes, mesesDisponibles } from '@/lib/metrics';
+import { cobranzasDelMes, mesesDisponibles, plataDelPeriodo } from '@/lib/metrics';
+import { pct } from '@/lib/format';
 import { fechaCorta, hoyAR, num, usd } from '@/lib/format';
 import { cuotasPorCobrar, totalCuotas } from '@/lib/cuotas';
 import CuotasPorCobrar from '@/components/CuotasPorCobrar';
@@ -18,7 +19,9 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
   const f = leerFiltros(searchParams);
   const meses = mesesDisponibles(bundle, f.mes);
   const filas = cobranzasDelMes(bundle, f).sort((a, b) => b.fecha_cobro.localeCompare(a.fecha_cobro));
-  const cobrado = filas.filter((c) => !c.es_reembolso).reduce((s, c) => s + c.monto_cobrado, 0);
+  // Front end = lo que entró de ventas cerradas en el período; back end = cuotas de ventas anteriores
+  const plata = plataDelPeriodo(bundle, f);
+  const parte = (v: number) => (plata.frontEnd + plata.backEnd > 0 ? pct(v / (plata.frontEnd + plata.backEnd)) : '—');
   const reembolsos = filas.filter((c) => c.es_reembolso).reduce((s, c) => s + Math.abs(c.monto_cobrado), 0);
   // Pendiente total: última cobranza por agenda con pendiente > 0 (de cualquier mes)
   const ultimaPorAgenda = new Map<string, (typeof bundle.cobranzas)[number]>();
@@ -43,8 +46,25 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
         </Suspense>
       </div>
 
-      <section className="grid grid-cols-2 gap-5 md:grid-cols-4">
-        <div className="card flex flex-col gap-2"><div className="metric ok">{usd(cobrado)}</div><div className="text-[14px] text-text-muted">Monto cobrado</div><div className="text-[13px] text-text-disabled">en el período</div></div>
+      <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        <div className="card flex flex-col gap-2">
+          <div className="metric ok">{usd(plata.cash)}</div>
+          <div className="text-[14px] text-text-muted">Cash Collected</div>
+          <div className="text-[13px] text-text-disabled">Lo que entró en el período: front end + back end{plata.reembolsos ? ' − reembolsos' : ''}</div>
+        </div>
+        <div className="card flex flex-col gap-2">
+          <div className="metric">{usd(plata.frontEnd)}</div>
+          <div className="text-[14px] text-text-muted">Front End Cash Collected · {parte(plata.frontEnd)}</div>
+          <div className="text-[13px] text-text-disabled">De ventas nuevas, cerradas en el período</div>
+        </div>
+        <div className="card flex flex-col gap-2">
+          <div className="metric">{usd(plata.backEnd)}</div>
+          <div className="text-[14px] text-text-muted">Back End Cash Collected · {parte(plata.backEnd)}</div>
+          <div className="text-[13px] text-text-disabled">De cuotas de ventas anteriores</div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <div className="card flex flex-col gap-2"><div className="metric warn">{usd(pendienteTotal)}</div><div className="text-[14px] text-text-muted">Pendiente de cobrar</div><div className="text-[13px] text-text-disabled">de todas las ventas en cuotas</div></div>
         <div className="card flex flex-col gap-2"><div className={`metric ${cuotas.vencidas.length ? 'bad' : ''}`}>{usd(totalCuotas(cuotas.vencidas))}</div><div className="text-[14px] text-text-muted">Vencido</div><div className="text-[13px] text-text-disabled">{num(cuotas.vencidas.length)} {cuotas.vencidas.length === 1 ? 'cuota' : 'cuotas'} sin pagar</div></div>
         <div className="card flex flex-col gap-2"><div className={`metric ${reembolsos ? 'bad' : ''}`}>{usd(reembolsos)}</div><div className="text-[14px] text-text-muted">Reembolsos</div><div className="text-[13px] text-text-disabled">en el período</div></div>
@@ -68,6 +88,7 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
                   <th>Nombre</th>
                   <th>Fecha de cobro</th>
                   <th className="num">Monto cobrado</th>
+                  <th>Tipo</th>
                   <th className="num">Pendiente</th>
                   <th>Closer</th>
                   <th>Plataforma</th>
@@ -83,6 +104,7 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
                     <td className="font-medium">{nombre(c.agenda_id)}</td>
                     <td>{fechaCorta(c.fecha_cobro)}</td>
                     <td className={`num ${c.es_reembolso ? 'bad' : 'ok'}`}>{usd(c.monto_cobrado)}</td>
+                    <td>{c.es_reembolso ? <span className="tag tag-red">Reembolso</span> : plata.idsFrontEnd.has(c.agenda_id) ? <span className="tag tag-green">Front end</span> : <span className="tag tag-blue">Back end</span>}</td>
                     <td className="num">{c.pendiente ? <span className="warn">{usd(c.pendiente)}</span> : '—'}</td>
                     <td>{NOMBRE_CLOSER[c.closer]}</td>
                     <td>{c.plataforma ? <span className="tag tag-blue">{c.plataforma}</span> : <span className="tag tag-yellow">sin indicar</span>}</td>

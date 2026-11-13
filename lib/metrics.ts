@@ -115,6 +115,42 @@ export function esPago(a: Agenda): boolean {
   return a.compro === 'Si' || a.compro === 'Reserva';
 }
 
+export interface Plata {
+  /** Facturación: valor total de lo vendido en el período (incluye lo que falta cobrar en cuotas) */
+  facturacion: number;
+  /** Front end: lo que entró en el período de ventas cerradas en el período */
+  frontEnd: number;
+  /** Back end: lo que entró en el período de ventas anteriores (cuotas) */
+  backEnd: number;
+  reembolsos: number;
+  /** Cash Collected: front end + back end − reembolsos */
+  cash: number;
+  /** Llamadas del período que dejaron plata: sus cobros son front end */
+  idsFrontEnd: Set<string>;
+}
+
+/**
+ * La plata de un período, igual en todas las páginas (Inicio, Closers, Cobranzas, Métricas).
+ * Se cuenta por fecha de cobro, no por lo acumulado en cada llamada: así una cuota que entra en noviembre
+ * de una venta de octubre es back end de noviembre y no infla octubre.
+ */
+export function plataDelPeriodo(b: RawBundle, f: Filtros): Plata {
+  const ag = agendasDelMes(b, f);
+  const cob = cobranzasDelMes(b, f);
+  // La plata se atribuye a quien pagó en el período (ventas y señas); los cierres solo cuentan ventas
+  const pagaron = ag.filter(esPago);
+  const idsFrontEnd = new Set(pagaron.map((a) => a.id));
+  const reembolsos = Math.abs(sum(cob.filter((c) => c.es_reembolso), (c) => c.monto_cobrado));
+  // Si una venta tiene cash_collected pero ningún cobro registrado (se editó a mano), cuenta igual.
+  const conCobro = new Set(b.cobranzas.map((c) => c.agenda_id));
+  const frontEnd =
+    sum(cob.filter((c) => !c.es_reembolso && idsFrontEnd.has(c.agenda_id)), (c) => c.monto_cobrado) +
+    sum(pagaron.filter((a) => !conCobro.has(a.id)), (a) => a.cash_collected);
+  const backEnd = sum(cob.filter((c) => !c.es_reembolso && !idsFrontEnd.has(c.agenda_id)), (c) => c.monto_cobrado);
+  const facturacion = sum(pagaron, (a) => Math.max(a.revenue ?? 0, a.cash_collected ?? 0));
+  return { facturacion, frontEnd, backEnd, reembolsos, cash: frontEnd + backEnd - reembolsos, idsFrontEnd };
+}
+
 export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const ag = agendasDelMes(b, f);
   const cob = cobranzasDelMes(b, f);
@@ -127,21 +163,12 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const ofertas = ag.filter((a) => a.oferta_hecha).length;
   const ventasAg = ag.filter(esVenta);
   const reservas = ag.filter((a) => a.compro === 'Reserva').length;
-  // La plata se atribuye a quien pagó en el período (ventas y señas); los cierres solo cuentan ventas
-  const pagaron = ag.filter(esPago);
-  const idsVentas = new Set(pagaron.map((a) => a.id));
-  const reembolsos = Math.abs(sum(cob.filter((c) => c.es_reembolso), (c) => c.monto_cobrado));
-  // Ventas nuevas = cobrado este período de ventas cerradas en el período; cuotas = cobrado de ventas anteriores.
-  // Si una venta tiene cash_collected pero ningún cobro registrado (se editó a mano), cuenta igual.
-  const conCobro = new Set(b.cobranzas.map((c) => c.agenda_id));
-  const newCash =
-    sum(cob.filter((c) => !c.es_reembolso && idsVentas.has(c.agenda_id)), (c) => c.monto_cobrado) +
-    sum(pagaron.filter((a) => !conCobro.has(a.id)), (a) => a.cash_collected);
-  const oldCash = sum(cob.filter((c) => !c.es_reembolso && !idsVentas.has(c.agenda_id)), (c) => c.monto_cobrado);
-  // Facturación = valor total de lo vendido en el período (incluye lo que falta cobrar en cuotas)
-  const revenue = sum(pagaron, (a) => Math.max(a.revenue ?? 0, a.cash_collected ?? 0));
-  // Cash Collected = lo que entró de verdad: ventas nuevas + cuotas cobradas − reembolsos
-  const cash = newCash + oldCash - reembolsos;
+  // Facturación, front end, back end y Cash Collected: la misma cuenta que usan Closers y Cobranzas
+  const plata = plataDelPeriodo(b, f);
+  const { reembolsos, cash } = plata;
+  const newCash = plata.frontEnd;
+  const oldCash = plata.backEnd;
+  const revenue = plata.facturacion;
   const inversion = sum(ads, (a) => a.inversion);
   // Software: sale de la tabla de costos; si todavía no se cargó ninguno, del ajuste mensual.
   const softwareMes = b.costos.length ? costosDelMes(b.costos, f.mes).total : ajuste?.costo_software ?? null;
@@ -343,8 +370,14 @@ export interface ResumenCloser {
   pct_cierre: number | null;
   /** cierres / (agendas − no-shows) */
   pct_cierre_sin_noshow: number | null;
+  /** Cash Collected del período: front end + back end − reembolsos (por fecha de cobro) */
   cash: number;
+  /** Facturación: valor de lo vendido en el período */
   revenue: number;
+  /** Lo que entró de ventas cerradas en el período */
+  front_end: number;
+  /** Lo que entró de cuotas de ventas anteriores */
+  back_end: number;
 }
 
 export function resumenCloser(b: RawBundle, f: Filtros, closer: Closer | 'todos'): ResumenCloser {
@@ -353,6 +386,7 @@ export function resumenCloser(b: RawBundle, f: Filtros, closer: Closer | 'todos'
   const ofertas = ag.filter((a) => a.oferta_hecha).length;
   const cierres = ag.filter(esVenta).length;
   const noShow = ag.filter((a) => a.asistio === 'No show').length;
+  const plata = plataDelPeriodo(b, { ...f, closer });
   return {
     closer: closer === 'todos' ? CLOSER_POR_DEFECTO : closer,
     agendas: ag.length,
@@ -366,8 +400,10 @@ export function resumenCloser(b: RawBundle, f: Filtros, closer: Closer | 'todos'
     senas: ag.filter((a) => a.compro === 'Reserva').length,
     pct_cierre: ratio(cierres, asistencias), // cierres sobre llamadas presentadas
     pct_cierre_sin_noshow: ratio(cierres, ag.length - noShow),
-    cash: sum(ag.filter(esPago), (a) => a.cash_collected),
-    revenue: sum(ag.filter(esPago), (a) => a.revenue),
+    cash: plata.cash,
+    revenue: plata.facturacion,
+    front_end: plata.frontEnd,
+    back_end: plata.backEnd,
   };
 }
 

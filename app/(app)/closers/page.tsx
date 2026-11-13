@@ -87,9 +87,10 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
         <Dato valor={num(resumen.cierres)} label="Ventas" sub={resumen.senas ? `+ ${num(resumen.senas)} ${resumen.senas === 1 ? 'seña (no cuenta como venta)' : 'señas (no cuentan como venta)'}` : 'Las señas no cuentan'} />
         <Dato valor={pct(resumen.pct_cierre_sin_noshow)} clase={claseSemaforo(resumen.pct_cierre_sin_noshow, OBJETIVOS.cierre)} label="% Cierre s/ no-show" sub="Ventas / (agendas − no-shows)" />
         <Dato valor={pct(resumen.pct_cierre)} clase={claseSemaforo(resumen.pct_cierre, OBJETIVOS.cierre)} label="% Cierre / presentadas" sub={`Ventas / presentadas · objetivo ${pct(OBJETIVOS.cierre)}`} />
-        <Dato valor={usd(resumen.cash)} clase="ok" label="Cobrado en las llamadas" />
+        <Dato valor={usd(resumen.revenue)} label="Facturación" sub="Valor de lo vendido en el período" />
+        <Dato valor={usd(resumen.cash)} clase="ok" label="Cash Collected" sub={`Front end ${usd(resumen.front_end)} · back end ${usd(resumen.back_end)}`} />
         <Dato valor={usd(pendiente)} clase={pendiente ? 'warn' : ''} label="Pendiente de cobrar" sub="Cuotas que faltan de sus ventas" />
-        <Dato valor={resumen.asistencias ? usd(resumen.cash / resumen.asistencias) : '—'} label="Cash por llamada" sub="Cobrado / presentadas" />
+        <Dato valor={resumen.asistencias ? usd(resumen.front_end / resumen.asistencias) : '—'} label="Cash por llamada" sub="Front end / presentadas" />
       </section>
 
       {f.closer === 'todos' && (
@@ -108,8 +109,11 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                   <th className="num" title="Reservas: dejaron seña pero no cuentan como venta">Señas</th>
                   <th className="num" title="Ventas / (agendas − no-shows)">% Cierre s/ no-show</th>
                   <th className="num" title="Ventas / presentadas">% Cierre / presentadas</th>
-                  <th className="num">Cobrado</th>
-                  <th className="num">Cash por llamada</th>
+                  <th className="num" title="Valor de lo vendido en el período, con las cuotas por cobrar">Facturación</th>
+                  <th className="num" title="Lo que entró en el período: front end + back end">Cash Collected</th>
+                  <th className="num" title="Lo que entró de ventas cerradas en el período">Front end</th>
+                  <th className="num" title="Lo que entró de cuotas de ventas anteriores">Back end</th>
+                  <th className="num" title="Front end / llamadas presentadas">Cash por llamada</th>
                 </tr>
               </thead>
               <tbody>
@@ -125,8 +129,11 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                     <td className="num">{num(r.senas)}</td>
                     <td className={`num ${claseSemaforo(r.pct_cierre_sin_noshow, OBJETIVOS.cierre)}`}>{pct(r.pct_cierre_sin_noshow)}</td>
                     <td className={`num ${claseSemaforo(r.pct_cierre, OBJETIVOS.cierre)}`}>{pct(r.pct_cierre)}</td>
+                    <td className="num">{usd(r.revenue)}</td>
                     <td className="num ok">{usd(r.cash)}</td>
-                    <td className="num">{r.asistencias ? usd(r.cash / r.asistencias) : '—'}</td>
+                    <td className="num">{usd(r.front_end)}</td>
+                    <td className="num">{usd(r.back_end)}</td>
+                    <td className="num">{r.asistencias ? usd(r.front_end / r.asistencias) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
