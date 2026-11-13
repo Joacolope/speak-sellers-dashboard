@@ -17,7 +17,7 @@ const VALIDOS: Record<string, (v: unknown) => boolean> = {
 
 /** Edición inline desde Closers. Solo editor o admin, solo campos manuales y valores válidos. */
 async function manejarPATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const auth = await exigir('editor');
+  const auth = await exigir('editor', { permitirToken: true });
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
   if (!UUID.test(params.id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
 
