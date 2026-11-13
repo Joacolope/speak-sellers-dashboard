@@ -32,7 +32,7 @@ const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
  */
 export async function syncManychat(sb: SupabaseClient, dry = false): Promise<string> {
   if (!process.env.MANYCHAT_TOKEN) return 'sin configurar (falta MANYCHAT_TOKEN)';
-  const { data: leads, error } = await sb.from('leads').select('id, nombre, instagram, manychat_url, socio_nombre, socio_manychat_url').not('manychat_url', 'is', null);
+  const { data: leads, error } = await sb.from('leads').select('id, nombre, instagram, manychat_url, socio_nombre, socio_manychat_url, socio_email').not('manychat_url', 'is', null);
   if (error) throw new Error(`leads: ${error.message}`);
   let ok = 0;
   const fallas: string[] = [];
@@ -61,7 +61,12 @@ export async function syncManychat(sb: SupabaseClient, dry = false): Promise<str
         let url = l.socio_manychat_url as string | null;
         if (!url && l.socio_nombre) {
           const pagina = /^https:\/\/app\.manychat\.com\/fb\d+/.exec(String(l.manychat_url))?.[0];
-          const hallados = await manychat<Suscriptor[]>('/fb/subscriber/findByName', { name: String(l.socio_nombre) });
+          let hallados = await manychat<Suscriptor[]>('/fb/subscriber/findByName', { name: String(l.socio_nombre) }).catch(() => [] as Suscriptor[]);
+          // Si por nombre no aparece, por email (el que dejó en algún formulario de ManyChat)
+          if (!hallados?.length && l.socio_email) {
+            const uno = await manychat<Suscriptor | Suscriptor[] | null>('/fb/subscriber/findBySystemField', { email: String(l.socio_email) }).catch(() => null);
+            hallados = Array.isArray(uno) ? uno : uno ? [uno] : [];
+          }
           if (pagina && hallados?.length === 1) url = `${pagina}/chat/${hallados[0].id}`;
           else fallas.push(`${l.socio_nombre}: ${hallados?.length ? `${hallados.length} contactos con ese nombre` : 'no está en ManyChat con ese nombre'}`);
         }

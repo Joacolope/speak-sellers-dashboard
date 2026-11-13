@@ -661,3 +661,4 @@ alter default privileges in schema public revoke all on functions from anon;
 alter table leads add column if not exists socio_nombre text;
 alter table leads add column if not exists socio_manychat_url text;
 alter table leads add column if not exists socio_manychat_tags text[];
+alter table leads add column if not exists socio_email text;
