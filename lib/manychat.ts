@@ -34,6 +34,11 @@ function mesDeTexto(texto: string, hoy: Date): string | null {
   return `${anio}-${String(i + 1).padStart(2, '0')}`;
 }
 
+/** Etiquetas de ManyChat de una venta: las del lead y las de su socio/a, si compraron juntos. */
+export function tagsDeLaVenta(l: { manychat_tags?: string[] | null; socio_manychat_tags?: string[] | null } | null | undefined): string[] {
+  return Array.from(new Set([...(l?.manychat_tags ?? []), ...(l?.socio_manychat_tags ?? [])]));
+}
+
 export function leerTags(tags: string[] | null | undefined, hoy: Date = new Date()): LecturaTags {
   const out: LecturaTags = { piezas: [], seguidorDesde: null, aperturas: [], ranteos: [], otras: [] };
   for (const crudo of tags ?? []) {

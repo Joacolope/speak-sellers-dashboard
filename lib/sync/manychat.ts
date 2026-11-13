@@ -32,7 +32,7 @@ const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
  */
 export async function syncManychat(sb: SupabaseClient, dry = false): Promise<string> {
   if (!process.env.MANYCHAT_TOKEN) return 'sin configurar (falta MANYCHAT_TOKEN)';
-  const { data: leads, error } = await sb.from('leads').select('id, nombre, instagram, manychat_url').not('manychat_url', 'is', null);
+  const { data: leads, error } = await sb.from('leads').select('id, nombre, instagram, manychat_url, socio_nombre, socio_manychat_url').not('manychat_url', 'is', null);
   if (error) throw new Error(`leads: ${error.message}`);
   let ok = 0;
   const fallas: string[] = [];
@@ -55,6 +55,26 @@ export async function syncManychat(sb: SupabaseClient, dry = false): Promise<str
       fallas.push(`${l.nombre}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 120));
     }
     await esperar(120); // ManyChat permite 10 pedidos por segundo
+    // Socio/a que compró junto con el lead: si no tiene su chat todavía, se busca por nombre (solo si hay uno solo)
+    if (l.socio_nombre || l.socio_manychat_url) {
+      try {
+        let url = l.socio_manychat_url as string | null;
+        if (!url && l.socio_nombre) {
+          const pagina = /^https:\/\/app\.manychat\.com\/fb\d+/.exec(String(l.manychat_url))?.[0];
+          const hallados = await manychat<Suscriptor[]>('/fb/subscriber/findByName', { name: String(l.socio_nombre) });
+          if (pagina && hallados?.length === 1) url = `${pagina}/chat/${hallados[0].id}`;
+          else fallas.push(`${l.socio_nombre}: ${hallados?.length ? `${hallados.length} contactos con ese nombre` : 'no está en ManyChat con ese nombre'}`);
+        }
+        const sid = url ? idDeLink(url) : null;
+        if (sid) {
+          const s = await manychat<Suscriptor>('/fb/subscriber/getInfo', { subscriber_id: sid });
+          if (!dry) await sb.from('leads').update({ socio_manychat_url: url, socio_manychat_tags: (s.tags ?? []).map((t) => t.name) }).eq('id', l.id);
+        }
+      } catch (e) {
+        fallas.push(`${l.socio_nombre ?? 'socio'}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 120));
+      }
+      await esperar(120);
+    }
   }
   if (fallas.length && !ok) throw new Error(fallas[0]);
   return `${ok} contactos${fallas.length ? ` (${fallas.length} con error: ${fallas.slice(0, 2).join(' · ')})` : ''}`;

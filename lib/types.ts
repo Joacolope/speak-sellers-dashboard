@@ -68,6 +68,10 @@ export interface Lead {
   recorrido?: string | null;
   /** Etiquetas del contacto en ManyChat (las trae el sync) */
   manychat_tags?: string[] | null;
+  /** Socio/a que compró junto con el lead: nombre, chat de ManyChat y sus etiquetas (cuentan para la atribución) */
+  socio_nombre?: string | null;
+  socio_manychat_url?: string | null;
+  socio_manychat_tags?: string[] | null;
   /** Primer contacto con la cuenta por DM (alta en ManyChat) */
   manychat_desde?: string | null;
   manychat_ultima?: string | null;

@@ -655,3 +655,9 @@ revoke all on function comisiones_plataformas_mes(date) from public, anon;
 grant execute on function comisiones_plataformas_mes(date) to authenticated;
 alter default privileges in schema public revoke all on tables from anon;
 alter default privileges in schema public revoke all on functions from anon;
+
+-- Socio/a que compró junto con el lead (p. ej. dos socias que pagan un mismo programa): sus etiquetas de ManyChat
+-- también cuentan para el recorrido y los ángulos de esa venta
+alter table leads add column if not exists socio_nombre text;
+alter table leads add column if not exists socio_manychat_url text;
+alter table leads add column if not exists socio_manychat_tags text[];

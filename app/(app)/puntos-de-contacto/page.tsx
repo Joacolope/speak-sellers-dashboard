@@ -9,7 +9,7 @@ import { ChartCard } from '@/components/ui';
 import { Iconos } from '@/components/StatCard';
 import { fechaCorta, mesCorto, num, usd } from '@/lib/format';
 import { COLOR_ORIGEN, comoAgendoPorUtm, origenSinUtm } from '@/lib/origen';
-import { clavePieza, leerTags, tiempoEntre } from '@/lib/manychat';
+import { clavePieza, leerTags, tagsDeLaVenta, tiempoEntre } from '@/lib/manychat';
 import { enPalabras, tramosDeCompra, velocidad, velocidadPorOrigen } from '@/lib/velocidad';
 import { esCloser, rangoComisiones, RANGOS, tablaPerfil, type FilaPerfil } from '@/lib/perfil';
 import { pct } from '@/lib/format';
@@ -179,7 +179,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
     toques.set(k, t);
   };
   for (const a of compradores) {
-    const t = leerTags(a.lead?.manychat_tags);
+    const t = leerTags(tagsDeLaVenta(a.lead));
     for (const p of t.piezas) sumar('Pieza', p.nombre, p.fecha, a);
     for (const r of t.ranteos) sumar('Material enviado', r, null, a);
     for (const ap of t.aperturas) sumar('Apertura', ap, null, a);
@@ -194,7 +194,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
   const perfilPais = tablaPerfil(todas, (a) => a.lead?.pais);
 
   const filasToques = Array.from(toques.values()).sort((x, y) => y.ventas - x.ventas || y.cash - x.cash);
-  const conTags = compradores.filter((a) => a.lead?.manychat_tags?.length).length;
+  const conTags = compradores.filter((a) => tagsDeLaVenta(a.lead).length).length;
 
   return (
     <>
@@ -251,7 +251,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                 <tbody>
                   {compradores.map((a) => {
                     const l = a.lead;
-                    const t = leerTags(l?.manychat_tags);
+                    const t = leerTags(tagsDeLaVenta(l));
                     const piezas = piezasDelLead(l, bundle.piezas, bundle.angulos, dueños);
                     const pu = primeraYUltima(piezas, a.fecha_llamada);
                     const sigue = l?.seguidor_desde?.slice(0, 7) ?? t.seguidorDesde;
@@ -263,12 +263,14 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                         <td className="min-w-[180px]">
                           <div className="font-medium">{l?.nombre}</div>
                           {l?.instagram && <div className="text-[12px] text-text-muted">{l.instagram}</div>}
+                          {l?.socio_nombre && <div className="mt-1 text-[12px] text-text-muted">Compró con {l.socio_nombre}</div>}
                         </td>
                         <td className="whitespace-nowrap text-[13px]">
                           <div className="flex flex-col gap-1">
                             {l?.manychat_url
                               ? <a className="text-[var(--accent)] hover:underline" href={l.manychat_url} target="_blank" rel="noopener noreferrer" title="Abrir la conversación en ManyChat">Chat ↗</a>
                               : <span className="text-text-disabled">Sin chat</span>}
+                            {l?.socio_manychat_url && <a className="text-[var(--accent)] hover:underline" href={l.socio_manychat_url} target="_blank" rel="noopener noreferrer" title={`Conversación de ${l.socio_nombre ?? 'su socio/a'} en ManyChat`}>Chat socia ↗</a>}
                             {a.fathom_url
                               ? <a className="text-[var(--accent)] hover:underline" href={a.fathom_url} target="_blank" rel="noopener noreferrer" title="Ver la grabación de la llamada en Fathom">Llamada ↗</a>
                               : <span className="text-text-disabled">Sin llamada</span>}
@@ -297,7 +299,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                             {!pu.primera && (
                               <div className="flex flex-col gap-1">
                                 <div className="text-[11px] uppercase tracking-wide text-text-disabled">Sin reel comentado</div>
-                                <div className="text-[13px] text-text">{contextoSinPieza(a, l?.manychat_tags ?? [])}</div>
+                                <div className="text-[13px] text-text">{contextoSinPieza(a, tagsDeLaVenta(l))}</div>
                               </div>
                             )}
                           </div>

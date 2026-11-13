@@ -1,4 +1,4 @@
-import { leerTags } from './manychat';
+import { leerTags, tagsDeLaVenta } from './manychat';
 import type { Angulo, Etapa, Lead, OrganicoPieza } from './types';
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
@@ -40,7 +40,7 @@ export function reelsConDueño(leads: (Lead | null | undefined)[], reels: Organi
   const dueño = new Map<string, string>(); // url del reel → nombre de la pieza que lo nombra
   const conPalabra = reels.filter((r) => r.tipo === 'reel' && r.url && palabraDe(r.titulo));
   for (const l of leads) {
-    for (const p of leerTags(l?.manychat_tags).piezas) {
+    for (const p of leerTags(tagsDeLaVenta(l)).piezas) {
       const t = Date.parse(`${p.fecha}T12:00:00Z`);
       const nombre = norm(p.nombre);
       const r = conPalabra.find((x) => Math.abs(Date.parse(`${x.fecha.slice(0, 10)}T12:00:00Z`) - t) <= DIA && (palabraDe(x.titulo) ?? '').length >= 3 && nombre.includes(palabraDe(x.titulo)!));
@@ -51,7 +51,7 @@ export function reelsConDueño(leads: (Lead | null | undefined)[], reels: Organi
 }
 
 export function piezasDelLead(lead: Lead | null | undefined, reels: OrganicoPieza[], angulos: Angulo[], dueños?: Map<string, string>): PiezaDelLead[] {
-  return leerTags(lead?.manychat_tags).piezas.map((p) => {
+  return leerTags(tagsDeLaVenta(lead)).piezas.map((p) => {
     const t = Date.parse(`${p.fecha}T12:00:00Z`);
     const nombre = norm(p.nombre);
     const cerca = reels

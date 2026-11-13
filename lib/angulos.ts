@@ -1,3 +1,4 @@
+import { tagsDeLaVenta } from './manychat';
 import { esVenta } from './metrics';
 import { ETAPAS, type Angulo, type Etapa, type RawBundle } from './types';
 
@@ -56,7 +57,7 @@ export function cruzarAngulos(b: RawBundle): Map<string, CruceAngulo> {
       c.listaReels.sort((x, y) => y.views - x.views);
       for (const ag of b.agendas) {
         const l = ag.lead;
-        const coinciden = (l?.manychat_tags ?? []).filter(toca);
+        const coinciden = tagsDeLaVenta(l).filter(toca);
         // También por de dónde vino el lead: así "webinar" junta a todos los que entraron por un webinar
         const origen = [l?.fuente, l?.funnel, l?.primer_punto_contacto, l?.utm_campaign, l?.utm_content]
           .filter((v): v is NonNullable<typeof v> => Boolean(v)).map(String).filter(toca);

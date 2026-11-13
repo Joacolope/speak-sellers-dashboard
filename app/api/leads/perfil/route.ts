@@ -3,7 +3,7 @@ import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 
-const CAMPOS = ['pais', 'closer_en_actividad', 'rango_comisiones', 'dato_previo', 'primer_punto_contacto', 'manychat_url', 'fuente', 'seguidor_desde', 'como_agendo', 'recorrido'] as const;
+const CAMPOS = ['pais', 'closer_en_actividad', 'rango_comisiones', 'dato_previo', 'primer_punto_contacto', 'manychat_url', 'fuente', 'seguidor_desde', 'como_agendo', 'recorrido', 'socio_nombre', 'socio_manychat_url'] as const;
 const FUENTES = ['Instagram', 'WhatsApp', 'Webinar', 'YouTube', 'Referido', 'Otro'];
 const COMO_AGENDO = ['Setting', 'Link en bio', 'Directo con el closer', 'Webinar', 'Otro'];
 /** Solo links a una conversación de ManyChat (sin parámetros de búsqueda) */
@@ -47,7 +47,7 @@ async function manejarPOST(req: NextRequest) {
     const patch: Record<string, unknown> = {};
     for (const c of CAMPOS) {
       const crudo = typeof item[c] === 'string' ? (item[c] as string).trim().slice(0, 300) : '';
-      const v = c === 'manychat_url' ? limpiarManychat(crudo)
+      const v = c === 'manychat_url' || c === 'socio_manychat_url' ? limpiarManychat(crudo)
         : c === 'fuente' ? (FUENTES.includes(crudo) ? crudo : '')
         : c === 'como_agendo' ? (COMO_AGENDO.includes(crudo) ? crudo : '')
         : c === 'seguidor_desde' ? (/^\d{4}-\d{2}-\d{2}$/.test(crudo) ? crudo : '')
