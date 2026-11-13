@@ -1,5 +1,6 @@
 import { tagsDeLaVenta } from './manychat';
 import { esVenta } from './metrics';
+import { piezasDelLead, reelsConDueño } from './recorrido';
 import { ETAPAS, type Angulo, type Etapa, type RawBundle } from './types';
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
@@ -23,12 +24,14 @@ export interface CruceAngulo {
   /** cash = la parte que le toca a este ángulo; total = lo que pagó el lead; entre = cuántos ángulos se la reparten */
   leads: { nombre: string; chat: string | null; compro: boolean; cash: number; total: number; entre: number }[];
   listaReels: { titulo: string; url: string | null; views: number }[];
+  /** Piezas de contenido donde se habló del ángulo (de las etiquetas de ManyChat con fecha), con su link si se encontró */
+  piezas: { fecha: string; nombre: string; url: string | null }[];
   /** Para sumar por etapa sin contar dos veces */
   idsReels: string[];
   idsAgendas: string[];
 }
 
-const VACIO = (): CruceAngulo => ({ reels: 0, views: 0, comentarios: 0, seguidores: 0, agendas: 0, ventas: 0, cash: 0, quienes: [], etiquetas: [], origenes: [], leads: [], listaReels: [], idsReels: [], idsAgendas: [] });
+const VACIO = (): CruceAngulo => ({ reels: 0, views: 0, comentarios: 0, seguidores: 0, agendas: 0, ventas: 0, cash: 0, quienes: [], etiquetas: [], origenes: [], leads: [], listaReels: [], piezas: [], idsReels: [], idsAgendas: [] });
 
 /**
  * Cruza cada ángulo con lo que ya hay en el dashboard, por sus palabras clave:
@@ -40,6 +43,16 @@ const VACIO = (): CruceAngulo => ({ reels: 0, views: 0, comentarios: 0, seguidor
 export function cruzarAngulos(b: RawBundle): Map<string, CruceAngulo> {
   const reels = b.piezas.filter((p) => p.tipo === 'reel');
   const out = new Map<string, CruceAngulo>();
+  // Todas las piezas que nombran las etiquetas de ManyChat, con el link a su reel (una vez por pieza)
+  const dueños = reelsConDueño(b.leads, b.piezas);
+  const todasLasPiezas = new Map<string, { fecha: string; nombre: string; url: string | null }>();
+  for (const l of b.leads) {
+    for (const p of piezasDelLead(l, b.piezas, [], dueños)) {
+      const k = `${p.fecha}|${norm(p.nombre)}`;
+      const previa = todasLasPiezas.get(k);
+      if (!previa || (!previa.url && p.url)) todasLasPiezas.set(k, { fecha: p.fecha, nombre: p.nombre, url: p.url });
+    }
+  }
   for (const a of b.angulos) {
     const claves = a.palabras_clave.map(norm).filter((k) => k.length >= 3);
     const c = VACIO();
@@ -55,6 +68,11 @@ export function cruzarAngulos(b: RawBundle): Map<string, CruceAngulo> {
         c.listaReels.push({ titulo: r.titulo ?? 'Reel', url: r.url ?? null, views: r.views ?? 0 });
       }
       c.listaReels.sort((x, y) => y.views - x.views);
+      // Piezas donde se habló del ángulo (los webinars no van: no son piezas de contenido)
+      if (!/webinar/.test(norm(a.nombre))) {
+        for (const p of todasLasPiezas.values()) if (toca(p.nombre) && !/webinar/.test(norm(p.nombre))) c.piezas.push(p);
+        c.piezas.sort((x, y) => y.fecha.localeCompare(x.fecha));
+      }
       for (const ag of b.agendas) {
         const l = ag.lead;
         const coinciden = tagsDeLaVenta(l).filter(toca);

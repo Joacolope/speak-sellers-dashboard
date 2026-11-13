@@ -74,7 +74,7 @@ function Evidencia({ a, c }: { a: Angulo; c: CruceAngulo }) {
     l.chat
       ? <a className="text-[var(--accent)] hover:underline" href={l.chat} target="_blank" rel="noopener noreferrer" title="Abrir la conversación en ManyChat">{l.nombre}{l.compro ? ` · ${monto(l)}` : ''} ↗</a>
       : <span className="text-text-muted">{l.nombre}{l.compro ? ` · ${monto(l)}` : ''}</span>;
-  const hay = c.leads.length > 0 || c.listaReels.length > 0 || a.url || a.fuente || a.resultado;
+  const hay = c.leads.length > 0 || c.listaReels.length > 0 || c.piezas.length > 0 || a.url || a.fuente || a.resultado;
   if (!hay) return <div className="text-[13px] text-text-disabled">Todavía sin conversaciones ni reels que coincidan con: {a.palabras_clave.join(', ') || 'sin palabras clave'}.</div>;
   return (
     <div className="flex flex-col gap-4 rounded-xl bg-[var(--surface-2)] p-5">
@@ -86,6 +86,16 @@ function Evidencia({ a, c }: { a: Angulo; c: CruceAngulo }) {
       )}
       {c.etiquetas.length > 0 && (
         <Fila titulo="Etiquetas de ManyChat">{c.etiquetas.map((t) => <span key={t} className="tag tag-gray">{t}</span>)}</Fila>
+      )}
+      {c.piezas.length > 0 && (
+        <Fila titulo="Piezas de contenido">
+          {c.piezas.map((p) => {
+            const txt = `${p.fecha.slice(8, 10)}/${p.fecha.slice(5, 7)}/${p.fecha.slice(2, 4)} ${p.nombre}`;
+            return p.url
+              ? <a key={p.fecha + p.nombre} className="text-[var(--accent)] hover:underline" href={p.url} target="_blank" rel="noopener noreferrer" title="Abrir la publicación en Instagram">{txt} ↗</a>
+              : <span key={p.fecha + p.nombre} className="text-text-muted" title="No se encontró el reel de ese día">{txt}</span>;
+          })}
+        </Fila>
       )}
       {c.listaReels.length > 0 && (
         <Fila titulo="Reels">
