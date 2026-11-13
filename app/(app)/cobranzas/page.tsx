@@ -10,12 +10,16 @@ import { pct } from '@/lib/format';
 import { fechaCorta, hoyAR, num, usd } from '@/lib/format';
 import { cuotasPorCobrar, totalCuotas } from '@/lib/cuotas';
 import CuotasPorCobrar from '@/components/CuotasPorCobrar';
-import { NOMBRE_CLOSER } from '@/lib/types';
+import { NOMBRE_CLOSER, PLATAFORMAS } from '@/lib/types';
+import EditableCell from '@/components/EditableCell';
+import { getSesion, puede } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Cobranzas({ searchParams }: { searchParams: SearchParams }) {
   const bundle = await getBundle();
+  const editor = puede(await getSesion(), 'editor');
+  const OPC_PLATAFORMA = PLATAFORMAS.map((x) => ({ value: x, label: x }));
   const f = leerFiltros(searchParams);
   const meses = mesesDisponibles(bundle, f.mes);
   const filas = cobranzasDelMes(bundle, f).sort((a, b) => b.fecha_cobro.localeCompare(a.fecha_cobro));
@@ -79,7 +83,7 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
         </ChartCard>
       </section>
 
-      <Seccion eyebrow="Movimientos" titulo={`${num(filas.length)} cobranzas`}>
+      <Seccion eyebrow="Movimientos" titulo={`${num(filas.length)} cobranzas`} aside={editor ? <span className="text-[13px] text-text-disabled">Las celdas con borde al pasar el mouse se editan con un click.</span> : undefined}>
         {filas.length ? (
           <div className="card overflow-x-auto !p-0">
             <table className="table">
@@ -102,15 +106,15 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
                 {filas.map((c) => (
                   <tr key={c.id}>
                     <td className="font-medium">{nombre(c.agenda_id)}</td>
-                    <td>{fechaCorta(c.fecha_cobro)}</td>
-                    <td className={`num ${c.es_reembolso ? 'bad' : 'ok'}`}>{usd(c.monto_cobrado)}</td>
+                    <td className="editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="fecha_cobro" valor={c.fecha_cobro} tipo="date" mostrar={fechaCorta(c.fecha_cobro)} demo={bundle.demo} editable={editor} /></td>
+                    <td className={`num editable ${c.es_reembolso ? 'bad' : 'ok'}`}><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="monto_cobrado" valor={c.monto_cobrado} tipo="number" mostrar={usd(c.monto_cobrado)} demo={bundle.demo} editable={editor} /></td>
                     <td>{c.es_reembolso ? <span className="tag tag-red">Reembolso</span> : plata.idsFrontEnd.has(c.agenda_id) ? <span className="tag tag-green">Front end</span> : <span className="tag tag-blue">Back end</span>}</td>
-                    <td className="num">{c.pendiente ? <span className="warn">{usd(c.pendiente)}</span> : '—'}</td>
+                    <td className="num editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="pendiente" valor={c.pendiente} tipo="number" mostrar={c.pendiente ? <span className="warn">{usd(c.pendiente)}</span> : undefined} demo={bundle.demo} editable={editor} /></td>
                     <td>{NOMBRE_CLOSER[c.closer]}</td>
-                    <td>{c.plataforma ? <span className="tag tag-blue">{c.plataforma}</span> : <span className="tag tag-yellow">sin indicar</span>}</td>
-                    <td className="num">{c.cuotas_restantes ? num(c.cuotas_restantes) : '—'}</td>
-                    <td>{c.proximo_vencimiento ? <span className="tag tag-yellow">{fechaCorta(c.proximo_vencimiento)}</span> : '—'}</td>
-                    <td className="text-text-muted">{c.notas ?? ''}</td>
+                    <td className="editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="plataforma" valor={c.plataforma} tipo="select" opciones={OPC_PLATAFORMA} mostrar={c.plataforma ? <span className="tag tag-blue">{c.plataforma}</span> : <span className="tag tag-yellow">sin indicar</span>} demo={bundle.demo} editable={editor} /></td>
+                    <td className="num editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="cuotas_restantes" valor={c.cuotas_restantes} tipo="number" mostrar={c.cuotas_restantes ? num(c.cuotas_restantes) : undefined} demo={bundle.demo} editable={editor} /></td>
+                    <td className="editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="proximo_vencimiento" valor={c.proximo_vencimiento} tipo="date" mostrar={c.proximo_vencimiento ? <span className="tag tag-yellow">{fechaCorta(c.proximo_vencimiento)}</span> : undefined} demo={bundle.demo} editable={editor} /></td>
+                    <td className="editable text-text-muted"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="notas" valor={c.notas} tipo="text" demo={bundle.demo} editable={editor} /></td>
                     <td><SourceDot source={c.source} /></td>
                   </tr>
                 ))}

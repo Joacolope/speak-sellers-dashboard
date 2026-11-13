@@ -10,7 +10,9 @@ interface Props {
   agendaId: string;
   campo: string;
   valor: string | number | null | undefined;
-  tipo: 'select' | 'number' | 'text';
+  tipo: 'select' | 'number' | 'text' | 'date';
+  /** Dónde se guarda: por defecto, la llamada (/api/agendas). Para un cobro, "/api/cobranzas". */
+  ruta?: string;
   opciones?: Opcion[];
   mostrar?: React.ReactNode;
   demo?: boolean;
@@ -19,7 +21,7 @@ interface Props {
 }
 
 /** Celda editable: click → dropdown o número; escribe a Supabase con source = manual. */
-export default function EditableCell({ agendaId, campo, valor, tipo, opciones, mostrar, demo, editable = true }: Props) {
+export default function EditableCell({ agendaId, campo, valor, tipo, opciones, mostrar, demo, editable = true, ruta = '/api/agendas' }: Props) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -30,7 +32,7 @@ export default function EditableCell({ agendaId, campo, valor, tipo, opciones, m
     setError(null);
     const body: Record<string, unknown> = {};
     body[campo] = tipo === 'number' ? (nuevo === '' ? null : Number(nuevo)) : nuevo === '' ? null : nuevo;
-    const res = await fetch(`/api/agendas/${agendaId}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await fetch(`${ruta}/${agendaId}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     setGuardando(false);
     setEditando(false);
     if (!res.ok) {
@@ -80,8 +82,9 @@ export default function EditableCell({ agendaId, campo, valor, tipo, opciones, m
   return (
     <input
       autoFocus
-      className="input !w-28 !py-1"
+      className={`input !py-1 ${tipo === 'date' ? '!w-40' : tipo === 'text' ? '!w-56' : '!w-28'}`}
       type={tipo}
+      step={tipo === 'number' ? 'any' : undefined}
       defaultValue={valor === null || valor === undefined ? '' : String(valor)}
       disabled={guardando}
       onBlur={(e) => (e.target.value !== String(valor ?? '') ? guardar(e.target.value) : setEditando(false))}

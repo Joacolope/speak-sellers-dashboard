@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
+import { getBundle } from '@/lib/data';
+import { metricasMes, resumenCloser } from '@/lib/metrics';
+import { CLOSERS } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +49,21 @@ export async function GET(req: Request) {
       cobranzas: cobranzasD.data ?? [], webinars: webinarsD.data ?? [], campanas: campanasD.data ?? [],
     });
   }
+  // ?metricas=AAAA-MM → la plata del mes tal como la muestra el dashboard (mes completo, todos los closers y por closer)
+  const mesPedido = new URL(req.url).searchParams.get('metricas');
+  if (mesPedido && /^\d{4}-\d{2}$/.test(mesPedido)) {
+    const b = await getBundle();
+    const f = { mes: mesPedido, dia: null, desde: null, hasta: null, closer: 'todos' as const, fuente: 'todas' as const };
+    const m = metricasMes(b, f);
+    return NextResponse.json({
+      mes: mesPedido,
+      facturacion: m.revenue, cash_collected: m.cash_collected, front_end: m.new_cash, back_end: m.old_cash, reembolsos: m.reembolsos,
+      inversion_ads: m.inversion_ads, software: m.costo_software, comisiones: m.comisiones, comisiones_plataformas: m.comisiones_plataformas, ganancia: m.ganancia,
+      ventas: m.ventas, agendas: m.agendas,
+      closers: CLOSERS.map((c) => { const r = resumenCloser(b, f, c); return { closer: c, facturacion: r.revenue, cash_collected: r.cash, front_end: r.front_end, back_end: r.back_end, ventas: r.cierres, agendas: r.agendas }; }),
+    });
+  }
+
   const ventas = new URL(req.url).searchParams.get('ventas');
   if (ventas && /^\d{4}-\d{2}-\d{2}$/.test(ventas)) return NextResponse.json(await ventasDesde(ventas));
   const sb = supabase();
