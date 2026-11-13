@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
-import { getBundle } from '@/lib/data';
+import { cargarBundle } from '@/lib/data';
 import { metricasMes, resumenCloser } from '@/lib/metrics';
 import { CLOSERS } from '@/lib/types';
 
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
   // ?metricas=AAAA-MM → la plata del mes tal como la muestra el dashboard (mes completo, todos los closers y por closer)
   const mesPedido = new URL(req.url).searchParams.get('metricas');
   if (mesPedido && /^\d{4}-\d{2}$/.test(mesPedido)) {
-    const b = await getBundle();
+    const b = await cargarBundle(); // ya autorizado arriba (sesión de editor o token)
     const f = { mes: mesPedido, dia: null, desde: null, hasta: null, closer: 'todos' as const, fuente: 'todas' as const };
     const m = metricasMes(b, f);
     return NextResponse.json({
