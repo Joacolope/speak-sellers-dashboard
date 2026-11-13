@@ -13,7 +13,7 @@ import { clavePieza, leerTags, tiempoEntre } from '@/lib/manychat';
 import { enPalabras, tramosDeCompra, velocidad, velocidadPorOrigen } from '@/lib/velocidad';
 import { esCloser, rangoComisiones, RANGOS, tablaPerfil, type FilaPerfil } from '@/lib/perfil';
 import { pct } from '@/lib/format';
-import { piezasDelLead, primeraYUltima, type PiezaDelLead } from '@/lib/recorrido';
+import { piezasDelLead, primeraYUltima, reelsConDueño, type PiezaDelLead } from '@/lib/recorrido';
 import type { Agenda } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -151,6 +151,8 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
   const utms = agendasPorUtm(bundle, f);
 
   const sinChat = compradores.filter((a) => !a.lead?.manychat_url).length;
+  // Para desempatar los días con más de un reel (ver lib/recorrido)
+  const dueños = reelsConDueño(bundle.leads, bundle.piezas);
   const porOrigen = agrupar(compradores, origenSinUtm, (a) => COLOR_ORIGEN[origenSinUtm(a)]);
   const porAgenda = agrupar(compradores, comoAgendo);
   const porSetter = agrupar(compradores, (a) => { const s = huboSetter(a); return s === null ? 'Sin dato' : s ? 'Con setter' : 'Sin setter'; });
@@ -250,7 +252,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                   {compradores.map((a) => {
                     const l = a.lead;
                     const t = leerTags(l?.manychat_tags);
-                    const piezas = piezasDelLead(l, bundle.piezas, bundle.angulos);
+                    const piezas = piezasDelLead(l, bundle.piezas, bundle.angulos, dueños);
                     const pu = primeraYUltima(piezas, a.fecha_llamada);
                     const sigue = l?.seguidor_desde?.slice(0, 7) ?? t.seguidorDesde;
                     const setter = huboSetter(a);

@@ -31,7 +31,26 @@ const palabraDe = (titulo?: string | null) => {
  *   del reel (la que va entre «»); si ese día hubo un solo reel, se toma ese;
  * - la etapa es la del ángulo de Marketing cuyas palabras clave aparecen en el nombre de la pieza.
  */
-export function piezasDelLead(lead: Lead | null | undefined, reels: OrganicoPieza[], angulos: Angulo[]): PiezaDelLead[] {
+/**
+ * Reels que ya tienen dueño: los que alguna etiqueta de ManyChat (de cualquier lead) nombra por su palabra clave.
+ * Sirve para desempatar los días con más de un reel: si una pieza no nombra su reel, se descartan los que ya
+ * son de otra pieza y, si queda uno solo, es ese.
+ */
+export function reelsConDueño(leads: (Lead | null | undefined)[], reels: OrganicoPieza[]): Map<string, string> {
+  const dueño = new Map<string, string>(); // url del reel → nombre de la pieza que lo nombra
+  const conPalabra = reels.filter((r) => r.tipo === 'reel' && r.url && palabraDe(r.titulo));
+  for (const l of leads) {
+    for (const p of leerTags(l?.manychat_tags).piezas) {
+      const t = Date.parse(`${p.fecha}T12:00:00Z`);
+      const nombre = norm(p.nombre);
+      const r = conPalabra.find((x) => Math.abs(Date.parse(`${x.fecha.slice(0, 10)}T12:00:00Z`) - t) <= DIA && (palabraDe(x.titulo) ?? '').length >= 3 && nombre.includes(palabraDe(x.titulo)!));
+      if (r?.url && !dueño.has(r.url)) dueño.set(r.url, nombre);
+    }
+  }
+  return dueño;
+}
+
+export function piezasDelLead(lead: Lead | null | undefined, reels: OrganicoPieza[], angulos: Angulo[], dueños?: Map<string, string>): PiezaDelLead[] {
   return leerTags(lead?.manychat_tags).piezas.map((p) => {
     const t = Date.parse(`${p.fecha}T12:00:00Z`);
     const nombre = norm(p.nombre);
@@ -43,7 +62,9 @@ export function piezasDelLead(lead: Lead | null | undefined, reels: OrganicoPiez
       return k !== null && k.length >= 3 && nombre.includes(k);
     });
     const mismoDia = cerca.filter((r) => r.fecha.slice(0, 10) === p.fecha);
-    const reel = porPalabra ?? (mismoDia.length === 1 ? mismoDia[0] : null);
+    // Varios reels ese día: se descartan los que ya nombra otra pieza
+    const libres = mismoDia.length > 1 && dueños ? mismoDia.filter((r) => !r.url || !dueños.has(r.url) || dueños.get(r.url) === nombre) : mismoDia;
+    const reel = porPalabra ?? (mismoDia.length === 1 ? mismoDia[0] : libres.length === 1 ? libres[0] : null);
     const angulo = angulos.find((a) => a.palabras_clave.some((k) => norm(k).length >= 3 && nombre.includes(norm(k))));
     return {
       fecha: p.fecha,
