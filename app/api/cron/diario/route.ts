@@ -5,7 +5,7 @@ import { bearerValido, env } from '@/lib/env';
 import { syncGhl } from '@/lib/sync/ghl';
 import { syncMetaAds, syncMetaCampanas } from '@/lib/sync/meta';
 import { historialPublicaciones, syncIgOrganico } from '@/lib/sync/ig';
-import { syncManychat } from '@/lib/sync/manychat';
+import { manychat, syncManychat } from '@/lib/sync/manychat';
 import { vencimientoMeta } from '@/lib/sync/vencimiento';
 
 export const maxDuration = 300;
@@ -44,6 +44,20 @@ async function manejarGET(req: NextRequest) {
   if (solo === 'manychat') {
     await correr('ManyChat', () => syncManychat(sb, dry));
     return NextResponse.json({ ok: errores.length === 0, dry, resultados, errores });
+  }
+  // ?solo=buscar&nombre=...&email=... busca un contacto en ManyChat (solo lee): id, nombre, usuario de IG y etiquetas
+  if (solo === 'buscar') {
+    const q = req.nextUrl.searchParams;
+    type S = { id: string; name?: string; ig_username?: string | null; subscribed?: string | null; tags?: { name: string }[] };
+    const hallados: S[] = [];
+    const nombre = q.get('nombre')?.trim();
+    const email = q.get('email')?.trim();
+    if (nombre) hallados.push(...(await manychat<S[]>('/fb/subscriber/findByName', { name: nombre }).catch(() => [] as S[])));
+    if (email) {
+      const uno = await manychat<S | S[] | null>('/fb/subscriber/findBySystemField', { email }).catch(() => null);
+      hallados.push(...(Array.isArray(uno) ? uno : uno ? [uno] : []));
+    }
+    return NextResponse.json(hallados.slice(0, 20).map((h) => ({ id: h.id, nombre: h.name, ig: h.ig_username, desde: h.subscribed, tags: (h.tags ?? []).map((t) => t.name) })));
   }
   // ?solo=historial&dias=365 trae los links de publicaciones viejas (sin métricas), para el recorrido de los compradores
   if (solo === 'historial') {
