@@ -60,6 +60,9 @@ async function manejarPOST(req: NextRequest) {
     for (const c of ['manychat_desde', 'manychat_ultima'] as const) {
       if (typeof item[c] === 'string' && Number.isFinite(Date.parse(item[c] as string))) patch[c] = new Date(item[c] as string).toISOString();
     }
+    // Cambio de nombre (p. ej. una venta de dos socias: "Alejandra y Cristina"). GoHighLevel no lo pisa después.
+    const nuevo = typeof item.nuevo_nombre === 'string' ? item.nuevo_nombre.trim().replace(/\s+/g, ' ').slice(0, 120) : '';
+    if (nuevo.length >= 3 && nuevo !== lead.nombre) patch.nombre = nuevo;
     const ig = typeof item.instagram === 'string' ? item.instagram.trim().slice(0, 60) : '';
     if (ig && (item.pisar === true || !lead.instagram)) patch.instagram = ig.startsWith('@') ? ig : `@${ig}`;
     if (typeof item.intervino_setter === 'boolean' && (item.pisar === true || lead.intervino_setter === null || lead.intervino_setter === undefined)) patch.intervino_setter = item.intervino_setter;

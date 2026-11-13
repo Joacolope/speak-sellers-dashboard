@@ -20,7 +20,7 @@ async function ventasDesde(desde: string) {
   if (error) return { error: error.message };
   const ids = Array.from(new Set((ags ?? []).map((a) => a.lead_id)));
   const [{ data: leads }, { data: cobs }] = await Promise.all([
-    sb.from('leads').select('id, nombre, fuente, funnel, canal, pais, primer_punto_contacto, ultimo_punto_contacto, closer_en_actividad, rango_comisiones, nicho, dato_previo, utm_source, utm_medium, utm_campaign, utm_content, notas, ghl_contact_id, manychat_url, seguidor_desde, como_agendo, intervino_setter, recorrido, manychat_tags, manychat_desde, instagram').in('id', ids),
+    sb.from('leads').select('id, nombre, fuente, funnel, canal, pais, primer_punto_contacto, ultimo_punto_contacto, closer_en_actividad, rango_comisiones, nicho, dato_previo, utm_source, utm_medium, utm_campaign, utm_content, notas, ghl_contact_id, manychat_url, seguidor_desde, como_agendo, intervino_setter, recorrido, manychat_tags, manychat_desde, instagram, socio_nombre, socio_manychat_url, socio_manychat_tags').in('id', ids),
     sb.from('cobranzas').select('agenda_id, fecha_cobro, monto_cobrado, pendiente, cuotas_restantes, proximo_vencimiento, notas').in('agenda_id', (ags ?? []).map((a) => a.id)),
   ]);
   const porId = new Map((leads ?? []).map((l) => [l.id, l]));
