@@ -27,6 +27,25 @@ async function ventasDesde(desde: string) {
 export async function GET(req: Request) {
   const auth = await exigir('editor', { permitirToken: true });
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  // ?datos=AAAA-MM-DD,AAAA-MM-DD → filas crudas de ese rango (para armar reportes por fuera)
+  const rango = new URL(req.url).searchParams.get('datos');
+  if (rango && /^\d{4}-\d{2}-\d{2},\d{4}-\d{2}-\d{2}$/.test(rango)) {
+    const [desde, hasta] = rango.split(',');
+    const sbd = supabase();
+    const [setterD, adsD, organicoD, piezasD, cobranzasD, webinarsD, campanasD] = await Promise.all([
+      sbd.from('setter_diario').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha'),
+      sbd.from('ads_diario').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha'),
+      sbd.from('organico_diario').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha'),
+      sbd.from('organico_piezas').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha'),
+      sbd.from('cobranzas').select('*').gte('fecha_cobro', desde).lte('fecha_cobro', hasta).order('fecha_cobro'),
+      sbd.from('webinars').select('*').order('fecha'),
+      sbd.from('campanas_meta').select('*'),
+    ]);
+    return NextResponse.json({
+      setter: setterD.data ?? [], ads: adsD.data ?? [], organico: organicoD.data ?? [], piezas: piezasD.data ?? [],
+      cobranzas: cobranzasD.data ?? [], webinars: webinarsD.data ?? [], campanas: campanasD.data ?? [],
+    });
+  }
   const ventas = new URL(req.url).searchParams.get('ventas');
   if (ventas && /^\d{4}-\d{2}-\d{2}$/.test(ventas)) return NextResponse.json(await ventasDesde(ventas));
   const sb = supabase();
