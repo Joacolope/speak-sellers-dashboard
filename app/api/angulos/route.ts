@@ -91,7 +91,7 @@ async function manejarPOST(req: NextRequest) {
 export async function GET() {
   const auth = await exigir('editor', { permitirToken: true });
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const { data, error } = await supabase().from('angulos').select('id, nombre, etapa, estado, tipo, formato, palabras_clave, fuente').order('nombre');
+  const { data, error } = await supabase().from('angulos').select('id, nombre, etapa, estado, tipo, formato, hook, resultado, url, palabras_clave, notas, fuente').order('nombre');
   if (error) return NextResponse.json({ error: 'No se pudo leer' }, { status: 500 });
   return NextResponse.json(data ?? []);
 }
