@@ -202,6 +202,7 @@ async function manejarPOST(req: NextRequest) {
       cuotas_restantes: n(data.cuotas_restantes),
       proximo_vencimiento: data.proximo_vencimiento || null,
       closer: agenda.closer,
+      comision_setter: n(data.comision_setter),
       es_reembolso: monto < 0,
       plataforma,
       source: 'manual',

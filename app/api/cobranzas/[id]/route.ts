@@ -16,6 +16,7 @@ const VALIDOS: Record<string, (v: unknown) => boolean> = {
   plataforma: (v) => v === null || (PLATAFORMAS as string[]).includes(v as string),
   closer: (v) => (CLOSERS as string[]).includes(v as string),
   notas: (v) => v === null || (typeof v === 'string' && v.length <= 2000),
+  comision_setter: (v) => v === null || (esMonto(v) && (v as number) >= 0),
 };
 
 /** Lo cobrado de la llamada es la suma de sus cobros: se recalcula cada vez que cambia uno. */

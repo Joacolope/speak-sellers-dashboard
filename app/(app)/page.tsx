@@ -154,7 +154,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
       <Bloque titulo="Plata" sub="Lo que entra, lo que cuesta y lo que queda">
       <section className="grid gap-5 lg:grid-cols-3">
         <ChartCard titulo="Rentabilidad" sub="Cuánto queda de cada dólar cobrado" icono={Iconos.margen} color="green">
-          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} cash={actual.cash_collected} />
+          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} setters={actual.comisiones_setter} plataformas={actual.comisiones_plataformas} cash={actual.cash_collected} />
         </ChartCard>
         <ChartCard
           titulo="Facturación"
@@ -169,7 +169,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <ChartCard
           titulo="Cash Collected"
           color="green"
-          sub={`Lo que queda: facturación − ads − software − comisiones de closers${actual.comisiones_plataformas ? ' − comisiones de plataformas' : ''}`}
+          sub={`Lo que queda: facturación − ads − software − comisiones de closers y setters${actual.comisiones_plataformas ? ' − comisiones de plataformas' : ''}`}
           icono={Iconos.cash}
           valor={usd(actual.cash_collected)}
           comparacion={vsAnterior(anterior.cash_collected)}

@@ -96,6 +96,7 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
                   <th className="num">Pendiente</th>
                   <th>Closer</th>
                   <th>Plataforma</th>
+                  <th className="num">Comisión setter</th>
                   <th className="num">Cuotas restantes</th>
                   <th>Próximo vencimiento</th>
                   <th>Notas</th>
@@ -112,6 +113,7 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
                     <td className="num editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="pendiente" valor={c.pendiente} tipo="number" mostrar={c.pendiente ? <span className="warn">{usd(c.pendiente)}</span> : undefined} demo={bundle.demo} editable={editor} /></td>
                     <td>{NOMBRE_CLOSER[c.closer]}</td>
                     <td className="editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="plataforma" valor={c.plataforma} tipo="select" opciones={OPC_PLATAFORMA} mostrar={c.plataforma ? <span className="tag tag-blue">{c.plataforma}</span> : <span className="tag tag-yellow">sin indicar</span>} demo={bundle.demo} editable={editor} /></td>
+                    <td className="num editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="comision_setter" valor={c.comision_setter} tipo="number" mostrar={c.comision_setter ? usd(c.comision_setter, 2) : undefined} demo={bundle.demo} editable={editor} /></td>
                     <td className="num editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="cuotas_restantes" valor={c.cuotas_restantes} tipo="number" mostrar={c.cuotas_restantes ? num(c.cuotas_restantes) : undefined} demo={bundle.demo} editable={editor} /></td>
                     <td className="editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="proximo_vencimiento" valor={c.proximo_vencimiento} tipo="date" mostrar={c.proximo_vencimiento ? <span className="tag tag-yellow">{fechaCorta(c.proximo_vencimiento)}</span> : undefined} demo={bundle.demo} editable={editor} /></td>
                     <td className="editable text-text-muted"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="notas" valor={c.notas} tipo="text" demo={bundle.demo} editable={editor} /></td>

@@ -110,6 +110,8 @@ export interface Cobranza {
   closer: Closer;
   es_reembolso: boolean;
   plataforma?: PlataformaPago | null;
+  /** Comisión del setter por este pago (USD), si intervino */
+  comision_setter?: number | null;
   source: Source;
   notas?: string | null;
 }

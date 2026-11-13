@@ -103,7 +103,7 @@ function EjeMeses({ labels }: { labels: string[] }) {
 }
 
 /** De cada dólar facturado (cobrado), cuánto queda como Cash Collected después de ads, software y comisiones. */
-export function AnilloRentabilidad({ revenue, ads, software, comisiones, plataformas = null, cash }: { revenue: number; ads: number; software: number | null; comisiones: number | null; plataformas?: number | null; cash: number }) {
+export function AnilloRentabilidad({ revenue, ads, software, comisiones, setters = 0, plataformas = null, cash }: { revenue: number; ads: number; software: number | null; comisiones: number | null; setters?: number; plataformas?: number | null; cash: number }) {
   const margen = revenue > 0 ? Math.max(0, Math.min(1, cash / revenue)) : null;
   const datos = margen === null ? [{ v: 1 }] : [{ v: margen }, { v: 1 - margen }];
   // Semáforo del margen: ≥ 50 % verde, 20–50 % amarillo, < 20 % rojo
@@ -112,7 +112,8 @@ export function AnilloRentabilidad({ revenue, ads, software, comisiones, platafo
     { nombre: 'Facturación', valor: usd(revenue), color: B, clase: '' },
     { nombre: 'Ads', valor: `-${usd(ads)}`, color: R, clase: 'bad' },
     { nombre: 'Software', valor: software === null ? '—' : `-${usd(software)}`, color: 'color-mix(in srgb, var(--red) 50%, var(--surface))', clase: 'bad' },
-    { nombre: 'Comisiones', valor: comisiones === null ? '—' : `-${usd(comisiones)}`, color: Y, clase: 'bad' },
+    { nombre: 'Comisiones closers', valor: comisiones === null ? '—' : `-${usd(comisiones)}`, color: Y, clase: 'bad' },
+    { nombre: 'Comisiones setters', valor: `-${usd(setters)}`, color: 'color-mix(in srgb, var(--yellow) 75%, var(--surface))', clase: 'bad' },
     { nombre: 'Plataformas', valor: plataformas === null ? '—' : `-${usd(plataformas)}`, color: 'color-mix(in srgb, var(--yellow) 50%, var(--surface))', clase: 'bad' },
     { nombre: 'Cash Collected', valor: usd(cash), color: G, clase: cash < 0 ? 'bad' : 'ok' },
   ];

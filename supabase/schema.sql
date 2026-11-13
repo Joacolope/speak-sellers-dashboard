@@ -415,6 +415,8 @@ alter table setter_diario add column if not exists editado_por text;
 alter table leads add column if not exists canal text not null default 'Inbound' check (canal in ('Inbound','Outbound'));
 alter table agendas add column if not exists editado_por text;
 alter table cobranzas add column if not exists editado_por text;
+-- Comisión del setter de ese pago (10 % cuando intervino), tal como la lleva la planilla de ingresos
+alter table cobranzas add column if not exists comision_setter numeric;
 alter table costos add column if not exists editado_por text;
 alter table ajustes_mensuales add column if not exists editado_por text;
 

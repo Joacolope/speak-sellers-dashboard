@@ -45,7 +45,9 @@ export interface MetricasMes {
   comisiones: number | null;
   /** Comisiones de plataformas de pago (Stripe, Wise…); null si no hay tarifas cargadas */
   comisiones_plataformas: number | null;
-  /** Lo que queda: Facturación − ads − software − comisiones de closers − comisiones de plataformas */
+  /** Comisiones de setters de los pagos del período */
+  comisiones_setter: number;
+  /** Lo que queda: Facturación − ads − software − comisiones de closers y setters − comisiones de plataformas */
   cash_collected: number;
   /** Front end: lo cobrado de ventas cerradas en el período */
   new_cash: number;
@@ -175,8 +177,9 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
   const comisiones = com.sinConfigurar ? null : com.total;
   const plat = comisionesPlataformasDelMes(b.comisionesPlataformas, cob, f.mes);
   const comisionesPlataformas = plat.sinConfigurar ? null : plat.total;
-  // Cash Collected (lo que queda) = Facturación − ads − software − comisiones de closers − comisiones de plataformas
-  const cash = revenue - inversion - (software ?? 0) - (comisiones ?? 0) - (comisionesPlataformas ?? 0);
+  const comisionesSetter = Math.round(sum(cob, (c) => c.comision_setter) * 100) / 100;
+  // Cash Collected (lo que queda) = Facturación − ads − software − comisiones de closers y setters − comisiones de plataformas
+  const cash = revenue - inversion - (software ?? 0) - (comisiones ?? 0) - comisionesSetter - (comisionesPlataformas ?? 0);
 
 
   const convOrgSetter = sumNullable(setter, (s) => s.conv_organicas);
@@ -226,6 +229,7 @@ export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {
     costo_software: software,
     comisiones,
     comisiones_plataformas: comisionesPlataformas,
+    comisiones_setter: comisionesSetter,
     cash_collected: cash,
     new_cash: newCash,
     old_cash: oldCash,
@@ -471,9 +475,9 @@ function punto(b: RawBundle, f: Filtros, mes: string): PuntoMensual {
     roas_cash: m.inversion_ads ? Math.round((m.cash_collected / m.inversion_ads) * 100) / 100 : null,
     roas_revenue: m.inversion_ads ? Math.round((m.revenue / m.inversion_ads) * 100) / 100 : null,
     software: m.costo_software ?? 0,
-    comisiones: m.comisiones ?? 0,
+    comisiones: (m.comisiones ?? 0) + m.comisiones_setter,
     plataformas: m.comisiones_plataformas ?? 0,
-    costos: Math.round((m.inversion_ads + (m.costo_software ?? 0) + (m.comisiones ?? 0) + (m.comisiones_plataformas ?? 0)) * 100) / 100,
+    costos: Math.round((m.inversion_ads + (m.costo_software ?? 0) + (m.comisiones ?? 0) + m.comisiones_setter + (m.comisiones_plataformas ?? 0)) * 100) / 100,
   };
 }
 

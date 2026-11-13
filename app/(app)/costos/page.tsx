@@ -30,8 +30,8 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
   const serie = serieMeses(bundle, f, 6);
   const com = comisionesDelMes(bundle.comisiones, cobranzasDelMes(bundle, f), f.mes);
   const plat = comisionesPlataformasDelMes(bundle.comisionesPlataformas, cobranzasDelMes(bundle, f), f.mes);
-  const costosTotales = actual.inversion_ads + cm.total + (actual.comisiones ?? 0) + (actual.comisiones_plataformas ?? 0);
-  const anteriorTotales = anterior.inversion_ads + (anterior.costo_software ?? 0) + (anterior.comisiones ?? 0) + (anterior.comisiones_plataformas ?? 0);
+  const costosTotales = actual.inversion_ads + cm.total + (actual.comisiones ?? 0) + actual.comisiones_setter + (actual.comisiones_plataformas ?? 0);
+  const anteriorTotales = anterior.inversion_ads + (anterior.costo_software ?? 0) + (anterior.comisiones ?? 0) + anterior.comisiones_setter + (anterior.comisiones_plataformas ?? 0);
   const margen = actual.revenue > 0 ? actual.cash_collected / actual.revenue : null;
   // Para los formularios: herramientas vigentes hoy (sin baja o con baja futura)
   const hoy = new Date().toISOString().slice(0, 10);
@@ -58,11 +58,13 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
         </Suspense>
       </div>
 
-      <section className="grid grid-cols-2 gap-5 lg:grid-cols-3 xl:grid-cols-6">
+      <section className="grid grid-cols-2 gap-5 lg:grid-cols-4">
         <StatCard label="Software del mes" valor={usd(cm.total, cm.total % 1 ? 2 : 0)} variacion={variacion(cm.total, anterior.costo_software)} icono={Iconos.margen} invertir color="yellow" />
         <StatCard label="Inversión en ads" valor={usd(actual.inversion_ads)} variacion={variacion(actual.inversion_ads, anterior.inversion_ads)} icono={Iconos.ads} invertir color="red" />
         <StatCard label="Comisiones closers" valor={actual.comisiones === null ? '—' : usd(actual.comisiones)} variacion={variacion(actual.comisiones, anterior.comisiones)} icono={Iconos.asistencia} invertir color="yellow"
           nota={actual.comisiones === null ? 'Falta cargar el % de cada closer' : undefined} />
+        <StatCard label="Comisiones setters" valor={usd(actual.comisiones_setter)} variacion={variacion(actual.comisiones_setter, anterior.comisiones_setter)} icono={Iconos.asistencia} invertir color="yellow"
+          nota="10 % de cada pago donde intervino el setter" />
         <StatCard label="Comisiones plataformas" valor={actual.comisiones_plataformas === null ? '—' : usd(actual.comisiones_plataformas)} variacion={variacion(actual.comisiones_plataformas, anterior.comisiones_plataformas)} icono={Iconos.cash} invertir color="yellow"
           nota={actual.comisiones_plataformas === null ? 'Falta cargar la tarifa de cada plataforma' : actual.comisiones_plataformas === 0 ? 'Por ahora no se paga comisión' : undefined} />
         <StatCard label="Costos totales" valor={usd(costosTotales)} variacion={variacion(costosTotales, anteriorTotales)} icono={Iconos.cash} invertir color="red" />
@@ -71,11 +73,11 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
       </section>
 
       <section className="grid gap-5 lg:grid-cols-3">
-        <ChartCard titulo="Costos vs. Cash Collected" sub="Ads, software, comisiones y plataformas vs. lo que queda (cash, verde)" icono={Iconos.tendencia} color="red" className="lg:col-span-2">
+        <ChartCard titulo="Costos vs. Cash Collected" sub="Ads, software, comisiones (closers y setters) y plataformas vs. lo que queda (cash, verde)" icono={Iconos.tendencia} color="red" className="lg:col-span-2">
           <CostosMes data={serie} />
         </ChartCard>
         <ChartCard titulo="Rentabilidad" sub={nombreMes(f.mes)} icono={Iconos.margen} color="green">
-          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} plataformas={actual.comisiones_plataformas} cash={actual.cash_collected} />
+          <AnilloRentabilidad revenue={actual.revenue} ads={actual.inversion_ads} software={actual.costo_software} comisiones={actual.comisiones} setters={actual.comisiones_setter} plataformas={actual.comisiones_plataformas} cash={actual.cash_collected} />
         </ChartCard>
       </section>
 
