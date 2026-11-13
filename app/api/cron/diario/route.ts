@@ -52,6 +52,9 @@ async function manejarGET(req: NextRequest) {
     const hallados: S[] = [];
     const nombre = q.get('nombre')?.trim();
     const email = q.get('email')?.trim();
+    // ?id= devuelve la ficha completa del contacto (campos personalizados incluidos)
+    const id = q.get('id')?.trim();
+    if (id && /^\d+$/.test(id)) return NextResponse.json(await manychat<unknown>('/fb/subscriber/getInfo', { subscriber_id: id }).catch((e) => ({ error: String(e) })));
     if (nombre) hallados.push(...(await manychat<S[]>('/fb/subscriber/findByName', { name: nombre }).catch(() => [] as S[])));
     if (email) {
       const uno = await manychat<S | S[] | null>('/fb/subscriber/findBySystemField', { email }).catch(() => null);
