@@ -43,6 +43,8 @@ const monto = (v: string | undefined): number | null => {
 
 /** "2/11/26" o "9/11(26" (con un error de tipeo) → "2026-11-02". Sin fecha legible → null. */
 const fecha = (v: string | undefined): string | null => {
+  const iso = (v ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
   const m = (v ?? '').match(/(\d{1,2})\D+(\d{1,2})\D+(\d{2,4})/);
   if (!m) return null;
   const anio = m[3].length === 2 ? `20${m[3]}` : m[3];
@@ -57,6 +59,8 @@ export interface PagoPlanilla {
   /** Como figura en la planilla: "ARS 912.000" */
   original: string;
   closer: string;
+  /** Marcado como renovación en la planilla */
+  renovacion: boolean;
 }
 
 export interface Planilla {
@@ -75,19 +79,25 @@ export function leerPlanilla(csv: string): Planilla {
   const cFecha = col('fecha de pago', 2);
   const cMoneda = col('moneda', 5);
   const cPago = col('pago realizado', 6);
-  const cCloser = col('closer', 11);
+  const cCloser = col('closer', -1);
+  const cRenov = col('renovacion', -1);
+  if (!cab.some((c) => c.startsWith('pago realizado'))) throw new Error('la pestaña no tiene la columna "PAGO REALIZADO": no es una pestaña de ventas');
 
   const fila = (titulo: string) => filas.find((f) => norm(f[cCliente] ?? '').startsWith(titulo));
   const tipoCambio = monto(fila('tipo de cambio')?.[cPago]);
   const totalUsd = monto(fila('total en usd')?.[cPago]);
 
   const pagos: PagoPlanilla[] = [];
+  let anterior = '';
   for (const f of filas.slice(1)) {
-    const cliente = (f[cCliente] ?? '').trim();
-    if (!cliente) break; // los pagos van seguidos; después de la primera fila vacía vienen los totales
-    if (/^total/i.test(cliente)) break;
+    let cliente = (f[cCliente] ?? '').trim();
+    if (/^total/i.test(cliente)) break; // debajo de "TOTALES" ya no hay pagos
     const m = monto(f[cPago]);
     if (m === null || m === 0) continue;
+    // Un segundo pago del mismo cliente a veces va en la fila de abajo sin repetir el nombre
+    if (!cliente) cliente = anterior;
+    if (!cliente) continue;
+    anterior = cliente;
     const moneda = norm(f[cMoneda] ?? '') || 'usd';
     const enPesos = moneda !== 'usd';
     if (enPesos && !tipoCambio) continue;
@@ -96,7 +106,8 @@ export function leerPlanilla(csv: string): Planilla {
       fecha: fecha(f[cFecha]),
       usd: Math.round((enPesos ? m / tipoCambio! : m) * 100) / 100,
       original: `${enPesos ? 'ARS' : 'USD'} ${m.toLocaleString('es-AR')}`,
-      closer: (f[cCloser] ?? '').trim(),
+      closer: cCloser >= 0 ? (f[cCloser] ?? '').trim() : '',
+      renovacion: cRenov >= 0 && /^s[ií]/i.test((f[cRenov] ?? '').trim()),
     });
   }
   return { pagos, tipoCambio, totalUsd };
@@ -150,7 +161,7 @@ export function avisoPlanilla(mes: string, c: Comparacion): string | null {
   if (!c.faltanEnDashboard.length && !c.sobranEnDashboard.length && Math.abs(c.totalPlanilla - c.totalDashboard) <= 2) return null;
   const partes: string[] = [`Planilla de finanzas de ${nombreMes(mes).toLowerCase()}: la planilla suma ${usd(c.totalPlanilla)} y el dashboard ${usd(c.totalDashboard)}`];
   const lista = (xs: string[]) => (xs.length > 4 ? `${xs.slice(0, 4).join(', ')} y ${xs.length - 4} más` : xs.join(', '));
-  if (c.faltanEnDashboard.length) partes.push(`faltan cargar: ${lista(c.faltanEnDashboard.map((p) => `${p.cliente} ${usd(p.usd)}`))}`);
+  if (c.faltanEnDashboard.length) partes.push(`faltan cargar: ${lista(c.faltanEnDashboard.map((p) => `${p.cliente} ${usd(p.usd)}${p.renovacion ? ' (renovación)' : ''}`))}`);
   if (c.sobranEnDashboard.length) partes.push(`no están en la planilla: ${lista(c.sobranEnDashboard.map((p) => `${p.nombre} ${usd(p.usd)}`))}`);
   return partes.join(' · ');
 }
@@ -160,12 +171,17 @@ const NOMBRES_MES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Jul
 /** Baja la pestaña del mes ("Ventas Noviembre") como CSV. La busca por nombre, así sirve para los meses que vienen. */
 export async function bajarPlanilla(id: string, mes: string): Promise<string> {
   const pestana = `Ventas ${NOMBRES_MES[Number(mes.slice(5, 7)) - 1]}`;
-  const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(pestana)}`;
-  const res = await fetch(url, { cache: 'no-store', redirect: 'manual', signal: AbortSignal.timeout(20000) });
-  const texto = res.status === 200 ? await res.text() : '';
-  // Sin permiso, Google manda al login (302) o devuelve una página HTML
-  if (res.status !== 200 || /^\s*</.test(texto)) throw new Error(`no se pudo leer la pestaña "${pestana}" (${res.status}). Compartila como "cualquier persona con el enlace: lector"`);
-  return texto;
+  // Si la pestaña no existe con ese nombre exacto, Google devuelve la primera de la planilla sin avisar:
+  // se prueba también con espacios de más (hay pestañas llamadas " Ventas Octubre ") y se verifica que sea de ventas.
+  for (const nombre of [pestana, ` ${pestana} `, `${pestana} `, ` ${pestana}`]) {
+    const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(nombre)}`;
+    const res = await fetch(url, { cache: 'no-store', redirect: 'manual', signal: AbortSignal.timeout(20000) });
+    const texto = res.status === 200 ? await res.text() : '';
+    // Sin permiso, Google manda al login (302) o devuelve una página HTML
+    if (res.status !== 200 || /^\s*</.test(texto)) throw new Error(`no se pudo leer la planilla (${res.status}). Compartila como "cualquier persona con el enlace: lector"`);
+    if (/pago realizado/i.test(texto.split('\n')[0] ?? '')) return texto;
+  }
+  throw new Error(`no encontré la pestaña "${pestana}" en la planilla`);
 }
 
 /** Compara el mes contra la planilla. Devuelve el resumen para el log y, si hay diferencias, el aviso. */
