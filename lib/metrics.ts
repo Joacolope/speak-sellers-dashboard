@@ -76,8 +76,30 @@ export function enPeriodo(f: Filtros, fecha: string | null | undefined): boolean
   return true;
 }
 
+/** Renovación o upsell de un cliente que ya había comprado: es back end y no cuenta como llamada de venta. */
+export function esRecompra(a: Agenda): boolean {
+  return a.tipo_venta === 'Renovación' || a.tipo_venta === 'Upsell';
+}
+
+/**
+ * Completa el tipo de venta de las que no lo tienen cargado a mano: es renovación si ese lead ya había comprado
+ * más de 45 días antes (una seña que se completa a los pocos días sigue siendo la misma venta nueva).
+ */
+export function resolverTipoVenta(agendas: Agenda[]): Agenda[] {
+  const compras = new Map<string, number[]>();
+  for (const a of agendas) if (a.compro === 'Si') compras.set(a.lead_id, [...(compras.get(a.lead_id) ?? []), Date.parse(a.fecha_llamada)]);
+  return agendas.map((a) => {
+    if (a.tipo_venta || (a.compro !== 'Si' && a.compro !== 'Reserva')) return a;
+    const t = Date.parse(a.fecha_llamada);
+    const yaCompro = (compras.get(a.lead_id) ?? []).some((x) => t - x > 45 * 86400000);
+    return { ...a, tipo_venta: yaCompro ? 'Renovación' as const : 'Nueva' as const };
+  });
+}
+
+/** Llamadas de venta del período. Las renovaciones y upsells no entran: no son llamadas de venta nuevas. */
 export function agendasDelMes(b: RawBundle, f: Filtros): Agenda[] {
   return b.agendas.filter((a) => {
+    if (esRecompra(a)) return false;
     if (!enPeriodo(f, a.fecha_llamada)) return false;
     if (f.closer !== 'todos' && a.closer !== f.closer) return false;
     if (f.fuente !== 'todas' && (a.lead?.fuente ?? 'Otro') !== f.fuente) return false;
@@ -106,14 +128,14 @@ function sumNullable<T>(arr: T[], fn: (t: T) => number | null | undefined): numb
   return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
 }
 
-/** Venta = compró. Una reserva (seña) no cuenta como cierre; su plata sí cuenta como cobrada. */
+/** Venta = compró (venta nueva). Una reserva (seña) no cuenta como cierre; su plata sí cuenta como cobrada. Una renovación tampoco: es back end. */
 export function esVenta(a: Agenda): boolean {
-  return a.compro === 'Si';
+  return a.compro === 'Si' && !esRecompra(a);
 }
 
 /** Dejó plata en la llamada: venta o seña. Se usa para lo cobrado, no para contar cierres. */
 export function esPago(a: Agenda): boolean {
-  return a.compro === 'Si' || a.compro === 'Reserva';
+  return (a.compro === 'Si' || a.compro === 'Reserva') && !esRecompra(a);
 }
 
 export interface Plata {
@@ -121,8 +143,14 @@ export interface Plata {
   facturacion: number;
   /** Front end: lo cobrado en el período de ventas cerradas en el período */
   frontEnd: number;
-  /** Back end: lo cobrado en el período de ventas anteriores (cuotas) */
+  /** Back end: lo cobrado en el período de clientes que ya estaban = cuotas de ventas anteriores + renovaciones */
   backEnd: number;
+  /** Parte del back end que son cuotas de ventas anteriores */
+  cuotas: number;
+  /** Parte del back end que son renovaciones y upsells */
+  renovaciones: number;
+  /** Llamadas que son renovación o upsell (sus cobros son back end) */
+  idsRecompra: Set<string>;
   reembolsos: number;
   /** Llamadas del período que dejaron plata: sus cobros son front end */
   idsFrontEnd: Set<string>;
@@ -147,7 +175,47 @@ export function plataDelPeriodo(b: RawBundle, f: Filtros): Plata {
     sum(cob.filter((c) => !c.es_reembolso && idsFrontEnd.has(c.agenda_id)), (c) => c.monto_cobrado) +
     sum(pagaron.filter((a) => !conCobro.has(a.id)), (a) => a.cash_collected);
   const backEnd = sum(cob.filter((c) => !c.es_reembolso && !idsFrontEnd.has(c.agenda_id)), (c) => c.monto_cobrado);
-  return { facturacion: frontEnd + backEnd - reembolsos, frontEnd, backEnd, reembolsos, idsFrontEnd };
+  const idsRecompra = new Set(b.agendas.filter(esRecompra).map((a) => a.id));
+  const renovaciones = sum(cob.filter((c) => !c.es_reembolso && idsRecompra.has(c.agenda_id)), (c) => c.monto_cobrado);
+  return { facturacion: frontEnd + backEnd - reembolsos, frontEnd, backEnd, cuotas: backEnd - renovaciones, renovaciones, reembolsos, idsFrontEnd, idsRecompra };
+}
+
+export interface PlataPeriodo {
+  /** "2026-11" o "2026-T4" */
+  clave: string;
+  label: string;
+  frontEnd: number;
+  cuotas: number;
+  renovaciones: number;
+  reembolsos: number;
+  facturacion: number;
+  /** Parte de lo cobrado que es plata nueva (front end) */
+  pctNuevo: number | null;
+}
+
+/**
+ * De dónde entró la plata, mes a mes y por trimestre: ventas nuevas (front end), cuotas de ventas anteriores
+ * y renovaciones (las dos últimas son back end). Sirve para ver en qué época del año conviene empujar marketing.
+ */
+export function plataPorPeriodo(b: RawBundle, f: Filtros, n = 12): { meses: PlataPeriodo[]; trimestres: PlataPeriodo[] } {
+  const lista: string[] = [f.mes];
+  while (lista.length < n) lista.unshift(mesAnterior(lista[0]));
+  const armar = (clave: string, label: string, p: { frontEnd: number; cuotas: number; renovaciones: number; reembolsos: number }): PlataPeriodo => {
+    const bruto = p.frontEnd + p.cuotas + p.renovaciones;
+    return { clave, label, ...p, facturacion: bruto - p.reembolsos, pctNuevo: bruto > 0 ? p.frontEnd / bruto : null };
+  };
+  const porMes = lista.map((mes) => ({ mes, p: plataDelPeriodo(b, { ...f, mes, dia: null, desde: null, hasta: null }) }));
+  while (porMes.length > 1 && !porMes[0].p.frontEnd && !porMes[0].p.backEnd) porMes.shift();
+  const meses = porMes.map(({ mes, p }) => armar(mes, mesCorto(mes), p));
+  const grupos = new Map<string, { frontEnd: number; cuotas: number; renovaciones: number; reembolsos: number }>();
+  for (const { mes, p } of porMes) {
+    const clave = `${mes.slice(0, 4)}-T${Math.ceil(Number(mes.slice(5, 7)) / 3)}`;
+    const g = grupos.get(clave) ?? { frontEnd: 0, cuotas: 0, renovaciones: 0, reembolsos: 0 };
+    g.frontEnd += p.frontEnd; g.cuotas += p.cuotas; g.renovaciones += p.renovaciones; g.reembolsos += p.reembolsos;
+    grupos.set(clave, g);
+  }
+  const trimestres = Array.from(grupos.entries()).map(([clave, g]) => armar(clave, `${clave.slice(5)} ${clave.slice(0, 4)}`, g));
+  return { meses, trimestres };
 }
 
 export function metricasMes(b: RawBundle, f: Filtros): MetricasMes {

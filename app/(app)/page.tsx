@@ -205,7 +205,7 @@ export default async function Inicio({ searchParams }: { searchParams: SearchPar
         <ChartCard titulo="ROAS" sub="Veces que vuelve lo invertido en ads" icono={Iconos.tendencia} color="green">
           <BarrasMes data={serie} a={{ key: 'roas_cash', nombre: 'ROAS cash', color: 'green' }} b={{ key: 'roas_revenue', nombre: 'ROAS facturación', color: 'blue' }} formato="x" />
         </ChartCard>
-        <ChartCard titulo="Front end vs. back end" sub="Cobrado de ventas cerradas en el mes (front end) vs. cuotas de ventas anteriores (back end)" icono={Iconos.cash} color="green">
+        <ChartCard titulo="Front end vs. back end" sub="Cobrado de ventas cerradas en el mes (front end) vs. cuotas de ventas anteriores y renovaciones (back end)" icono={Iconos.cash} color="green">
           <BarrasMes data={serie} a={{ key: 'new_cash', nombre: 'Front end', color: 'green' }} b={{ key: 'old_cash', nombre: 'Back end', color: 'yellow' }} formato="usd" />
         </ChartCard>
         <ChartCard titulo="Ventas por país" sub={nombreMes(f.mes)} icono={Iconos.globo} color="green">

@@ -13,6 +13,7 @@ const VALIDOS: Record<string, (v: unknown) => boolean> = {
   revenue: (v) => v === null || (typeof v === 'number' && Number.isFinite(v) && Math.abs(v) < 1e7),
   metodo_pago: (v) => v === null || ['PIF', 'Cuotas', 'Reserva'].includes(v as string),
   notas: (v) => v === null || (typeof v === 'string' && v.length <= 2000),
+  tipo_venta: (v) => v === null || ['Nueva', 'Renovación', 'Upsell'].includes(v as string),
 };
 
 /** Edición inline desde Closers. Solo editor o admin, solo campos manuales y valores válidos. */

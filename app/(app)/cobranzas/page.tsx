@@ -5,16 +5,50 @@ import { BarrasCategoria } from '@/components/Charts';
 import { Iconos } from '@/components/StatCard';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
-import { cobranzasDelMes, mesesDisponibles, plataDelPeriodo } from '@/lib/metrics';
+import { cobranzasDelMes, mesesDisponibles, plataDelPeriodo, plataPorPeriodo, type PlataPeriodo } from '@/lib/metrics';
 import { pct } from '@/lib/format';
 import { fechaCorta, hoyAR, nombreMes, num, usd } from '@/lib/format';
 import { cuotasPorCobrar, porCobrarPorMes, todasLasCuotas, totalCuotas } from '@/lib/cuotas';
 import ACobrar, { hayQueContactar } from '@/components/ACobrar';
-import { NOMBRE_CLOSER, PLATAFORMAS } from '@/lib/types';
+import { NOMBRE_CLOSER, PLATAFORMAS, TIPOS_VENTA } from '@/lib/types';
 import EditableCell from '@/components/EditableCell';
 import { getSesion, puede } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
+
+/** Tabla de plata nueva vs. back end por período (mes o trimestre), del más viejo al más nuevo. */
+function TablaOrigen({ titulo, filas, corta }: { titulo: string; filas: PlataPeriodo[]; corta?: boolean }) {
+  return (
+    <div className="card overflow-x-auto !p-0">
+      <table className="table">
+        <thead>
+          <tr>
+            <th>{titulo}</th>
+            <th className="num" title="Cobrado de ventas nuevas cerradas en el período">Front end</th>
+            {!corta && <th className="num" title="Cuotas de ventas cerradas antes">Cuotas</th>}
+            {!corta && <th className="num" title="Renovaciones y upsells de clientes que ya habían comprado">Renovaciones</th>}
+            {corta && <th className="num" title="Cuotas de ventas anteriores + renovaciones">Back end</th>}
+            <th className="num">Facturación</th>
+            <th className="num" title="Parte de lo cobrado que viene de ventas nuevas">% plata nueva</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((p) => (
+            <tr key={p.clave}>
+              <td className="font-medium capitalize">{p.label}</td>
+              <td className="num">{usd(p.frontEnd)}</td>
+              {!corta && <td className="num">{usd(p.cuotas)}</td>}
+              {!corta && <td className="num">{usd(p.renovaciones)}</td>}
+              {corta && <td className="num">{usd(p.cuotas + p.renovaciones)}</td>}
+              <td className="num ok" title={p.reembolsos ? `Ya descontados ${usd(p.reembolsos)} de reembolsos` : undefined}>{usd(p.facturacion)}{p.reembolsos ? <span className="ml-1 text-[11px] text-text-disabled">−reemb.</span> : null}</td>
+              <td className="num">{pct(p.pctNuevo)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default async function Cobranzas({ searchParams }: { searchParams: SearchParams }) {
   const bundle = await getBundle();
@@ -37,6 +71,9 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
   const pendienteTotal = totalCuotas(aCobrar);
   const porMes = porCobrarPorMes(cuotas, hoy);
   const sinMover = aCobrar.filter(hayQueContactar);
+  const origen = plataPorPeriodo(bundle, f);
+  const agendaPorId = new Map(bundle.agendas.map((a) => [a.id, a]));
+  const OPC_TIPO = TIPOS_VENTA.map((x) => ({ value: x, label: x === 'Nueva' ? 'Venta nueva (front end)' : `${x} (back end)` }));
   const nombre = (agendaId: string) => bundle.agendas.find((a) => a.id === agendaId)?.lead?.nombre ?? '—';
 
   return (
@@ -66,7 +103,7 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
         <div className="card flex flex-col gap-2">
           <div className="metric">{usd(plata.backEnd)}</div>
           <div className="text-[14px] text-text-muted">Back End Cash Collected · {parte(plata.backEnd)}</div>
-          <div className="text-[13px] text-text-disabled">De cuotas de ventas anteriores</div>
+          <div className="text-[13px] text-text-disabled">Cuotas de ventas anteriores {usd(plata.cuotas)} · renovaciones {usd(plata.renovaciones)}</div>
         </div>
       </section>
 
@@ -86,6 +123,14 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
           {porMes.sinFecha > 0 && <div className="card !p-4"><div className="text-[18px] font-medium tabular-nums warn">{usd(porMes.sinFecha)}</div><div className="text-[12px] text-text-muted">Sin fecha acordada · {num(cuotas.sinFecha.length)} {cuotas.sinFecha.length === 1 ? 'cliente' : 'clientes'}</div></div>}
         </div>
         {aCobrar.length ? <ACobrar filas={aCobrar} hoy={hoy} editable={editor} demo={bundle.demo} /> : <Vacio texto="Nadie debe plata." />}
+      </Seccion>
+
+      <Seccion eyebrow="De dónde entra la plata" titulo="Plata nueva vs. back end"
+        aside={<span className="text-[13px] text-text-disabled">Front end: ventas nuevas · back end: cuotas de ventas anteriores y renovaciones</span>}>
+        <div className="grid gap-5 xl:grid-cols-[3fr_2fr]">
+          <TablaOrigen titulo="Mes" filas={origen.meses.slice(-6)} />
+          <TablaOrigen titulo="Trimestre" filas={origen.trimestres.slice(-4)} corta />
+        </div>
       </Seccion>
 
       <ChartCard titulo="Cobrado por plataforma" sub="Por dónde entró la plata este período" icono={Iconos.cash} color="green">
@@ -118,7 +163,14 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
                     <td className="font-medium">{nombre(c.agenda_id)}</td>
                     <td className="editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="fecha_cobro" valor={c.fecha_cobro} tipo="date" mostrar={fechaCorta(c.fecha_cobro)} demo={bundle.demo} editable={editor} /></td>
                     <td className={`num editable ${c.es_reembolso ? 'bad' : 'ok'}`}><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="monto_cobrado" valor={c.monto_cobrado} tipo="number" mostrar={usd(c.monto_cobrado)} demo={bundle.demo} editable={editor} /></td>
-                    <td>{c.es_reembolso ? <span className="tag tag-red">Reembolso</span> : plata.idsFrontEnd.has(c.agenda_id) ? <span className="tag tag-green">Front end</span> : <span className="tag tag-blue">Back end</span>}</td>
+                    <td className="editable">
+                      {c.es_reembolso ? <span className="tag tag-red">Reembolso</span> : (
+                        <EditableCell agendaId={c.agenda_id} campo="tipo_venta" valor={agendaPorId.get(c.agenda_id)?.tipo_venta ?? 'Nueva'} tipo="select" opciones={OPC_TIPO} demo={bundle.demo} editable={editor}
+                          mostrar={plata.idsRecompra.has(c.agenda_id) ? <span className="tag tag-blue" title="Renovación o upsell de un cliente que ya había comprado">Back end · {agendaPorId.get(c.agenda_id)?.tipo_venta?.toLowerCase()}</span>
+                            : plata.idsFrontEnd.has(c.agenda_id) ? <span className="tag tag-green" title="Venta nueva cerrada en el período">Front end</span>
+                              : <span className="tag tag-blue" title="Cuota de una venta cerrada antes del período">Back end · cuota</span>} />
+                      )}
+                    </td>
                     <td className="num editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="pendiente" valor={c.pendiente} tipo="number" mostrar={c.pendiente ? <span className="warn">{usd(c.pendiente)}</span> : undefined} demo={bundle.demo} editable={editor} /></td>
                     <td>{NOMBRE_CLOSER[c.closer]}</td>
                     <td className="editable"><EditableCell ruta="/api/cobranzas" agendaId={c.id} campo="plataforma" valor={c.plataforma} tipo="select" opciones={OPC_PLATAFORMA} mostrar={c.plataforma ? <span className="tag tag-blue">{c.plataforma}</span> : <span className="tag tag-yellow">sin indicar</span>} demo={bundle.demo} editable={editor} /></td>

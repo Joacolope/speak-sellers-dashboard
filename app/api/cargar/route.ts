@@ -163,6 +163,8 @@ async function manejarPOST(req: NextRequest) {
       cash_collected: n(data.cash_collected),
       revenue: n(data.revenue) ?? n(data.cash_collected),
       producto: data.producto || null,
+      // "Renovación" o "Upsell": cuenta como back end. Sin indicar, se deduce sola.
+      ...(['Nueva', 'Renovación', 'Upsell'].includes(String(data.tipo_venta)) ? { tipo_venta: String(data.tipo_venta) } : {}),
       notas: juntarNotas(agenda.notas, notasTxt),
       source: 'manual',
       editado_por: auth.quien,

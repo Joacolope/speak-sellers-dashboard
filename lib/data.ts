@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { unstable_cache, revalidateTag } from 'next/cache';
 import type { Agenda, Lead, RawBundle, UltimaActualizacion } from './types';
 import { sampleBundle } from './sample';
+import { resolverTipoVenta } from './metrics';
 import { supabase, supabaseConfigurado } from './supabase';
 import { getSesion } from './auth';
 
@@ -67,7 +68,7 @@ export async function cargarBundle(): Promise<RawBundle> {
   if (errores.length) throw new Error(`Supabase: ${errores.map((e) => e!.message).join('; ')}`);
 
   const leadsById = new Map<string, Lead>((leads.data as Lead[]).map((l) => [l.id, l]));
-  const agendasConLead: Agenda[] = (agendas.data as Agenda[]).map((a) => ({ ...a, lead: leadsById.get(a.lead_id) }));
+  const agendasConLead: Agenda[] = resolverTipoVenta((agendas.data as Agenda[]).map((a) => ({ ...a, lead: leadsById.get(a.lead_id) })));
 
   const logs = log.data as RawBundle['log'];
   const ultimo = (src: string) => logs.find((l) => l.source === src || (src === 'ghl' && l.resumen.startsWith('cron')))?.fecha ?? null;

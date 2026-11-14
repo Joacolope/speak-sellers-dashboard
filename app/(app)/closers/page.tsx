@@ -89,7 +89,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
         <Dato valor={pct(resumen.pct_cierre)} clase={claseSemaforo(resumen.pct_cierre, OBJETIVOS.cierre)} label="% Cierre / presentadas" sub={`Ventas / presentadas · objetivo ${pct(OBJETIVOS.cierre)}`} />
         <Dato valor={usd(resumen.revenue)} clase="ok" label="Facturación" sub="Lo que se cobró en el período" />
         <Dato valor={usd(resumen.front_end)} label="Front End Cash Collected" sub="Cobrado de ventas cerradas en el período" />
-        <Dato valor={usd(resumen.back_end)} label="Back End Cash Collected" sub="Cobrado de cuotas de ventas anteriores" />
+        <Dato valor={usd(resumen.back_end)} label="Back End Cash Collected" sub="Cuotas de ventas anteriores y renovaciones" />
         <Dato valor={usd(pendiente)} clase={pendiente ? 'warn' : ''} label="Pendiente de cobrar" sub="Cuotas que faltan de sus ventas" />
         <Dato valor={resumen.asistencias ? usd(resumen.front_end / resumen.asistencias) : '—'} label="Cash por llamada" sub="Front end / presentadas" />
       </section>
@@ -112,7 +112,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
                   <th className="num" title="Ventas / presentadas">% Cierre / presentadas</th>
                   <th className="num" title="Lo que se cobró en el período: front end + back end">Facturación</th>
                   <th className="num" title="Lo que entró de ventas cerradas en el período">Front end</th>
-                  <th className="num" title="Lo que entró de cuotas de ventas anteriores">Back end</th>
+                  <th className="num" title="Lo que entró de cuotas de ventas anteriores y renovaciones">Back end</th>
                   <th className="num" title="Front end / llamadas presentadas">Cash por llamada</th>
                 </tr>
               </thead>

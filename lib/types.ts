@@ -101,8 +101,16 @@ export interface Agenda {
   notas?: string | null;
   /** Link a la grabación de la llamada (Fathom) */
   fathom_url?: string | null;
+  /**
+   * Nueva (front end), o Renovación / Upsell de un cliente que ya había comprado (back end).
+   * En el bundle ya viene resuelto: si no se cargó a mano, se deduce (ver resolverTipoVenta).
+   */
+  tipo_venta?: TipoVenta | null;
   lead?: Lead;
 }
+
+export type TipoVenta = 'Nueva' | 'Renovación' | 'Upsell';
+export const TIPOS_VENTA: TipoVenta[] = ['Nueva', 'Renovación', 'Upsell'];
 
 export interface Cobranza {
   id: string;
