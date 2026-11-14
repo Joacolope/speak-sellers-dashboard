@@ -13,7 +13,8 @@
   "closers": [
     { "id": "Marcos", "nombre": "Marcos Lanci", "activo": true, "comisionInicial": 0, "ghlUserId": "i8DcrP6UD17xI5U5mHCx" },
     { "id": "Andrea", "nombre": "Andrea Flores", "activo": false, "comisionInicial": 10, "ghlUserId": "FfGvrQ15X7p3f52WBFSu" },
-    { "id": "Gonzalo", "nombre": "Gonzalo Guimil", "activo": true, "comisionInicial": 10, "ghlCalendarId": "f6KLn8x47VVmqcTAdICC" }
+    { "id": "Gonzalo", "nombre": "Gonzalo Guimil", "activo": true, "comisionInicial": 10, "ghlCalendarId": "f6KLn8x47VVmqcTAdICC" },
+    { "id": "Franco", "nombre": "Franco Randisi", "proximamente": true }
   ],
 
   "objetivos": { "asistencia": 0.6, "cierre": 0.3, "respuestaMin": 15, "piezasPorDia": 2, "tofuPorSemana": 5 },

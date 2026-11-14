@@ -28,6 +28,7 @@
           "id": { "type": "string", "pattern": "^[A-Za-zÁÉÍÓÚÑáéíóúñ][A-Za-z0-9ÁÉÍÓÚÑáéíóúñ _-]{0,30}$", "description": "Nombre corto único (es lo que se guarda en la base y va en la URL)." },
           "nombre": { "type": "string", "description": "Nombre completo para mostrar." },
           "activo": { "type": "boolean", "default": true, "description": "false = ya no toma llamadas; conserva su historial." },
+          "proximamente": { "type": "boolean", "default": false, "description": "true = todavía no empezó a tomar llamadas: queda cargado pero no aparece en el dashboard. Para activarlo: borrar esta línea, agregar su ghlUserId o ghlCalendarId y cargar su % en Costos." },
           "comisionInicial": { "type": "number", "minimum": 0, "maximum": 100, "default": 0, "description": "% de comisión sobre lo cobrado, solo para la carga inicial (después se edita en Costos)." },
           "ghlUserId": { "type": "string", "description": "ID de usuario en GoHighLevel: las citas asignadas a ese usuario son de este closer." },
           "ghlCalendarId": { "type": "string", "description": "ID de calendario propio en GoHighLevel: todas las citas de ese calendario son de este closer." }

@@ -673,3 +673,5 @@ alter table leads add column if not exists socio_nombre text;
 alter table leads add column if not exists socio_manychat_url text;
 alter table leads add column if not exists socio_manychat_tags text[];
 alter table leads add column if not exists socio_email text;
+-- El nombre se corrigió a mano (p. ej. GoHighLevel lo trae mal escrito): el sync no lo vuelve a pisar
+alter table leads add column if not exists nombre_fijo boolean not null default false;

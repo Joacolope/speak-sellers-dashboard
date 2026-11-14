@@ -67,6 +67,16 @@ async function manejarPATCH(req: NextRequest, { params }: { params: { id: string
   patch.updated_at = new Date().toISOString();
 
   const sb = supabase();
+  // Si se cambia a mano la fecha del próximo pago y hay un plan cargado, se mueve la primera cuota del plan
+  // (o se borra el plan si se quita la fecha), así el plan y la fecha nunca dicen cosas distintas.
+  if ('proximo_vencimiento' in patch && !('plan_pagos' in patch)) {
+    const { data: actual } = await sb.from('cobranzas').select('plan_pagos').eq('id', params.id).maybeSingle();
+    const plan = Array.isArray(actual?.plan_pagos) ? (actual.plan_pagos as { fecha: string; monto: number }[]) : null;
+    if (plan?.length) {
+      patch.plan_pagos = patch.proximo_vencimiento === null ? null
+        : [{ ...plan[0], fecha: patch.proximo_vencimiento as string }, ...plan.slice(1)].sort((a, b) => a.fecha.localeCompare(b.fecha));
+    }
+  }
   const { data: cobro, error } = await sb.from('cobranzas').update(patch).eq('id', params.id).select('agenda_id').maybeSingle();
   if (error) return NextResponse.json({ error: 'No se pudo guardar' }, { status: 500 });
   if (!cobro) return NextResponse.json({ error: 'No existe ese cobro' }, { status: 404 });

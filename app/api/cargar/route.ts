@@ -1,3 +1,4 @@
+import { planDespuesDePago, type PagoPlan } from '@/lib/cuotas';
 import { NextResponse, type NextRequest } from 'next/server';
 import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
@@ -196,13 +197,23 @@ async function manejarPOST(req: NextRequest) {
     if (monto === null) return volver({ error: 'Falta el monto' });
     const fechaCobro = esFecha(data.fecha_cobro) ? data.fecha_cobro : ahora.slice(0, 10);
     if (await cobroRepetido(fechaCobro, monto)) return volver({ ok: `${lead.nombre} · ese cobro ya estaba cargado` });
+    // El saldo de la venta vive en su último cobro. Si este es el más nuevo, hereda lo que no se indicó:
+    // lo que queda pendiente (el saldo anterior menos este pago), el plan de pagos sin las cuotas ya cubiertas y el responsable.
+    const { data: anteriores } = await sb.from('cobranzas').select('pendiente, plan_pagos, responsable, fecha_cobro')
+      .eq('agenda_id', agenda.id).eq('es_reembolso', false).order('fecha_cobro', { ascending: false }).order('created_at', { ascending: false }).limit(1);
+    const previo = anteriores?.[0] && anteriores[0].fecha_cobro <= fechaCobro && monto > 0 ? anteriores[0] : null;
+    const pendiente = n(data.pendiente) ?? (previo?.pendiente != null ? Math.max(0, Math.round((Number(previo.pendiente) - monto) * 100) / 100) : null);
+    const planPrevio = previo && Array.isArray(previo.plan_pagos) ? (previo.plan_pagos as PagoPlan[]) : null;
+    const plan = planPrevio && (pendiente ?? 0) > 0 ? planDespuesDePago(planPrevio, monto) : null;
     const { error } = await sb.from('cobranzas').insert({
       agenda_id: agenda.id,
       fecha_cobro: fechaCobro,
       monto_cobrado: monto,
-      pendiente: n(data.pendiente),
-      cuotas_restantes: n(data.cuotas_restantes),
-      proximo_vencimiento: data.proximo_vencimiento || null,
+      pendiente,
+      cuotas_restantes: n(data.cuotas_restantes) ?? (plan?.length ? plan.length : null),
+      proximo_vencimiento: data.proximo_vencimiento || plan?.[0]?.fecha || null,
+      plan_pagos: plan?.length ? plan : null,
+      responsable: previo?.responsable ?? null,
       closer: agenda.closer,
       comision_setter: n(data.comision_setter),
       es_reembolso: monto < 0,

@@ -67,7 +67,7 @@ export default async function Metricas({ searchParams }: { searchParams: SearchP
                 <th className="num" title="Ventas / agendas">% cierre total</th>
                 <th className="num" title="Ventas / (agendas − no-shows)">% cierre s/ no-show</th>
                 <th className="num" title="Ventas / llamadas presentadas">% cierre / presentadas</th>
-                <th className="num" title="Lo que queda: Facturación − ads − software − comisiones">Cash Collected</th>
+                <th className="num" title="Lo que queda: Facturación − ads − software − comisiones de closers − comisiones de setters − comisiones de plataformas">Cash Collected</th>
                 <th className="num" title="Lo que se cobró en el mes: front end + back end − reembolsos">Facturación</th>
                 <th className="num" title="Cash de ventas cerradas en el mes">Front end</th>
                 <th className="num" title="Cash de cuotas de ventas de meses anteriores">Back end</th>

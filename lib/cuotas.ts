@@ -61,6 +61,20 @@ export function leerPlan(texto: string, hoy: string): PagoPlan[] | null {
   return out.length ? out.sort((a, b) => a.fecha.localeCompare(b.fecha)) : null;
 }
 
+/**
+ * Lo que queda del plan después de un pago: se descuentan las cuotas que cubre, de la más cercana a la más lejana.
+ * Si paga menos que una cuota, esa cuota queda por la diferencia.
+ */
+export function planDespuesDePago(plan: PagoPlan[], pago: number): PagoPlan[] {
+  const resto = plan.map((p) => ({ ...p })).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  let queda = pago;
+  while (queda > 0.5 && resto.length) {
+    if (queda >= resto[0].monto - 1) queda -= resto.shift()!.monto;
+    else { resto[0].monto = Math.round((resto[0].monto - queda) * 100) / 100; queda = 0; }
+  }
+  return resto;
+}
+
 /** El plan como se escribe: "10/12 500, 10/1 1500" */
 export const planTexto = (plan: PagoPlan[]) => plan.map((p) => `${Number(p.fecha.slice(8, 10))}/${Number(p.fecha.slice(5, 7))} ${p.monto}`).join(', ');
 

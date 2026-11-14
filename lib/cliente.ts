@@ -12,6 +12,8 @@ export interface CloserConfig {
   id: string;
   nombre: string;
   activo?: boolean;
+  /** Todavía no empezó a tomar llamadas: queda cargado en cliente.json pero no aparece en el dashboard */
+  proximamente?: boolean;
   comisionInicial?: number;
   ghlUserId?: string;
   ghlCalendarId?: string;
@@ -61,7 +63,9 @@ export function validarCliente(c: Partial<ConfigCliente>): string[] {
   return errores;
 }
 
-const config = cfg as ConfigCliente;
+const crudo = cfg as ConfigCliente;
+// Los closers marcados "proximamente" quedan preparados en cliente.json, pero el dashboard todavía no los muestra
+const config: ConfigCliente = { ...crudo, closers: (crudo.closers ?? []).filter((c) => !c.proximamente) };
 const problemas = validarCliente(config);
 if (problemas.length) throw new Error(`cliente.json inválido:\n- ${problemas.join('\n- ')}`);
 

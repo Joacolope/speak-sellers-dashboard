@@ -97,7 +97,7 @@ async function manejarGET(req: NextRequest) {
   await correr('IG', () => syncIgOrganico(sb, dry));
   if (process.env.MANYCHAT_TOKEN) await correr('ManyChat', () => syncManychat(sb, dry));
   // ¿ManyChat está respondiendo los comentarios? Publicaciones de los últimos 3 días con comentarios y casi ninguna respuesta
-  await correr('Automatización', async () => {
+  if (process.env.META_TOKEN && process.env.MANYCHAT_TOKEN && CLIENTE.meta.instagram) await correr('Automatización', async () => {
     const reels = await revisarAutomatizacion(3, CLIENTE.meta.instagram ?? '');
     const caidos = reels.filter((r) => (r.palabra && r.comentarios >= 5 && r.respondidos / r.comentarios < 0.2) || (r.comentarios >= 8 && r.respondidos === 0));
     if (caidos.length) {

@@ -74,7 +74,7 @@ try {
   // Comisiones iniciales por closer, una sola vez (después se editan en Costos)
   const { rows: hayCom } = await client.query('select 1 from comisiones limit 1');
   if (!hayCom.length) {
-    for (const c of cliente.closers) {
+    for (const c of cliente.closers.filter((x) => !x.proximamente)) {
       await client.query(
         `insert into comisiones (closer, porcentaje, fecha_alta, notas, source) values ($1, $2, current_date, 'Carga inicial (cliente.json)', 'manual')`,
         [c.id, Number(c.comisionInicial ?? 0)],

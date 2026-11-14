@@ -215,10 +215,10 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
     // Nombre: el del contacto o el del formulario; si no, el título de la cita sin el "<> Nombre del closer"
     const limpio = (t?: string | null) => (t ?? '').replace(/\s*<>.*$/, '').replace(/\s+/g, ' ').trim();
     let nombre = limpio(contacto?.name) || limpio([contacto?.firstName, contacto?.lastName].filter(Boolean).join(' ')) || limpio(ev.title) || 'Sin nombre';
-    if (nombre === 'Sin nombre') {
-      const { data: previo } = await sb.from('leads').select('nombre').eq('ghl_contact_id', ev.contactId).maybeSingle();
-      if (limpio(previo?.nombre) && previo?.nombre !== 'Sin nombre') nombre = limpio(previo?.nombre);
-    }
+    // Si el nombre se corrigió a mano (nombre_fijo) o GHL no trae ninguno, se conserva el que ya estaba
+    const { data: previo } = await sb.from('leads').select('nombre, nombre_fijo').eq('ghl_contact_id', ev.contactId).maybeSingle();
+    if (previo?.nombre_fijo && limpio(previo.nombre)) nombre = limpio(previo.nombre);
+    else if (nombre === 'Sin nombre' && limpio(previo?.nombre) && previo?.nombre !== 'Sin nombre') nombre = limpio(previo?.nombre);
     const closer: Closer = CLOSER_POR_CALENDARIO[ev.calendarId] ?? (ev.assignedUserId ? CLOSER_POR_USER[ev.assignedUserId] : undefined) ?? CLOSER_POR_DEFECTO;
 
     if (dry) { n++; continue; }
