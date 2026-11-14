@@ -19,9 +19,17 @@ export function alertas(b: RawBundle, hoy: string, metas: ProgresoMeta[] = []): 
   const dia = (iso: string) => iso.slice(0, 10);
 
   // Cuotas vencidas
-  const { vencidas } = cuotasPorCobrar(b, hoy);
+  const { vencidas, semana, sinFecha } = cuotasPorCobrar(b, hoy);
   if (vencidas.length)
     out.push({ nivel: 'red', texto: `${vencidas.length === 1 ? '1 cuota vencida' : `${vencidas.length} cuotas vencidas`} por ${usd(totalCuotas(vencidas))}: ${nombres(vencidas.map((c) => c.nombre))}`, href: '/cobranzas' });
+
+  // Vencen esta semana y nadie los contactó en los últimos 7 días
+  const sinAviso = semana.filter((c) => c.dias_sin_contacto === null || c.dias_sin_contacto > 7);
+  if (sinAviso.length)
+    out.push({ nivel: 'yellow', texto: `${sinAviso.length === 1 ? 'Vence 1 pago' : `Vencen ${sinAviso.length} pagos`} esta semana por ${usd(totalCuotas(sinAviso))} y todavía no se ${sinAviso.length === 1 ? 'lo' : 'los'} contactó: ${nombres(sinAviso.map((c) => c.nombre))}`, href: '/cobranzas' });
+  // Deben plata y no tienen fecha de pago acordada
+  if (sinFecha.length)
+    out.push({ nivel: 'yellow', texto: `${sinFecha.length === 1 ? '1 cliente debe' : `${sinFecha.length} clientes deben`} ${usd(totalCuotas(sinFecha))} sin fecha de pago acordada: ${nombres(sinFecha.map((c) => c.nombre))}`, href: '/cobranzas' });
 
   // Metas que a este ritmo no llegan
   const lejos = metas.filter((m) => m.estado === 'red' && m.meta !== null && m.proyeccion !== null);

@@ -7,6 +7,8 @@ import { syncMetaAds, syncMetaCampanas } from '@/lib/sync/meta';
 import { historialPublicaciones, syncIgOrganico } from '@/lib/sync/ig';
 import { manychat, syncManychat } from '@/lib/sync/manychat';
 import { vencimientoMeta } from '@/lib/sync/vencimiento';
+import { controlPlanilla } from '@/lib/sync/planilla';
+import { mesActual, mesAnterior } from '@/lib/format';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -62,6 +64,16 @@ async function manejarGET(req: NextRequest) {
     }
     return NextResponse.json(hallados.slice(0, 20).map((h) => ({ id: h.id, nombre: h.name, ig: h.ig_username, desde: h.subscribed, tags: (h.tags ?? []).map((t) => t.name) })));
   }
+  // ?solo=planilla&mes=AAAA-MM compara el mes contra la planilla de finanzas y devuelve las diferencias (solo lee)
+  if (solo === 'planilla') {
+    const mes = /^\d{4}-\d{2}$/.test(req.nextUrl.searchParams.get('mes') ?? '') ? req.nextUrl.searchParams.get('mes')! : mesActual();
+    try {
+      const r = await controlPlanilla(sb, mes);
+      return NextResponse.json({ ok: !r.aviso, mes, resumen: r.resumen, aviso: r.aviso, detalle: r.detalle });
+    } catch (e) {
+      return NextResponse.json({ ok: false, mes, error: e instanceof Error ? e.message : String(e) }, { status: 502 });
+    }
+  }
   // ?solo=historial&dias=365 trae los links de publicaciones viejas (sin métricas), para el recorrido de los compradores
   if (solo === 'historial') {
     const dias = Math.min(1095, Math.max(7, Number(req.nextUrl.searchParams.get('dias')) || 365));
@@ -74,6 +86,18 @@ async function manejarGET(req: NextRequest) {
   await correr('Campañas', () => syncMetaCampanas(sb, dry));
   await correr('IG', () => syncIgOrganico(sb, dry));
   if (process.env.MANYCHAT_TOKEN) await correr('ManyChat', () => syncManychat(sb, dry));
+  // Control contra la planilla de finanzas: el mes en curso y, la primera semana, también el anterior
+  if (process.env.PLANILLA_FINANZAS_ID) {
+    const meses = [mesActual()];
+    if (new Date().getUTCDate() <= 7) meses.unshift(mesAnterior(meses[0]));
+    for (const mes of meses) {
+      await correr(`Planilla ${mes}`, async () => {
+        const r = await controlPlanilla(sb, mes);
+        if (r.aviso) errores.push(r.aviso);
+        return r.resumen;
+      });
+    }
+  }
   // Tiempo de respuesta por DMs: Meta no lo permite sin "acceso avanzado"; sale de Business Suite (Setter)
 
   // El token de Meta de 60 días vence: avisar 10 días antes (queda en Avisos del Inicio)

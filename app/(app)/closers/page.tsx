@@ -8,7 +8,7 @@ import { getBundle } from '@/lib/data';
 import { leerFiltros, queryDe, type SearchParams } from '@/lib/filtros';
 import { agendasDelMes, mesesDisponibles, resumenCloser } from '@/lib/metrics';
 import { fechaCorta, hoyAR, num, pct, usd } from '@/lib/format';
-import { cuotasPorCobrar, totalCuotas } from '@/lib/cuotas';
+import { cuotasPorCobrar, todasLasCuotas, totalCuotas } from '@/lib/cuotas';
 import { CLOSERS, CLOSER_ACTIVO, NOMBRE_CLOSER } from '@/lib/types';
 import { getSesion, puede } from '@/lib/auth';
 
@@ -38,7 +38,7 @@ export default async function Closers({ searchParams }: { searchParams: SearchPa
   const closersVisibles = CLOSERS.filter((c) => CLOSER_ACTIVO[c] || f.closer === c || resumenCloser(bundle, f, c).agendas > 0);
   const porCloser = closersVisibles.map((c) => resumenCloser(bundle, f, c));
   const cuotas = cuotasPorCobrar(bundle, hoyAR());
-  const pendiente = totalCuotas([...cuotas.vencidas, ...cuotas.semana, ...cuotas.proximas].filter((c) => f.closer === 'todos' || c.closer === f.closer));
+  const pendiente = totalCuotas(todasLasCuotas(cuotas).filter((c) => f.closer === 'todos' || c.closer === f.closer));
 
   return (
     <>

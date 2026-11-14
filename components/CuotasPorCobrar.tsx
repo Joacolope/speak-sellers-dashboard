@@ -17,7 +17,7 @@ function Grupo({ titulo, filas, color, vacio }: { titulo: string; filas: CuotaPe
               <span className="min-w-0">
                 <span className="block truncate text-text">{c.nombre}</span>
                 <span className="block text-[12px] text-text-disabled">
-                  {NOMBRE_CLOSER[c.closer]} · {c.dias < 0 ? `venció hace ${-c.dias} ${c.dias === -1 ? 'día' : 'días'}` : c.dias === 0 ? 'vence hoy' : `vence ${fechaCorta(c.vence)}`}
+                  {NOMBRE_CLOSER[c.closer]} · {c.dias === null ? 'sin fecha acordada' : c.dias < 0 ? `venció hace ${-c.dias} ${c.dias === -1 ? 'día' : 'días'}` : c.dias === 0 ? 'vence hoy' : `vence ${fechaCorta(c.vence)}`}
                   {c.cuotas_restantes ? ` · ${c.cuotas_restantes} ${c.cuotas_restantes === 1 ? 'cuota' : 'cuotas'}` : ''}
                 </span>
               </span>
@@ -30,11 +30,12 @@ function Grupo({ titulo, filas, color, vacio }: { titulo: string; filas: CuotaPe
   );
 }
 
-export default function CuotasPorCobrar({ vencidas, semana, proximas, limite = 4 }: { vencidas: CuotaPendiente[]; semana: CuotaPendiente[]; proximas: CuotaPendiente[]; limite?: number }) {
+export default function CuotasPorCobrar({ vencidas, semana, proximas, sinFecha = [], limite = 4 }: { vencidas: CuotaPendiente[]; semana: CuotaPendiente[]; proximas: CuotaPendiente[]; sinFecha?: CuotaPendiente[]; limite?: number }) {
   return (
     <div className="flex flex-col gap-5">
       <Grupo titulo="Vencidas" filas={vencidas} color="red" vacio="Ninguna vencida." />
       <Grupo titulo="Vencen esta semana" filas={semana} color="yellow" vacio="Nada esta semana." />
+      {sinFecha.length > 0 && <Grupo titulo="Sin fecha de pago: hay que acordarla" filas={sinFecha.slice(0, limite)} color="yellow" vacio="" />}
       <Grupo titulo="Más adelante" filas={proximas.slice(0, limite)} color="blue" vacio="Sin cuotas programadas." />
       {proximas.length > limite && <div className="text-[13px] text-text-disabled">y {proximas.length - limite} más en Cobranzas</div>}
     </div>

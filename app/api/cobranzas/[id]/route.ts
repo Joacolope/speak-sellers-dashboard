@@ -3,6 +3,8 @@ import { refrescarDatos } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { exigir } from '@/lib/auth';
 import { CLOSERS, PLATAFORMAS } from '@/lib/types';
+import { leerPlan } from '@/lib/cuotas';
+import { hoyAR } from '@/lib/format';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const esFecha = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -17,6 +19,8 @@ const VALIDOS: Record<string, (v: unknown) => boolean> = {
   closer: (v) => (CLOSERS as string[]).includes(v as string),
   notas: (v) => v === null || (typeof v === 'string' && v.length <= 2000),
   comision_setter: (v) => v === null || (esMonto(v) && (v as number) >= 0),
+  responsable: (v) => v === null || (typeof v === 'string' && v.length <= 60),
+  ultimo_contacto: (v) => v === null || esFecha(v),
 };
 
 /** Lo cobrado de la llamada es la suma de sus cobros: se recalcula cada vez que cambia uno. */
@@ -34,8 +38,24 @@ async function manejarPATCH(req: NextRequest, { params }: { params: { id: string
   if (!UUID.test(params.id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!body || typeof body !== 'object' || !Object.keys(body).length) return NextResponse.json({ error: 'Pedido inválido' }, { status: 400 });
+  if (!body || typeof body !== 'object' || Array.isArray(body) || !Object.keys(body).length) return NextResponse.json({ error: 'Pedido inválido' }, { status: 400 });
   const patch: Record<string, unknown> = {};
+  // Plan de pagos: texto ("10/12 500, 10/1 1500"), lista [{fecha, monto}] o null para borrarlo.
+  // La fecha del próximo pago y las cuotas que faltan salen del plan.
+  if ('plan_pagos' in body) {
+    const crudo = body.plan_pagos;
+    delete body.plan_pagos;
+    if (crudo === null || crudo === '') patch.plan_pagos = null;
+    else {
+      const plan = typeof crudo === 'string' ? leerPlan(crudo, hoyAR())
+        : Array.isArray(crudo) && crudo.length <= 36 && crudo.every((x) => x && esFecha(x.fecha) && esMonto(x.monto) && x.monto > 0)
+          ? [...crudo].map((x) => ({ fecha: x.fecha as string, monto: x.monto as number })).sort((a, b) => a.fecha.localeCompare(b.fecha)) : null;
+      if (!plan) return NextResponse.json({ error: 'Escribí el plan así: 10/12 500, 10/1 1500' }, { status: 400 });
+      patch.plan_pagos = plan;
+      patch.proximo_vencimiento = plan[0].fecha;
+      patch.cuotas_restantes = plan.length;
+    }
+  }
   for (const [k, v] of Object.entries(body)) {
     if (!VALIDOS[k]) return NextResponse.json({ error: `Campo no editable: ${k}` }, { status: 400 });
     if (!VALIDOS[k](v)) return NextResponse.json({ error: `Valor inválido para ${k.replace(/_/g, ' ')}` }, { status: 400 });

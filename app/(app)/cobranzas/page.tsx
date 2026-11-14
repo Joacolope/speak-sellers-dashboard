@@ -7,9 +7,9 @@ import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { cobranzasDelMes, mesesDisponibles, plataDelPeriodo } from '@/lib/metrics';
 import { pct } from '@/lib/format';
-import { fechaCorta, hoyAR, num, usd } from '@/lib/format';
-import { cuotasPorCobrar, totalCuotas } from '@/lib/cuotas';
-import CuotasPorCobrar from '@/components/CuotasPorCobrar';
+import { fechaCorta, hoyAR, nombreMes, num, usd } from '@/lib/format';
+import { cuotasPorCobrar, porCobrarPorMes, todasLasCuotas, totalCuotas } from '@/lib/cuotas';
+import ACobrar, { hayQueContactar } from '@/components/ACobrar';
 import { NOMBRE_CLOSER, PLATAFORMAS } from '@/lib/types';
 import EditableCell from '@/components/EditableCell';
 import { getSesion, puede } from '@/lib/auth';
@@ -27,14 +27,16 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
   const plata = plataDelPeriodo(bundle, f);
   const parte = (v: number) => (plata.frontEnd + plata.backEnd > 0 ? pct(v / (plata.frontEnd + plata.backEnd)) : '—');
   const reembolsos = filas.filter((c) => c.es_reembolso).reduce((s, c) => s + Math.abs(c.monto_cobrado), 0);
-  // Pendiente total: última cobranza por agenda con pendiente > 0 (de cualquier mes)
-  const ultimaPorAgenda = new Map<string, (typeof bundle.cobranzas)[number]>();
-  for (const c of [...bundle.cobranzas].sort((a, b) => a.fecha_cobro.localeCompare(b.fecha_cobro))) ultimaPorAgenda.set(c.agenda_id, c);
-  const pendienteTotal = Array.from(ultimaPorAgenda.values()).reduce((s, c) => s + (c.pendiente ?? 0), 0);
   const mapa = new Map<string, number>();
   for (const c of filas.filter((x) => !x.es_reembolso)) mapa.set(c.plataforma ?? 'Sin indicar', (mapa.get(c.plataforma ?? 'Sin indicar') ?? 0) + Number(c.monto_cobrado));
   const porPlataforma = Array.from(mapa.entries()).map(([categoria, monto]) => ({ categoria, monto: Math.round(monto) })).sort((a, b) => b.monto - a.monto);
-  const cuotas = cuotasPorCobrar(bundle, hoyAR());
+  // Lo que falta cobrar no depende del mes del filtro: es la lista de trabajo de hoy
+  const hoy = hoyAR();
+  const cuotas = cuotasPorCobrar(bundle, hoy);
+  const aCobrar = todasLasCuotas(cuotas);
+  const pendienteTotal = totalCuotas(aCobrar);
+  const porMes = porCobrarPorMes(cuotas, hoy);
+  const sinMover = aCobrar.filter(hayQueContactar);
   const nombre = (agendaId: string) => bundle.agendas.find((a) => a.id === agendaId)?.lead?.nombre ?? '—';
 
   return (
@@ -69,19 +71,26 @@ export default async function Cobranzas({ searchParams }: { searchParams: Search
       </section>
 
       <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        <div className="card flex flex-col gap-2"><div className="metric warn">{usd(pendienteTotal)}</div><div className="text-[14px] text-text-muted">Pendiente de cobrar</div><div className="text-[13px] text-text-disabled">de todas las ventas en cuotas</div></div>
-        <div className="card flex flex-col gap-2"><div className={`metric ${cuotas.vencidas.length ? 'bad' : ''}`}>{usd(totalCuotas(cuotas.vencidas))}</div><div className="text-[14px] text-text-muted">Vencido</div><div className="text-[13px] text-text-disabled">{num(cuotas.vencidas.length)} {cuotas.vencidas.length === 1 ? 'cuota' : 'cuotas'} sin pagar</div></div>
+        <div className="card flex flex-col gap-2"><div className="metric warn">{usd(pendienteTotal)}</div><div className="text-[14px] text-text-muted">Pendiente de cobrar</div><div className="text-[13px] text-text-disabled">de todas las ventas en cuotas y señas</div></div>
+        <div className="card flex flex-col gap-2"><div className={`metric ${cuotas.vencidas.length ? 'bad' : ''}`}>{usd(totalCuotas(cuotas.vencidas))}</div><div className="text-[14px] text-text-muted">Vencido</div><div className="text-[13px] text-text-disabled">{num(cuotas.vencidas.length)} {cuotas.vencidas.length === 1 ? 'cliente' : 'clientes'} con el pago atrasado</div></div>
         <div className="card flex flex-col gap-2"><div className={`metric ${reembolsos ? 'bad' : ''}`}>{usd(reembolsos)}</div><div className="text-[14px] text-text-muted">Reembolsos</div><div className="text-[13px] text-text-disabled">en el período</div></div>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-2">
-        <ChartCard titulo="Quién debe y cuándo" sub="Cuotas pendientes, de la más urgente a la más lejana" icono={Iconos.cash} color="yellow">
-          <CuotasPorCobrar {...cuotas} limite={8} />
-        </ChartCard>
-        <ChartCard titulo="Cobrado por plataforma" sub="Por dónde entró la plata este período" icono={Iconos.cash} color="green">
-          {porPlataforma.length ? <BarrasCategoria data={porPlataforma} color="green" /> : <Vacio texto="Sin cobros este período." />}
-        </ChartCard>
-      </section>
+      <Seccion eyebrow="A cobrar" titulo={`${num(aCobrar.length)} ${aCobrar.length === 1 ? 'cliente debe' : 'clientes deben'} ${usd(pendienteTotal)}`}
+        aside={<span className="text-[13px] text-text-disabled">{sinMover.length ? `${num(sinMover.length)} sin contactar en la última semana` : 'Todos los urgentes tienen seguimiento'}{editor ? ' · se edita con un click' : ''}</span>}>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
+          {porMes.vencido > 0 && <div className="card !p-4"><div className="text-[18px] font-medium tabular-nums bad">{usd(porMes.vencido)}</div><div className="text-[12px] text-text-muted">Vencido: ya tendría que haber entrado</div></div>}
+          {porMes.meses.map((m) => (
+            <div key={m.mes} className="card !p-4"><div className="text-[18px] font-medium tabular-nums">{usd(m.monto)}</div><div className="text-[12px] text-text-muted">Entra en {nombreMes(m.mes).toLowerCase()} · {num(m.pagos)} {m.pagos === 1 ? 'pago' : 'pagos'}</div></div>
+          ))}
+          {porMes.sinFecha > 0 && <div className="card !p-4"><div className="text-[18px] font-medium tabular-nums warn">{usd(porMes.sinFecha)}</div><div className="text-[12px] text-text-muted">Sin fecha acordada · {num(cuotas.sinFecha.length)} {cuotas.sinFecha.length === 1 ? 'cliente' : 'clientes'}</div></div>}
+        </div>
+        {aCobrar.length ? <ACobrar filas={aCobrar} hoy={hoy} editable={editor} demo={bundle.demo} /> : <Vacio texto="Nadie debe plata." />}
+      </Seccion>
+
+      <ChartCard titulo="Cobrado por plataforma" sub="Por dónde entró la plata este período" icono={Iconos.cash} color="green">
+        {porPlataforma.length ? <BarrasCategoria data={porPlataforma} color="green" /> : <Vacio texto="Sin cobros este período." />}
+      </ChartCard>
 
       <Seccion eyebrow="Movimientos" titulo={`${num(filas.length)} cobranzas`} aside={editor ? <span className="text-[13px] text-text-disabled">Las celdas con borde al pasar el mouse se editan con un click.</span> : undefined}>
         {filas.length ? (

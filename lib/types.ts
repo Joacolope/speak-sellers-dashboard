@@ -117,6 +117,11 @@ export interface Cobranza {
   plataforma?: PlataformaPago | null;
   /** Comisión del setter por este pago (USD), si intervino */
   comision_setter?: number | null;
+  /** Seguimiento del saldo: quién lo sigue (si falta, el closer) y cuándo se lo contactó por última vez */
+  responsable?: string | null;
+  ultimo_contacto?: string | null;
+  /** Plan de pagos de lo que falta (fecha y monto de cada cuota). Sin plan, todo el saldo vence en proximo_vencimiento. */
+  plan_pagos?: { fecha: string; monto: number }[] | null;
   source: Source;
   notas?: string | null;
 }

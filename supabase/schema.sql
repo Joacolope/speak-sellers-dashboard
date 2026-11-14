@@ -417,6 +417,11 @@ alter table agendas add column if not exists editado_por text;
 alter table cobranzas add column if not exists editado_por text;
 -- Comisión del setter de ese pago (10 % cuando intervino), tal como la lleva la planilla de ingresos
 alter table cobranzas add column if not exists comision_setter numeric;
+-- Seguimiento de lo que falta cobrar: quién lo sigue y cuándo se lo contactó por última vez
+alter table cobranzas add column if not exists responsable text;
+alter table cobranzas add column if not exists ultimo_contacto date;
+-- Plan de pagos de lo que falta: [{"fecha":"2026-12-10","monto":500}, ...]. Sin plan, todo el saldo vence en proximo_vencimiento.
+alter table cobranzas add column if not exists plan_pagos jsonb;
 alter table costos add column if not exists editado_por text;
 alter table ajustes_mensuales add column if not exists editado_por text;
 

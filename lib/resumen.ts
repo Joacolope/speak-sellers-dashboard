@@ -145,7 +145,7 @@ export function htmlResumen(d: DatosResumen, appUrl: string): string {
 
   const closers = titulo('Closers') + lista(a.porCloser.map((c) => fila(NOMBRE_CLOSER[c.closer], usd(c.cobrado), `${c.ventas} ${c.ventas === 1 ? 'venta' : 'ventas'}`)));
 
-  const cuota = (c: CuotaPendiente) => fila(esc(c.nombre), usd(c.monto), `${NOMBRE_CLOSER[c.closer]} · ${c.dias < 0 ? `venció hace ${-c.dias} días` : `vence el ${fechaTxt(c.vence)}`}`);
+  const cuota = (c: CuotaPendiente) => fila(esc(c.nombre), usd(c.monto), `${NOMBRE_CLOSER[c.closer]} · ${(c.dias ?? 0) < 0 ? `venció hace ${-(c.dias ?? 0)} días` : `vence el ${fechaTxt(c.vence)}`}`);
   const cobrar = d.vencidas.length || d.proxSemana.length
     ? titulo('Cuotas por cobrar') +
       (d.vencidas.length ? `<div style="font-size:13px;color:${C.rojo};margin-bottom:4px">Vencidas · ${usd(totalCuotas(d.vencidas))}</div>${lista(d.vencidas.map(cuota))}` : '') +
