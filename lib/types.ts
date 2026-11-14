@@ -248,6 +248,10 @@ export interface OrganicoPieza {
   promocionado: boolean;
   url?: string | null;
   a_confirmar?: boolean;
+  /** Descripción de la publicación en Instagram */
+  caption?: string | null;
+  /** Etapa del embudo cargada a mano (si falta, se deduce del ángulo) */
+  etapa?: Etapa | null;
 }
 
 export interface AjusteMensual {

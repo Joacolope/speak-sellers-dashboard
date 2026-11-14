@@ -9,7 +9,7 @@ import { createServerClient } from '@supabase/ssr';
  */
 
 const PUBLICAS = ['/login', '/auth/', '/privacidad', '/terminos', '/bienvenida'];
-const MAQUINA = ['/api/cron/', '/api/cargar', '/api/costos', '/api/setter', '/api/metas', '/api/leads/perfil', '/api/leads/fusionar', '/api/estado', '/api/agendas/', '/api/cobranzas/', '/api/angulos']; // validan su propio token Bearer
+const MAQUINA = ['/api/cron/', '/api/cargar', '/api/costos', '/api/setter', '/api/metas', '/api/leads/perfil', '/api/leads/fusionar', '/api/estado', '/api/agendas/', '/api/cobranzas/', '/api/angulos', '/api/piezas/']; // validan su propio token Bearer
 
 const url = () => process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const anon = () =>

@@ -27,7 +27,7 @@ export interface ConfigCliente {
   locale?: string;
   googleSiteVerification?: string;
   closers: CloserConfig[];
-  objetivos: { asistencia: number; cierre: number; respuestaMin?: number };
+  objetivos: { asistencia: number; cierre: number; respuestaMin?: number; piezasPorDia?: number; tofuPorSemana?: number };
   ghl: { locationId?: string; calendarios?: string[]; pipelineId?: string };
   meta: {
     cuentaPublicitaria?: string;
@@ -82,6 +82,9 @@ export const OBJETIVOS = {
   asistencia: CLIENTE.objetivos.asistencia,
   cierre: CLIENTE.objetivos.cierre,
   respuestaMin: CLIENTE.objetivos.respuestaMin ?? 15,
+  /** Ritmo de contenido: publicaciones por día y piezas TOFU por semana */
+  piezasPorDia: CLIENTE.objetivos.piezasPorDia ?? 2,
+  tofuPorSemana: CLIENTE.objetivos.tofuPorSemana ?? 5,
 };
 
 /** Los IDs no son secretos, pero una variable de entorno siempre gana (sirve para previews o migraciones). */

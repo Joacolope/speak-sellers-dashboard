@@ -96,6 +96,15 @@ async function manejarGET(req: NextRequest) {
   await correr('Campañas', () => syncMetaCampanas(sb, dry));
   await correr('IG', () => syncIgOrganico(sb, dry));
   if (process.env.MANYCHAT_TOKEN) await correr('ManyChat', () => syncManychat(sb, dry));
+  // ¿ManyChat está respondiendo los comentarios? Publicaciones de los últimos 3 días con comentarios y casi ninguna respuesta
+  await correr('Automatización', async () => {
+    const reels = await revisarAutomatizacion(3, CLIENTE.meta.instagram ?? '');
+    const caidos = reels.filter((r) => (r.palabra && r.comentarios >= 5 && r.respondidos / r.comentarios < 0.2) || (r.comentarios >= 8 && r.respondidos === 0));
+    if (caidos.length) {
+      errores.push(`ManyChat no está respondiendo los comentarios: ${caidos.map((r) => `${r.palabra ? `«${r.palabra}»` : 'publicación'} del ${Number(r.fecha.slice(8, 10))}/${Number(r.fecha.slice(5, 7))} tiene ${r.comentarios} comentarios y ${r.respondidos} ${r.respondidos === 1 ? 'respuesta' : 'respuestas'}`).join(' · ')}. Revisar la automatización y los permisos de Instagram en ManyChat.`);
+    }
+    return `${reels.length} publicaciones revisadas${caidos.length ? `, ${caidos.length} sin respuesta automática` : ''}`;
+  });
   // Control contra la planilla de finanzas: el mes en curso y, la primera semana, también el anterior
   if (process.env.PLANILLA_FINANZAS_ID) {
     const meses = [mesActual()];

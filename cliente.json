@@ -16,7 +16,7 @@
     { "id": "Gonzalo", "nombre": "Gonzalo Guimil", "activo": true, "comisionInicial": 10, "ghlCalendarId": "f6KLn8x47VVmqcTAdICC" }
   ],
 
-  "objetivos": { "asistencia": 0.6, "cierre": 0.3, "respuestaMin": 15 },
+  "objetivos": { "asistencia": 0.6, "cierre": 0.3, "respuestaMin": 15, "piezasPorDia": 2, "tofuPorSemana": 5 },
 
   "ghl": {
     "locationId": "qcLzgJ0LSGXkHKb4pkHn",

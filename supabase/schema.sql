@@ -425,6 +425,9 @@ alter table cobranzas add column if not exists plan_pagos jsonb;
 -- Tipo de venta: una renovación o un upsell de un cliente que ya compró es back end, no una venta nueva.
 -- Vacío = se deduce sola (renovación si el lead ya había comprado más de 45 días antes).
 alter table agendas add column if not exists tipo_venta text check (tipo_venta in ('Nueva','Renovación','Upsell'));
+-- Descripción de la publicación (para deducir de qué ángulo habla) y etapa del embudo cargada a mano
+alter table organico_piezas add column if not exists caption text;
+alter table organico_piezas add column if not exists etapa text check (etapa in ('TOFU','MOFU','BOFU'));
 alter table costos add column if not exists editado_por text;
 alter table ajustes_mensuales add column if not exists editado_por text;
 

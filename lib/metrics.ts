@@ -503,7 +503,7 @@ export function avisos(b: RawBundle, f: Filtros, hoy: string): Pendiente[] {
   for (const p of ultimoLog?.pendientes ?? []) out.push({ tipo: 'agente', texto: p });
   // Avisos del último cron que no son errores de una fuente (ej.: token por vencer)
   const ultimoCron = b.log.filter((l) => l.resumen.startsWith('cron')).sort((a, b2) => b2.fecha.localeCompare(a.fecha))[0];
-  for (const p of ultimoCron?.pendientes ?? []) if (p.includes('vence') || p.startsWith('Planilla')) out.push({ tipo: 'agente', texto: p });
+  for (const p of ultimoCron?.pendientes ?? []) if (p.includes('vence') || p.startsWith('Planilla') || p.startsWith('ManyChat')) out.push({ tipo: 'agente', texto: p });
   for (const u of b.actualizaciones) {
     if (!u.ok) out.push({ tipo: 'fuente', texto: `${u.fuente} no actualizó hoy${u.detalle ? `: ${u.detalle}` : ''}` });
   }

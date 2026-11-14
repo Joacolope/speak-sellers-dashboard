@@ -42,7 +42,9 @@
       "properties": {
         "asistencia": { "type": "number", "minimum": 0, "maximum": 1, "description": "% de asistencia (show) a partir del cual el semáforo está en verde. Ej.: 0.6" },
         "cierre": { "type": "number", "minimum": 0, "maximum": 1, "description": "% de cierre sobre presentadas para el verde. Ej.: 0.3" },
-        "respuestaMin": { "type": "integer", "minimum": 1, "default": 15, "description": "Minutos objetivo para responder un DM." }
+        "respuestaMin": { "type": "integer", "minimum": 1, "default": 15, "description": "Minutos objetivo para responder un DM." },
+        "piezasPorDia": { "type": "number", "minimum": 0, "default": 2, "description": "Publicaciones del feed por día que se quieren subir." },
+        "tofuPorSemana": { "type": "integer", "minimum": 0, "default": 5, "description": "Piezas TOFU por semana que se quieren subir." }
       }
     },
 

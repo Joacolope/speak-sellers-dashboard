@@ -77,7 +77,7 @@ export async function historialPublicaciones(sb: SupabaseClient, dias: number, d
     return {
       ig_media_id: m.id, fecha: m.timestamp.slice(0, 10), tipo: 'reel',
       titulo: `${esReel ? 'Reel' : m.media_type === 'CAROUSEL_ALBUM' ? 'Carrusel' : 'Imagen'}${palabraClave(m.caption) ? ` «${palabraClave(m.caption)}»` : ''}`,
-      comentarios: m.comments_count ?? null, url: m.permalink ?? null, updated_at: new Date().toISOString(),
+      comentarios: m.comments_count ?? null, url: m.permalink ?? null, caption: m.caption?.slice(0, 2200) ?? null, updated_at: new Date().toISOString(),
     };
   });
   if (!dry && filas.length) {
@@ -150,7 +150,7 @@ export async function syncIgOrganico(sb: SupabaseClient, dry = false): Promise<s
         ig_media_id: m.id, fecha: m.timestamp.slice(0, 10), tipo: 'reel',
         titulo: `${esReel ? 'Reel' : m.media_type === 'CAROUSEL_ALBUM' ? 'Carrusel' : 'Imagen'}${palabraClave(m.caption) ? ` «${palabraClave(m.caption)}»` : ''}`,
         views, alcance: metrica(ins, 'reach'), comentarios: m.comments_count ?? null,
-        guardados: metrica(ins, 'saved'), compartidos: metrica(ins, 'shares'), promocionado, url: m.permalink ?? null,
+        guardados: metrica(ins, 'saved'), compartidos: metrica(ins, 'shares'), promocionado, url: m.permalink ?? null, caption: m.caption?.slice(0, 2200) ?? null,
         ...(perfil ? { seguidores: metrica(perfil, 'follows'), visitas_perfil: metrica(perfil, 'profile_visits') } : {}),
         updated_at: new Date().toISOString(),
       }, { onConflict: 'ig_media_id' });

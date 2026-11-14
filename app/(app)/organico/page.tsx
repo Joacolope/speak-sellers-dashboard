@@ -4,7 +4,12 @@ import { DemoBanner, Seccion, SourceDot, Vacio } from '@/components/ui';
 import { getBundle } from '@/lib/data';
 import { leerFiltros, type SearchParams } from '@/lib/filtros';
 import { mesesDisponibles, enPeriodo } from '@/lib/metrics';
-import { fechaCorta, mesDe, num, pct } from '@/lib/format';
+import { fechaCorta, hoyAR, mesDe, num, pct } from '@/lib/format';
+import { etapasDePiezas, ritmoDeContenido } from '@/lib/contenido';
+import { OBJETIVOS } from '@/lib/cliente';
+import { ETAPAS } from '@/lib/types';
+import EditableCell from '@/components/EditableCell';
+import { getSesion, puede } from '@/lib/auth';
 import type { OrganicoPieza } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +43,16 @@ function Top({ titulo, piezas, campo }: { titulo: string; piezas: OrganicoPieza[
 export default async function Organico({ searchParams }: { searchParams: SearchParams }) {
   const bundle = await getBundle();
   const f = leerFiltros(searchParams);
+  const editor = puede(await getSesion(), 'editor');
   const meses = mesesDisponibles(bundle, f.mes);
+  // Ritmo de contenido: últimas 4 semanas contra la meta (no depende del mes elegido)
+  const etapas = etapasDePiezas(bundle);
+  const ritmo = ritmoDeContenido(bundle, hoyAR(), etapas);
+  const recientes = ritmo.slice(-2).flatMap((s) => s.piezas).reverse();
+  const metaSemana = OBJETIVOS.piezasPorDia * 7;
+  const semaforo = (v: number, meta: number) => (v >= meta ? 'ok' : v >= meta * 0.6 ? 'warn' : 'bad');
+  const OPC_ETAPA = ETAPAS.map((e) => ({ value: e, label: e }));
+  const COLOR_ETAPA = { TOFU: 'tag-blue', MOFU: 'tag-yellow', BOFU: 'tag-green' } as const;
   const filas = bundle.organico.filter((o) => enPeriodo(f, o.fecha)).sort((a, b) => a.fecha.localeCompare(b.fecha));
   const piezasMes = bundle.piezas.filter((p) => enPeriodo(f, p.fecha) && !p.promocionado);
   const top = (tipo: 'reel' | 'historia', campo: 'respuestas' | 'comentarios' | 'views') =>
@@ -64,6 +78,64 @@ export default async function Organico({ searchParams }: { searchParams: SearchP
           <Filtros filtros={f} meses={meses} mostrarCloser={false} mostrarFuente={false} />
         </Suspense>
       </div>
+
+      <Seccion eyebrow="Ritmo de contenido" titulo="Lo que se publicó vs. la meta"
+        aside={<span className="text-[13px] text-text-disabled">Meta: {num(OBJETIVOS.piezasPorDia)} publicaciones por día y {num(OBJETIVOS.tofuPorSemana)} TOFU por semana · últimas 4 semanas</span>}>
+        <div className="grid gap-5 xl:grid-cols-2">
+          <div className="card overflow-x-auto !p-0">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Semana</th>
+                  <th className="num" title={`Publicaciones del feed (reels, carruseles, imágenes). Meta: ${metaSemana} por semana`}>Piezas</th>
+                  <th className="num" title={`Meta: ${OBJETIVOS.piezasPorDia} por día`}>Por día</th>
+                  <th className="num" title={`Meta: ${OBJETIVOS.tofuPorSemana} por semana`}>TOFU</th>
+                  <th className="num">MOFU</th>
+                  <th className="num">BOFU</th>
+                  <th className="num" title="Todavía sin etapa: se clasifican en la lista de al lado">Sin clasificar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ritmo.map((s) => (
+                  <tr key={s.desde}>
+                    <td className="font-medium whitespace-nowrap">{fechaCorta(s.desde)} – {fechaCorta(s.hasta)}{s.enCurso && <span className="tag tag-gray ml-2 !text-[11px]">en curso</span>}</td>
+                    <td className="num">{num(s.piezas.length)}</td>
+                    <td className={`num ${semaforo(s.porDia, OBJETIVOS.piezasPorDia)}`}>{String(s.porDia).replace('.', ',')}</td>
+                    <td className={`num ${s.enCurso ? '' : semaforo(s.tofu, OBJETIVOS.tofuPorSemana)}`}>{num(s.tofu)}</td>
+                    <td className="num">{num(s.mofu)}</td>
+                    <td className="num">{num(s.bofu)}</td>
+                    <td className={`num ${s.sinClasificar ? 'warn' : ''}`}>{num(s.sinClasificar)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="card overflow-x-auto !p-0">
+            <table className="table">
+              <thead>
+                <tr><th>Publicación (últimas 2 semanas)</th><th>Fecha</th><th title="Se deduce del ángulo de Marketing; se puede corregir con un click">Etapa</th><th>Ángulo</th><th className="num">Views</th></tr>
+              </thead>
+              <tbody>
+                {recientes.length ? recientes.map((p) => {
+                  const e = etapas.get(p.ig_media_id);
+                  return (
+                    <tr key={p.ig_media_id}>
+                      <td className="max-w-[260px] truncate">{p.url ? <a href={p.url} target="_blank" rel="noreferrer" className="text-[var(--accent)] hover:underline">{p.titulo} ↗</a> : p.titulo}</td>
+                      <td className="whitespace-nowrap text-text-muted">{fechaCorta(p.fecha)}</td>
+                      <td className="editable">
+                        <EditableCell ruta="/api/piezas" agendaId={p.ig_media_id} campo="etapa" valor={p.etapa ?? e?.etapa ?? null} tipo="select" opciones={OPC_ETAPA} demo={bundle.demo} editable={editor}
+                          mostrar={e ? <span className={`tag ${COLOR_ETAPA[e.etapa]}`} title={e.como === 'a mano' ? 'Cargada a mano' : `Deducida por la ${e.como}`}>{e.etapa}{e.como !== 'a mano' ? ' ·' : ''}</span> : <span className="tag tag-gray">sin clasificar</span>} />
+                      </td>
+                      <td className="max-w-[220px] truncate text-text-muted">{e?.angulo ?? '—'}</td>
+                      <td className="num">{num(p.views)}</td>
+                    </tr>
+                  );
+                }) : <tr><td colSpan={5} className="text-text-muted">Sin publicaciones en las últimas 2 semanas.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Seccion>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Seccion eyebrow="Diario" titulo="Historias y reels">
