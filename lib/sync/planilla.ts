@@ -81,7 +81,7 @@ export function leerPlanilla(csv: string): Planilla {
   const cPago = col('pago realizado', 6);
   const cCloser = col('closer', -1);
   const cRenov = col('renovacion', -1);
-  if (!cab.some((c) => c.startsWith('pago realizado'))) throw new Error('la pestaña no tiene la columna "PAGO REALIZADO": no es una pestaña de ventas');
+  if (!cab.some((c) => c.startsWith('pago realizado')) || !cab.some((c) => c.startsWith('moneda'))) throw new Error('la pestaña no tiene las columnas "PAGO REALIZADO" y "MONEDA": no es una pestaña de ventas con el formato actual');
 
   const fila = (titulo: string) => filas.find((f) => norm(f[cCliente] ?? '').startsWith(titulo));
   const tipoCambio = monto(fila('tipo de cambio')?.[cPago]);
@@ -135,21 +135,30 @@ export function compararPlanilla(planilla: Planilla, cobros: CobroDashboard[]): 
   const faltan: PagoPlanilla[] = [];
   let coinciden = 0;
   const palabras = (s: string) => new Set(norm(s).split(' ').filter((p) => p.length >= 3));
-  for (const p of planilla.pagos) {
+  const candidatos = (p: PagoPlanilla) => {
     const mias = palabras(p.cliente);
-    const candidatos = libres
+    return libres
       .filter((c) => Math.abs(c.usd - p.usd) <= 1)
       .map((c) => ({
         c,
         comunes: Array.from(palabras(c.nombre)).filter((w) => mias.has(w)).length,
         dias: p.fecha ? Math.abs(Date.parse(c.fecha) - Date.parse(p.fecha)) / 86400000 : 0,
       }))
-      // Mismo monto pero de otra persona y otra fecha no es el mismo pago
-      .filter((x) => x.comunes > 0 || x.dias <= 3)
       .sort((x, y) => y.comunes - x.comunes || x.dias - y.dias);
-    if (candidatos.length) { libres.splice(libres.indexOf(candidatos[0].c), 1); coinciden++; }
-    else faltan.push(p);
+  };
+  // Dos pasadas: primero los que coinciden por nombre (así un pago de otra persona con el mismo monto no se queda
+  // con el cobro), después los que solo coinciden por monto y fecha (± 3 días).
+  let pendientes = [...planilla.pagos];
+  for (const porNombre of [true, false]) {
+    const sinPareja: PagoPlanilla[] = [];
+    for (const p of pendientes) {
+      const c = candidatos(p).find((x) => (porNombre ? x.comunes > 0 : x.dias <= 3));
+      if (c) { libres.splice(libres.indexOf(c.c), 1); coinciden++; }
+      else sinPareja.push(p);
+    }
+    pendientes = sinPareja;
   }
+  faltan.push(...pendientes);
   const suma = (xs: { usd: number }[]) => Math.round(xs.reduce((s, x) => s + x.usd, 0) * 100) / 100;
   return { totalPlanilla: planilla.totalUsd ?? suma(planilla.pagos), totalDashboard: suma(cobros), faltanEnDashboard: faltan, sobranEnDashboard: libres, coinciden };
 }
