@@ -202,3 +202,43 @@ export async function syncIgOrganico(sb: SupabaseClient, dry = false): Promise<s
   }
   return `${nHist} historias, ${nReels} reels${repaso ? ' (repaso 120 días)' : ''}, ${nSeg} seguidores nuevos en 30 días`;
 }
+
+export interface AutomatizacionReel {
+  url: string | null;
+  fecha: string;
+  palabra: string | null;
+  /** Comentarios de otras personas (los que Instagram devuelve, hasta 50) */
+  comentarios: number;
+  /** De esos, cuántos recibieron una respuesta de la cuenta (la que manda la automatización de ManyChat) */
+  respondidos: number;
+}
+
+/**
+ * ¿La automatización de comentarios está andando? Por cada publicación reciente con comentarios cuenta cuántos
+ * recibieron la respuesta de la cuenta. Un reel con varios comentarios y ninguna respuesta = ManyChat no disparó.
+ * Solo lee comentarios; no responde ni cambia nada.
+ */
+export async function revisarAutomatizacion(dias: number, cuenta: string): Promise<AutomatizacionReel[]> {
+  const igUser = await cuentaInstagram();
+  const desde = new Date(Date.now() - dias * 86400000).toISOString();
+  const pagina = await graph<{ data: Media[] }>(`${igUser}/media`, {
+    fields: 'id,media_product_type,media_type,timestamp,caption,comments_count,permalink',
+    since: String(Math.floor(new Date(desde).getTime() / 1000)),
+    limit: '50',
+  });
+  const propia = cuenta.replace(/^@/, '').toLowerCase();
+  const out: AutomatizacionReel[] = [];
+  for (const m of (pagina.data ?? []).filter((x) => x.timestamp >= desde && (x.comments_count ?? 0) > 0)) {
+    type Com = { username?: string; replies?: { data: { username?: string }[] } };
+    const com = await graph<{ data: Com[] }>(`${m.id}/comments`, { fields: 'username,replies.limit(10){username}', limit: '50' });
+    const deOtros = (com.data ?? []).filter((c) => (c.username ?? '').toLowerCase() !== propia);
+    out.push({
+      url: m.permalink ?? null,
+      fecha: m.timestamp.slice(0, 10),
+      palabra: palabraClave(m.caption),
+      comentarios: deOtros.length,
+      respondidos: deOtros.filter((c) => (c.replies?.data ?? []).some((r) => (r.username ?? '').toLowerCase() === propia)).length,
+    });
+  }
+  return out.sort((a, b) => b.fecha.localeCompare(a.fecha));
+}

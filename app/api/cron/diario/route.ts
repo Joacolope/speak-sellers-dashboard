@@ -4,7 +4,8 @@ import { supabase, supabaseConfigurado } from '@/lib/supabase';
 import { bearerValido, env } from '@/lib/env';
 import { syncGhl } from '@/lib/sync/ghl';
 import { syncMetaAds, syncMetaCampanas } from '@/lib/sync/meta';
-import { historialPublicaciones, syncIgOrganico } from '@/lib/sync/ig';
+import { historialPublicaciones, revisarAutomatizacion, syncIgOrganico } from '@/lib/sync/ig';
+import { CLIENTE } from '@/lib/cliente';
 import { manychat, syncManychat } from '@/lib/sync/manychat';
 import { vencimientoMeta } from '@/lib/sync/vencimiento';
 import { controlPlanilla } from '@/lib/sync/planilla';
@@ -63,6 +64,15 @@ async function manejarGET(req: NextRequest) {
       hallados.push(...(Array.isArray(uno) ? uno : uno ? [uno] : []));
     }
     return NextResponse.json(hallados.slice(0, 20).map((h) => ({ id: h.id, nombre: h.name, ig: h.ig_username, desde: h.subscribed, tags: (h.tags ?? []).map((t) => t.name) })));
+  }
+  // ?solo=automatizacion&dias=7 → por cada publicación reciente, cuántos comentarios recibieron la respuesta automática
+  if (solo === 'automatizacion') {
+    const dias = Math.min(60, Math.max(1, Number(req.nextUrl.searchParams.get('dias')) || 7));
+    try {
+      return NextResponse.json(await revisarAutomatizacion(dias, CLIENTE.meta.instagram ?? ''));
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 });
+    }
   }
   // ?solo=planilla&mes=AAAA-MM compara el mes contra la planilla de finanzas y devuelve las diferencias (solo lee)
   if (solo === 'planilla') {
