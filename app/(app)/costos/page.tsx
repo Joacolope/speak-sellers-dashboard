@@ -48,7 +48,7 @@ export default async function Costos({ searchParams }: { searchParams: SearchPar
           <div className="eyebrow">Costos</div>
           <h1 className="h1 mt-2">Software y costos fijos</h1>
           <p className="mt-2 max-w-2xl text-[14px] text-text-muted">
-            Lo que pagamos por mes en herramientas, editores y comisiones de closers. Las plataformas de cobro hoy están en 0 (no se paga comisión); cuando empiecen a cobrar, se carga la tarifa abajo. Todo se descuenta de la facturación, junto con los anuncios, para calcular el Cash Collected.
+            Lo que pagamos por mes en herramientas, editores y comisiones de closers. Las plataformas de cobro descuentan su comisión según la tarifa cargada abajo (las que están en 0 no cobran). Todo se descuenta de la facturación, junto con los anuncios, para calcular el Cash Collected.
           </p>
           {ok && <div className="ok mt-3 text-[14px]">Guardado: {ok}</div>}
           {error && <div className="bad mt-3 text-[14px]">{error}</div>}
