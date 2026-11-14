@@ -291,6 +291,7 @@ export default async function PuntosDeContacto({ searchParams }: { searchParams:
                         <td>{setter === null ? <span className="text-text-disabled">—</span> : setter ? 'Sí' : 'No'}</td>
                         <td className="min-w-[420px] whitespace-normal">
                           <div className="flex flex-col gap-3">
+                            {pu.primera && l?.fuente === 'Referido' && <div><span className="tag tag-yellow" title="Llegó recomendado por alguien: las piezas que comentó suman, pero no explican solas la venta">Vino referido: el reel no explica toda la venta</span></div>}
                             {pu.primera && <Pieza rotulo={pu.ultima ? 'Primera' : 'Única pieza'} p={pu.primera} />}
                             {pu.ultima && <Pieza rotulo="Última antes de comprar" p={pu.ultima} />}
                             {pu.total > 2 && <div className="text-[12px] text-text-disabled" title={piezas.map((x) => `${fechaCorta(x.fecha)} ${x.nombre}`).join(' · ')}>+ {num(pu.total - 2)} en el medio</div>}
