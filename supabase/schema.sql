@@ -381,8 +381,8 @@ create table if not exists log_agente (
 -- Los costos (software, herramientas) se cargan desde la pantalla Costos.
 
 -- Tarifas de plataformas de cobro (se cargan una sola vez, si la tabla está vacía).
--- Por ahora no se paga comisión en ninguna plataforma: todo arranca en 0 y se cambia desde Costos
--- cuando empiecen a cobrar (referencia Stripe cuenta US con tarjeta internacional: 4,4 % + 0,30 USD).
+-- Todo arranca en 0 y se cambia desde Costos (referencia Stripe cuenta US con tarjeta internacional:
+-- 2,9 % + 1,5 % internacional = 4,4 % + 0,30 USD por cobro).
 insert into comisiones_plataformas (plataforma, porcentaje, fijo, fecha_alta, notas, source)
 select v.plataforma, v.pct, v.fijo, date '2026-08-01', v.notas, 'manual'
 from (values
