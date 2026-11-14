@@ -21,7 +21,7 @@ export function alertas(b: RawBundle, hoy: string, metas: ProgresoMeta[] = []): 
   // Cuotas vencidas
   const { vencidas, semana, sinFecha } = cuotasPorCobrar(b, hoy);
   if (vencidas.length)
-    out.push({ nivel: 'red', texto: `${vencidas.length === 1 ? '1 cuota vencida' : `${vencidas.length} cuotas vencidas`} por ${usd(totalCuotas(vencidas))}: ${nombres(vencidas.map((c) => c.nombre))}`, href: '/cobranzas' });
+    out.push({ nivel: 'red', texto: `${vencidas.length === 1 ? '1 pago vencido' : `${vencidas.length} pagos vencidos`} (cuotas y señas sin completar) por ${usd(totalCuotas(vencidas))}: ${nombres(vencidas.map((c) => c.nombre))}`, href: '/cobranzas' });
 
   // Vencen esta semana y nadie los contactó en los últimos 7 días
   const sinAviso = semana.filter((c) => c.dias_sin_contacto === null || c.dias_sin_contacto > 7);
