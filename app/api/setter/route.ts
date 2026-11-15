@@ -73,7 +73,8 @@ async function manejarPOST(req: NextRequest) {
     fila[c] = n;
     alguno = true;
   }
-  if (!alguno) return volver({ error: 'Completá al menos un número' });
+  // Un día sin números pero con nota (p. ej. "ManyChat caído") queda registrado como día sin datos: no cuenta como 0
+  if (!alguno && !(d.notas ?? '').trim()) return volver({ error: 'Completá al menos un número (o una nota si ese día no hubo datos)' });
   if (d.notas) fila.notas = String(d.notas).slice(0, 2000);
 
   const { error } = await supabase().from('setter_diario').upsert(fila, { onConflict: 'fecha' });
