@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__GHL__list_locations",
+      "mcp__GHL__search_operations",
+      "mcp__GHL__describe_operation",
+      "mcp__GHL__execute_operation"
+    ]
+  }
+}
