@@ -55,7 +55,8 @@
       "properties": {
         "locationId": { "type": "string", "description": "ID de la sub-cuenta (location) de GoHighLevel. GHL_LOCATION_ID la pisa." },
         "calendarios": { "type": "array", "items": { "type": "string" }, "description": "IDs de los calendarios de llamadas de venta. Vacío = todos los calendarios de la sub-cuenta." },
-        "pipelineId": { "type": "string", "description": "ID del pipeline comercial (para leer la etapa de cada lead). Vacío = el primer pipeline." }
+        "pipelineId": { "type": "string", "description": "ID del pipeline comercial (para leer la etapa de cada lead). Vacío = el primer pipeline." },
+        "funnelPorCalendario": { "type": "object", "additionalProperties": { "enum": ["Orgánico", "Webinar", "YouTube"] }, "description": "ID de calendario → funnel. Quien agenda en ese calendario queda en ese funnel si todavía no tenía uno (ej.: el calendario de las sesiones post webinar → \"Webinar\")." }
       }
     },
 

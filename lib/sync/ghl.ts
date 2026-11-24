@@ -277,6 +277,9 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
     const ultimo = toque(contacto?.lastAttributionSource) ?? primero;
     if (primero) await sb.from('leads').update({ primer_punto_contacto: primero }).eq('id', lead.id).is('primer_punto_contacto', null);
     if (ultimo) await sb.from('leads').update({ ultimo_punto_contacto: ultimo }).eq('id', lead.id).is('ultimo_punto_contacto', null);
+    // Funnel por calendario (ej.: sesiones post webinar → Webinar). Solo si el lead todavía no tiene uno.
+    const funnelCal = CLIENTE.ghl.funnelPorCalendario?.[ev.calendarId];
+    if (funnelCal) await sb.from('leads').update({ funnel: funnelCal }).eq('id', lead.id).is('funnel', null);
 
     let { data: existente } = await sb.from('agendas').select('id, source, asistio').eq('ghl_event_id', ev.id).maybeSingle();
     if (!existente) {

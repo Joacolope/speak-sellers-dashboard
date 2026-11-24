@@ -30,7 +30,13 @@ export interface ConfigCliente {
   googleSiteVerification?: string;
   closers: CloserConfig[];
   objetivos: { asistencia: number; cierre: number; respuestaMin?: number; piezasPorDia?: number; tofuPorSemana?: number };
-  ghl: { locationId?: string; calendarios?: string[]; pipelineId?: string };
+  ghl: {
+    locationId?: string;
+    calendarios?: string[];
+    pipelineId?: string;
+    /** Calendario → funnel: quien agenda en ese calendario entra por ese funnel (ej.: el de las sesiones post webinar) */
+    funnelPorCalendario?: Record<string, 'Orgánico' | 'Webinar' | 'YouTube'>;
+  };
   meta: {
     cuentaPublicitaria?: string;
     paginaId?: string;
