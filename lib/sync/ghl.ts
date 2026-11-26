@@ -140,6 +140,17 @@ function estadoAAsistio(estado: string): 'Asistió' | 'No show' | 'Canceló' | '
 }
 
 /**
+ * Asistencia de una cita. Si GHL no la marcó pero la llamada ya pasó y el lead está en
+ * "Cliente" o "Reserva" en el pipeline, compró o reservó: entonces asistió.
+ */
+function asistenciaDe(ev: GhlEvent, etapa: string | undefined): 'Asistió' | 'No show' | 'Canceló' | 'Pendiente' {
+  const estado = estadoAAsistio(ev.appointmentStatus);
+  if (estado !== 'Pendiente') return estado;
+  const yaPaso = Date.parse(ev.startTime) < Date.now();
+  return yaPaso && /cliente|reserva/i.test(etapa ?? '') ? 'Asistió' : 'Pendiente';
+}
+
+/**
  * Trae agendas de los últimos 45 días + próximos 30 y las upserta por ghl_event_id.
  * Nunca pisa asistio / compro / cash_collected si la fila ya es manual o del agente.
  */
@@ -304,13 +315,13 @@ export async function syncGhl(sb: SupabaseClient, dry = false, opciones: { event
       ...(/confirm/i.test(etapas.get(ev.contactId) ?? '') ? { confirmada_whatsapp: true } : {}),
     };
     if (!existente) {
-      campos.asistio = estadoAAsistio(ev.appointmentStatus);
+      campos.asistio = asistenciaDe(ev, etapas.get(ev.contactId));
       campos.source = 'ghl';
       const { error } = await sb.from('agendas').insert(campos);
       if (error) throw new Error(`agendas insert: ${error.message}`);
     } else {
       // GHL actualiza la asistencia solo mientras nadie la haya cargado a mano
-      if (existente.asistio === 'Pendiente') campos.asistio = estadoAAsistio(ev.appointmentStatus);
+      if (existente.asistio === 'Pendiente') campos.asistio = asistenciaDe(ev, etapas.get(ev.contactId));
       const { error } = await sb.from('agendas').update(campos).eq('id', existente.id);
       if (error) throw new Error(`agendas update: ${error.message}`);
     }
